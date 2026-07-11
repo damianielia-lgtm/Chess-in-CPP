@@ -73,8 +73,10 @@ std::string to_uci(const int& move) {
      return uci;
 }
 
-std::array<int, 64> create_board() {
-     std::array<int, 64> board = {
+Position start_pos(const std::string* data) {
+     Position position;
+
+     position.board = {
         4, 2, 3, 5, 6, 3, 2, 4,
         1, 1, 1, 1, 1, 1, 1, 1,
         0, 0, 0, 0, 0, 0, 0, 0,
@@ -83,6 +85,15 @@ std::array<int, 64> create_board() {
         0, 0, 0, 0, 0, 0, 0, 0,
         9, 9, 9, 9, 9, 9, 9, 9,
         12, 10, 11, 13, 14, 11, 10, 12};
-
-     return board;
+     position.turn = 0;
+     position.castling_rights = 15;
+     position.en_passant_target = -1;
+     position.halfmove_clock = 0;
+     position.move_clock = 1;
+     position.white_king = 4;
+     position.black_king = 60;
+     
+     if (data == nullptr) {
+          return position;
+     }
 }
