@@ -2,6 +2,7 @@
 #include "move_precomputing.h"
 #include "../core/encoding.h"
 #include "legal_moves.h"
+#include "../core/move_simulation.h"
 
 targets_arr<32> pseudo_legal_moves(int square_index, int piece_moved, const Position& position, bool loud) {
      targets_arr<32> moves{};
@@ -139,4 +140,34 @@ bool is_attacked_square(const std::array<int, 64>& board, const int& square, con
           }
      }
      return false;
+}
+
+bool has_legal_moves(Position& position) {
+     std::array<int, 64>& board = position.board;
+     const int turn = position.turn;
+     for (int square_index = 0; square_index <= 63; square_index++) {
+          int piece = board[square_index];
+          if (piece != 0 && (piece >> 3) == turn) {
+               targets_arr<32> pseudo_moves = pseudo_legal_moves(square_index, piece, position, false);
+               for (int move_index = 0; move_index < pseudo_moves.count; move_index++) {
+                    if (is_legal_move(position, pseudo_moves.squares[move_index], piece)) {return true;}
+               }
+          }
+     }
+     return false;
+}
+
+bool is_legal_move(Position& position, const int move, const int piece_moved) {
+     std::array<int, 64>& board = position.board;
+     const int turn = position.turn;
+     const int target_square = (move >> 6) & 63;
+     const int capture = (move & en_passant_flag) ? board[(move & 56) | (target_square & 7)] : board[target_square];
+     make_move(move, board, piece_moved);
+     const int king = ((piece_moved & 7) == 6) ? target_square : (turn) ? position.black_king : position.white_king;
+     if (is_attacked_square(board, king, turn ^ 1)) {
+          unmake_move(move, board, capture);
+          return false;
+     }
+     unmake_move(move, board, capture);
+     return true;
 }
