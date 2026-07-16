@@ -142,6 +142,25 @@ bool is_attacked_square(const std::array<int, 64>& board, const int& square, con
      return false;
 }
 
+const std::array<int, 4> castling_moves = {388 | (1 << 18), 132 | (1 << 18), 4028 | (1 << 18), 3772 | (1 << 18)};
+const std::array<std::array<std::array<int, 3>, 2>, 4> castling_information = {{
+     {{{5, 6, 6}, {4, 5, 6}}},
+     {{{3, 2, 1}, {4, 3, 2}}},
+     {{{61, 62, 62}, {60, 61, 62}}},
+     {{{59, 58, 57}, {60, 59, 58}}}
+}};
+const std::array<int, 4> masks = {1, 2, 4, 8};
+
+bool can_castle(const std::array<int, 64>& board, const int turn, const int castling_rights, const int side) {
+     const int castling_index = (turn << 1) | side;
+     if ((castling_rights & masks[castling_index]) == 0) {return false;}
+     const std::array<int, 3>& empty_squares = castling_information[castling_index][0];
+     if ((board[empty_squares[0]] != 0) || (board[empty_squares[1]] != 0) || (board[empty_squares[2]] != 0)) {return false;}
+     const std::array<int, 3>& safe_squares = castling_information[castling_index][1];
+     if (is_attacked_square(board, safe_squares[0], turn ^ 1) || is_attacked_square(board, safe_squares[1], turn ^ 1) || is_attacked_square(board, safe_squares[2], turn ^ 1)) {return false;}
+     return true;
+}
+
 bool has_legal_moves(Position& position) {
      std::array<int, 64>& board = position.board;
      const int turn = position.turn;
@@ -154,6 +173,7 @@ bool has_legal_moves(Position& position) {
                }
           }
      }
+     if (can_castle(board, turn, position.castling_rights, 0) || can_castle(board, turn, position.castling_rights, 1)) {return true;}
      return false;
 }
 
@@ -171,3 +191,4 @@ bool is_legal_move(Position& position, const int move, const int piece_moved) {
      unmake_move(move, board, capture);
      return true;
 }
+
