@@ -192,3 +192,32 @@ bool is_legal_move(Position& position, const int move, const int piece_moved) {
      return true;
 }
 
+MovesList all_legal_moves(Position& position, bool loud) {
+     const std::array<int, 64>& board = position.board;
+     const int turn = position.turn;
+     const std::array<int, 6> pieces = (turn) ? std::array<int, 6>{9, 10, 11, 12, 13, 14} : std::array<int, 6>{1, 2, 3, 4, 5, 6};
+     MovesList moves_list{};
+     for (int square_index = 0; square_index < 64; square_index++) {
+          int piece = board[square_index];
+          if (pieces[0] <= piece && piece <= pieces[5]) {
+               const targets_arr<32>& pseudo_moves = pseudo_legal_moves(square_index, piece, position, loud);
+               for (int indexes = 0; indexes < pseudo_moves.count; indexes++) {
+                    int move = pseudo_moves.squares[indexes];
+                    if (is_legal_move(position, move, piece)) {
+                         moves_list.moves[moves_list.count] = (move);
+                         moves_list.count++;
+                    }
+               }
+          }
+     }
+     if (!loud) {
+          for (int side = 0; side <= 1; side++) {
+               if (can_castle(board, turn, position.castling_rights, side)) {
+                    int castling_index = (turn  << 1) | side;
+                    moves_list.moves[moves_list.count] = (castling_moves[castling_index]);
+                    moves_list.count++;
+               }
+          }
+     }
+     return moves_list;
+}
