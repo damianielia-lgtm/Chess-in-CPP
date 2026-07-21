@@ -2,6 +2,7 @@
 #include <string>
 #include <algorithm>
 #include <cctype>
+#include "diagnostics/perft.h"
 
 void pvp() {};
 void pve(int player_color, int depth) {};
@@ -11,10 +12,10 @@ void analysis_initialisation() {};
 int main() {
      std::string mode;
      while (true) {
-          std::cout << "Would you like to play, replay, analyse a position, or quit?";
+          std::cout << "Would you like to play, replay, analyse a position, run perft, or quit?";
           std::getline(std::cin, mode);
-          if (mode != "replay" && mode != "play" && mode != "analyse position" && mode != "quit") {
-               std::cout << "Answer with play, replay, analyse position or quit.\n";
+          if (mode != "replay" && mode != "play" && mode != "analyse position" && mode != "quit" && mode != "perft") {
+               std::cout << "Answer with play, replay, analyse position, perft or quit.\n";
                continue;
           } else {
                break;
@@ -71,6 +72,30 @@ int main() {
           }
      } else if (mode == "analyse position") {
           analysis_initialisation();
+     } else if (mode == "perft") {
+          std::string perft_mode;
+          while (true) {
+               std::cout << "Do you want to run a benchmark or correctness test?";
+               std::getline(std::cin, perft_mode);
+               if (perft_mode != "Test" && perft_mode != "Benchmark") {
+                    std::cout << "Please answer with 'Test' or 'Benchmark'.\n";
+                    continue;
+               } else {
+                    break;
+               }
+          }
+          std::string preset;
+          while (true) {
+               std::cout << "What speed preset should perft run at?";
+               std::getline(std::cin, preset);
+               if (preset != "Instant" && preset != "Fast" && preset != "Moderate" && preset != "Extended") {
+                    std::cout << "Please answer with 'Insant', 'Fast', 'Moderate' or 'Extended'.\n";
+                    continue;
+               } else {
+                    break;
+               }
+          }
+          std::cout << run_perft(preset, perft_mode);
      }
 
      return 0;
