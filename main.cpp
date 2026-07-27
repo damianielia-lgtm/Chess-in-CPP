@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cctype>
 #include "diagnostics/perft.h"
+#include "diagnostics/debugger.h"
+#include "app/conversion/fen.h"
 
 void pvp() {};
 void pve(int player_color, int depth) {};
@@ -12,10 +14,10 @@ void analysis_initialisation() {};
 int main() {
      std::string mode;
      while (true) {
-          std::cout << "Would you like to play, replay, analyse a position, run perft, or quit?";
+          std::cout << "Would you like to play, replay, analyse a position, run perft, debug, or quit?";
           std::getline(std::cin, mode);
-          if (mode != "replay" && mode != "play" && mode != "analyse position" && mode != "quit" && mode != "perft") {
-               std::cout << "Answer with play, replay, analyse position, perft or quit.\n";
+          if (mode != "replay" && mode != "play" && mode != "analyse position" && mode != "quit" && mode != "perft" && mode != "debug") {
+               std::cout << "Answer with play, replay, analyse position, perft, debug or quit.\n";
                continue;
           } else {
                break;
@@ -96,6 +98,33 @@ int main() {
                }
           }
           std::cout << run_perft(preset, perft_mode);
+     } else if (mode == "debug") {
+          std::string input_fen;
+          while (true) {
+               std::cout << "What position would you like to debug?";
+               std::getline(std::cin, input_fen);
+               if (!is_valid_fen(input_fen)) {
+                    std::cout << "Please answer with a valid fen.\n";
+                    continue;
+               } else {
+                    break;
+               }
+          }
+
+          std::string depth_str;
+          while (true) {
+               std::cout << "At what depth?";
+               std::getline(std::cin, depth_str);
+               if (!std::all_of(depth_str.begin(), depth_str.end(), ::isdigit) || (std::stoi(depth_str) <= 0)) {
+                         std::cout << "The depth should be a positive integer.\n";
+                         continue;
+                    } else {
+                         break;
+                    }
+          }
+
+          int depth = std::stoi(depth_str);
+          std::cout << debug_pos(input_fen, depth);
      }
 
      return 0;
