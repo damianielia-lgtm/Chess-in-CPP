@@ -3,4 +3,5 @@
 #include "../core/move_list.h"
 #include "../core/position.h"
 
-MovesList all_legal_moves(Position& position, bool loud);
+void generate_all_moves(MovesList& legal_moves, Position& position, bool loud);
+MovesList all_moves(Position& position, bool loud);

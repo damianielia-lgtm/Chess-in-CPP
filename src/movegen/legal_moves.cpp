@@ -125,8 +125,12 @@ void pseudo_moves(
     }
 }
 
-MovesList all_legal_moves(Position& position, bool loud) {
-    MovesList legal_moves;
+void generate_all_moves(
+    MovesList& legal_moves,
+    Position& position,
+    bool loud
+) {
+    legal_moves.clear();
 
     auto emit_if_legal = [&position, &legal_moves](Move move) {
         if (is_legal_move(position, move)) {
@@ -155,5 +159,10 @@ MovesList all_legal_moves(Position& position, bool loud) {
             legal_moves.push(castling_index.castling_king_movement());
         }
     }
+}
+
+MovesList all_moves(Position& position, bool loud) {
+    MovesList legal_moves;
+    generate_all_moves(legal_moves, position, loud);
     return legal_moves;
 }

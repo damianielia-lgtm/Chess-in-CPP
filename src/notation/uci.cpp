@@ -7,7 +7,7 @@
 #include "../movegen/legal_moves.h"
 
 Move Position::resolve_uci(const std::string_view uci) {
-    for (const Move move : all_legal_moves(*this, false)) {
+    for (const Move move : all_moves(*this, false)) {
         if (move.to_uci() == uci) {
             return move;
         }

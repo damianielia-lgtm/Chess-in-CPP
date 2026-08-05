@@ -42,7 +42,7 @@ std::map<std::string, uint64_t> perft_div(std::string fen_string, int depth) {
     Position original_pos = position;
     std::map<std::string, uint64_t> divide;
 
-    for (const Move move : all_legal_moves(position, false)) {
+    for (const Move move : all_moves(position, false)) {
         UndoState move_state = position.apply_move(move);
         divide[move.to_uci()] = perft(position, depth - 1);
         position.revert_move(move, move_state);

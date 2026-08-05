@@ -13,21 +13,37 @@
 #include "../movegen/legal_moves.h"
 #include "../core/position.h"
 #include "../core/move.h"
+#include "../core/move_list.h"
 
-uint64_t perft(Position& position, int depth) {
+uint64_t perft_impl(
+    Position& position,
+    int depth,
+    std::size_t ply,
+    MoveListStack& move_lists
+) {
+    assert(ply < max_ply);
+
     if (depth == 0) { return 1; }
     
-    MovesList legal_moves = all_legal_moves(position, false);
+    MovesList& legal_moves = move_lists[ply];
+    legal_moves.clear();
+    generate_all_moves(legal_moves, position, false);
+    
     if (depth == 1) { return legal_moves.size(); }
 
     uint64_t count = 0;
     for (const Move move : legal_moves) {
         UndoState move_state = position.apply_move(move);
-        count += perft(position, depth - 1);
+        count += perft_impl(position, depth - 1, ply + 1, move_lists);
         position.revert_move(move, move_state);
     }
 
     return count;
+}
+
+uint64_t perft(Position& position, int depth) {
+    MoveListStack move_lists;
+    return perft_impl(position, depth, 0, move_lists);
 }
 
 const std::map<std::string, uint64_t> preset_max_nodes = {

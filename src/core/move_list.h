@@ -19,6 +19,7 @@ public:
     [[nodiscard]] std::size_t size() const noexcept { return count_; }
     [[nodiscard]] bool full() const noexcept { return count_ == capacity; }
     [[nodiscard]] bool empty() const noexcept { return count_ == 0; }
+    [[nodiscard]] void clear() noexcept { count_ = 0; }
 
     using iterator = std::array<Move, capacity>::iterator;
     using const_iterator = std::array<Move, capacity>::const_iterator;
@@ -33,3 +34,6 @@ private:
     std::array<Move, capacity> moves_{};
     std::size_t count_ = 0;
 };
+
+constexpr std::size_t max_ply = 16;
+using MoveListStack = std::array<MovesList, max_ply>;
