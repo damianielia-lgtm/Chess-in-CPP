@@ -95,26 +95,24 @@ constexpr MoveTables precompute_movement() {
             table.DOUBLE_PAWN_PUSH[1][square_index].available = true;
         }
 
-        int target_rank;
-        int target_file;
         for (const auto& [rank_offset, file_offset] : knight_offsets) {
-            target_rank = rank + rank_offset;
-            target_file = file + file_offset;
+            int target_rank = rank + rank_offset;
+            int target_file = file + file_offset;
             if (in_board(target_rank, target_file)) {
                 table.KNIGHT_MOVEMENT[square_index].push(Square(target_rank * 8 + target_file));
             }
         }
         for (const auto& [rank_offset, file_offset] : king_offsets) {
-            target_rank = rank + rank_offset;
-            target_file = file + file_offset;
+            int target_rank = rank + rank_offset;
+            int target_file = file + file_offset;
             if (in_board(target_rank, target_file)) {
                 table.KING_MOVEMENT[square_index].push(Square(target_rank * 8 + target_file));
             }
         }
 
         for (std::uint8_t direction = 0; direction <= 3; direction++) {
-            target_rank = rank;
-            target_file = file;
+            int target_rank = rank;
+            int target_file = file;
             while (true) {
                 target_rank += bishop_offsets[direction][0];
                 target_file += bishop_offsets[direction][1];
@@ -125,8 +123,8 @@ constexpr MoveTables precompute_movement() {
             }
         }
         for (std::uint8_t direction = 0; direction <= 3; direction++) {
-            target_rank = rank;
-            target_file = file;
+            int target_rank = rank;
+            int target_file = file;
             while (true) {
                 target_rank += rook_offsets[direction][0];
                 target_file += rook_offsets[direction][1];

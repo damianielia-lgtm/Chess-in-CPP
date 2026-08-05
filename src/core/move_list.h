@@ -21,12 +21,7 @@ public:
     [[nodiscard]] bool empty() const noexcept { return count_ == 0; }
     [[nodiscard]] void clear() noexcept { count_ = 0; }
 
-    using iterator = std::array<Move, capacity>::iterator;
     using const_iterator = std::array<Move, capacity>::const_iterator;
-
-    iterator begin() { return moves_.begin(); }
-    iterator end() { return moves_.begin() + count_; }
-
     const_iterator begin() const { return moves_.begin(); }
     const_iterator end() const { return moves_.begin() + count_; }
 

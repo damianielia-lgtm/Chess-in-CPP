@@ -11,8 +11,6 @@ bool is_attacked_square(
     const Square square, 
     const Color attacking_color
 ) {
-    Piece piece;
-
     for (const Square attack : TABLES.PAWN_ATTACKS[static_cast<uint8_t>(attacking_color) ^ 1][square.index()]) {
         if (position.piece_at(attack) == Piece(attacking_color, PieceType::Pawn)) {
             return true;
@@ -31,7 +29,7 @@ bool is_attacked_square(
 
     for (const Targets<7>& ray : TABLES.BISHOP_MOVEMENT[square.index()]) {
         for (const Square attack : ray) {
-            piece = position.piece_at(attack);
+            Piece piece = position.piece_at(attack);
             if (piece == Piece(attacking_color, PieceType::Bishop) ||
                 piece == Piece(attacking_color, PieceType::Queen)) {
                 return true;
@@ -43,7 +41,7 @@ bool is_attacked_square(
     }
     for (const Targets<7>& ray : TABLES.ROOK_MOVEMENT[square.index()]) {
         for (const Square attack : ray) {
-            piece = position.piece_at(attack);
+            Piece piece = position.piece_at(attack);
             if (piece == Piece(attacking_color, PieceType::Rook) ||
                 piece == Piece(attacking_color, PieceType::Queen)) {
                 return true;
@@ -53,6 +51,7 @@ bool is_attacked_square(
             }
         }
     }
+
     return false;
 }
 

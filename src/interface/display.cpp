@@ -7,15 +7,13 @@
 #include "../core/position.h"
 #include "../core/square.h"
 
-constexpr std::string_view sperator = "  +---+---+---+---+---+---+---+---+  \n";
-constexpr std::string_view files = "    a   b   c   d   e   f   g   h    \n";
-constexpr std::string_view flipped_files = "    h   g   f   e   d   c   b   a    \n";
-
 void print_board(const Position& position, const bool flip) {
-    std::string_view files = flip ? files : flipped_files;
+    std::string_view files = flip
+        ? "    h   g   f   e   d   c   b   a    \n"
+        : "    a   b   c   d   e   f   g   h    \n";
 
     std::cout << files;
-    std::cout << sperator;
+    std::cout << "  +---+---+---+---+---+---+---+---+  \n";
 
     for (int rank = 7; rank >= 0; --rank) {
         int display_rank = flip ? 7 - rank : rank;
@@ -27,7 +25,7 @@ void print_board(const Position& position, const bool flip) {
         }
 
         std::cout << display_rank + 1 << '\n';
-        std::cout << sperator;
+        std::cout << "  +---+---+---+---+---+---+---+---+  \n";
     }
     
     std::cout << files;

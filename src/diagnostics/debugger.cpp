@@ -147,7 +147,7 @@ std::string debug_pos(std::string fen, int depth) {
     sendCommand(sf, "isready");
     readUntil(sf, "readyok");
 
-    if (fen == "startpos") {fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";}
+    if (fen == "startpos") { fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"; }
     std::string debug_lines = debugger(sf, fen, depth);
 
     sf.requestQuit();

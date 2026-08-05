@@ -15,7 +15,9 @@ void pseudo_pawn_moves(
     bool loud,
     auto& emit
 ) {
-    for (const Square target : TABLES.PAWN_ATTACKS[static_cast<std::uint8_t>(position.turn())][origin.index()]) {
+    const std::uint8_t turn_index = static_cast<std::uint8_t>(position.turn());
+
+    for (const Square target : TABLES.PAWN_ATTACKS[turn_index][origin.index()]) {
         Piece piece = position.piece_at(target);
         if (target == position.en_passant_target()) {
             emit(Move(origin, target, MoveKind::EnPassant));
@@ -31,7 +33,7 @@ void pseudo_pawn_moves(
         }
     }
 
-    Square target = TABLES.PAWN_PUSH[static_cast<std::uint8_t>(position.turn())][origin.index()];
+    Square target = TABLES.PAWN_PUSH[turn_index][origin.index()];
     if (position.piece_at(target).empty()) {
         if (7 >= target.index() || target.index() >= 56) {
             emit(Move(origin, target, MoveKind::KnightPromotion));
@@ -45,8 +47,12 @@ void pseudo_pawn_moves(
         }
     }
 
-    const DoublePawnSquares& double_pawn_push = TABLES.DOUBLE_PAWN_PUSH[static_cast<std::uint8_t>(position.turn())][origin.index()];
-    if (double_pawn_push.available && position.piece_at(double_pawn_push.intermediate).empty() && position.piece_at(double_pawn_push.target).empty()) {
+    const DoublePawnSquares& double_pawn_push = TABLES.DOUBLE_PAWN_PUSH[turn_index][origin.index()];
+    if (
+        double_pawn_push.available &&
+        position.piece_at(double_pawn_push.intermediate).empty() &&
+        position.piece_at(double_pawn_push.target).empty()
+    ) {
         if (!loud) { emit(Move(origin, double_pawn_push.target, MoveKind::DoublePawn)); }
     }
 }
@@ -150,10 +156,10 @@ void generate_all_moves(
     
     if (!loud) {
         CastlingOption castling_index(position.turn(), CastlingSide::Kingside);
-
         if (can_castle(position, castling_index)) {
             legal_moves.push(castling_index.castling_king_movement());
         }
+
         castling_index = CastlingOption(position.turn(), CastlingSide::Queenside);
         if (can_castle(position, castling_index)) {
             legal_moves.push(castling_index.castling_king_movement());

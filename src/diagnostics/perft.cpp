@@ -15,7 +15,7 @@
 #include "../core/move.h"
 #include "../core/move_list.h"
 
-uint64_t perft_impl(
+std::uint64_t perft_impl(
     Position& position,
     int depth,
     std::size_t ply,
@@ -31,7 +31,7 @@ uint64_t perft_impl(
     
     if (depth == 1) { return legal_moves.size(); }
 
-    uint64_t count = 0;
+    std::uint64_t count = 0;
     for (const Move move : legal_moves) {
         UndoState move_state = position.apply_move(move);
         count += perft_impl(position, depth - 1, ply + 1, move_lists);
@@ -41,40 +41,23 @@ uint64_t perft_impl(
     return count;
 }
 
-uint64_t perft(Position& position, int depth) {
+std::uint64_t perft(Position& position, int depth) {
     MoveListStack move_lists;
     return perft_impl(position, depth, 0, move_lists);
 }
 
-const std::map<std::string, uint64_t> preset_max_nodes = {
+const std::map<std::string, std::uint64_t> preset_max_nodes = {
     {"Instant", 300000},
     {"Fast", 1000000},
     {"Moderate", 5000000},
     {"Extended", 20000000}
 };
 
-PresetInfo make_preset(std::string preset) {
-    PresetInfo info;
-
-    for (ExpectedPerft pos : epd_parser()) {
-        std::map<int, uint64_t> per_depth_values;
-
-        for (const auto [depth, expected] : pos.depths) {
-            if ((expected <= preset_max_nodes.at(preset)) && (depth > 0)) {
-                per_depth_values[depth] = expected;
-                info.total_nodes += expected;
-
-                if (expected >= 5000) { info.engine_nodes += expected; }
-            }
-        }
-
-        if (!per_depth_values.empty()) {
-            info.positions.push_back({pos.fen, pos.id, per_depth_values});
-        }
-    }
-
-    return info;
-}
+struct ExpectedPerft {
+    std::string fen;
+    std::string id;
+    std::map<int, uint64_t> depths;
+};
 
 std::vector<ExpectedPerft> epd_parser() {
     std::ifstream file("resources/diagnostics/perft_database.epd");
@@ -109,7 +92,7 @@ std::vector<ExpectedPerft> epd_parser() {
                 pos.id.pop_back();
             } else if (field.starts_with("D")) {
                 int depth = std::stoi(field.substr(1, field.find(' ') - 1));
-                uint64_t count = std::stoull(field.substr(field.find(' ') + 1));
+                std::uint64_t count = std::stoull(field.substr(field.find(' ') + 1));
                 pos.depths[depth] = count;
             }
         }
@@ -120,8 +103,37 @@ std::vector<ExpectedPerft> epd_parser() {
     return pos_list;
 }
 
-std::string perft_test(Position& pos, int depth, uint64_t expected) {
-    uint64_t nodes = perft(pos, depth);
+struct PresetInfo {
+    uint64_t total_nodes = 0;
+    uint64_t engine_nodes = 0;
+    std::vector<ExpectedPerft> positions{};
+};
+
+PresetInfo make_preset(std::string preset) {
+    PresetInfo info;
+
+    for (ExpectedPerft pos : epd_parser()) {
+        std::map<int, std::uint64_t> per_depth_values;
+
+        for (const auto [depth, expected] : pos.depths) {
+            if ((expected <= preset_max_nodes.at(preset)) && (depth > 0)) {
+                per_depth_values[depth] = expected;
+                info.total_nodes += expected;
+
+                if (expected >= 5000) { info.engine_nodes += expected; }
+            }
+        }
+
+        if (!per_depth_values.empty()) {
+            info.positions.push_back({pos.fen, pos.id, per_depth_values});
+        }
+    }
+
+    return info;
+}
+
+std::string perft_test(Position& pos, int depth, std::uint64_t expected) {
+    std::uint64_t nodes = perft(pos, depth);
     std::string perft_line;
 
     if (nodes == expected) {
@@ -137,16 +149,16 @@ std::string perft_test(Position& pos, int depth, uint64_t expected) {
 struct BenchmarkResult {
     std::string line;
     double duration;
-    uint64_t nodes;
+    std::uint64_t nodes;
 };
 
-BenchmarkResult perft_benchmark(Position& pos, int depth, uint64_t expected) {
+BenchmarkResult perft_benchmark(Position& pos, int depth, std::uint64_t expected) {
     if (expected <= 5000) {
         return {"Depth " + std::to_string(depth) + ": Value too low to calculate speed reliably.\n", 0, 0};
     }
 
     auto start = std::chrono::steady_clock::now();
-    uint64_t nodes = perft(pos, depth);
+    std::uint64_t nodes = perft(pos, depth);
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> dur = end - start; 
     double speed = std::round(nodes / dur.count() * 100.0) / 100.0;
@@ -184,13 +196,13 @@ std::string run_perft(std::string preset, std::string mode) {
     std::cerr << header_line << "\n";
 
     std::string lines;
-    uint64_t completed_nodes = 0;
+    std::uint64_t completed_nodes = 0;
     int percentage = 0;
     std::cerr << "\r[>                    ] 0%" << std::flush;
 
     lines += "----- Perft " + mode + " -----\n\n";
     double total_dur = 0.0;
-    uint64_t total_nodes = 0;
+    std::uint64_t total_nodes = 0;
     for (ExpectedPerft perft_state : test_info.positions) {
         lines += "\n--- Running " + perft_state.id + " - Fen: '" + perft_state.fen + "' ---\n\n";
         Position pos(perft_state.fen);
