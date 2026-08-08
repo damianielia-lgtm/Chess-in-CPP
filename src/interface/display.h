@@ -11,7 +11,7 @@
 class PerftProgress {
 public:
     PerftProgress(std::uint64_t total_nodes, std::chrono::milliseconds expected_duration)
-        : total_nodes_(total_nodes), 
+        : total_nodes_(total_nodes)
     {
         make_header(expected_duration);
         std::cerr << header_ << '\n';
@@ -50,8 +50,8 @@ private:
         auto secs = std::chrono::duration_cast<std::chrono::seconds>(duration);
         duration -= secs;
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
-        std::string formatted_time std::format("{:02}:{:02}.{:03}", mins.count(), secs.count(), ms.count());
-        header_ = "Calculating " + std::to_string(total_nodes) + " nodes, expected duration " + formatted_time;
+        std::string formatted_time = std::format("{:02}:{:02}.{:03}", mins.count(), secs.count(), ms.count());
+        header_ = "Calculating " + std::to_string(total_nodes_) + " nodes, expected duration " + formatted_time;
     }
 
     std::uint64_t total_nodes_;

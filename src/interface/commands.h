@@ -5,6 +5,8 @@
 
 #include "../diagnostics/presets.h"
 
+struct HelpCommand {};
+
 struct PositionShowCommand {};
 struct PositionStartposCommand {};
 struct PositionFenCommand { std::string fen; };
@@ -18,6 +20,8 @@ struct BenchmarkPerftCommand { int depth; };
 struct DebugCommand { int depth; };
 
 using Command = std::variant<
+    HelpCommand,
+
     PositionShowCommand,
     PositionStartposCommand,
     PositionFenCommand,

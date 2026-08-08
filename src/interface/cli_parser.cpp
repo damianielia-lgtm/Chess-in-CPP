@@ -152,6 +152,8 @@ Command parse(std::string line) {
         return parse_benchmark(tokens);
     } else if (base_command == "debug") {
         return parse_debug(tokens);
+    } else if (base_command == "help") {
+        return HelpCommand{};
     } else {
         throw std::invalid_argument("Unreconized command.");
     }
