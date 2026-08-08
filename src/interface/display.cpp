@@ -1,7 +1,6 @@
 #include "display.h"
 
 #include <iostream>
-#include <array>
 #include <string_view>
 
 #include "../core/position.h"
@@ -29,4 +28,9 @@ void print_board(const Position& position, const bool flip) {
     }
     
     std::cout << files;
+}
+
+void print_pos_info(const Position& position) {
+    print_board(position, false);
+    std::cout << "Fen: " << position.to_fen() << '\n';
 }

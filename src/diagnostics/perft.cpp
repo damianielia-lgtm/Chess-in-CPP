@@ -14,6 +14,7 @@
 #include "../core/position.h"
 #include "../core/move.h"
 #include "../core/move_list.h"
+#include "../interface/commands.h"
 
 std::uint64_t perft_impl(
     Position& position,
@@ -45,13 +46,6 @@ std::uint64_t perft(Position& position, int depth) {
     MoveListStack move_lists;
     return perft_impl(position, depth, 0, move_lists);
 }
-
-const std::map<std::string, std::uint64_t> preset_max_nodes = {
-    {"Instant", 300000},
-    {"Fast", 1000000},
-    {"Moderate", 5000000},
-    {"Extended", 20000000}
-};
 
 struct ExpectedPerft {
     std::string fen;
@@ -109,14 +103,29 @@ struct PresetInfo {
     std::vector<ExpectedPerft> positions{};
 };
 
-PresetInfo make_preset(std::string preset) {
+const std::map<std::string, std::uint64_t> preset_max_nodes = {
+    {"instant", 300000},
+    {"fast", 1000000},
+    {"moderate", 5000000},
+    {"extended", 20000000}
+};
+
+PresetInfo make_preset(Preset preset) {
     PresetInfo info;
+    std::uint64_t max_nodes;
+    switch (preset) {
+        case Preset::Instant: max_nodes = preset_max_nodes.at("instant"); break;
+        case Preset::Fast: max_nodes = preset_max_nodes.at("fast"); break;
+        case Preset::Moderate: max_nodes = preset_max_nodes.at("moderate"); break;
+        case Preset::Extended: max_nodes = preset_max_nodes.at("extended"); break;
+        default: throw std::invalid_argument("Invalid preset");
+    }
 
     for (ExpectedPerft pos : epd_parser()) {
         std::map<int, std::uint64_t> per_depth_values;
 
         for (const auto [depth, expected] : pos.depths) {
-            if ((expected <= preset_max_nodes.at(preset)) && (depth > 0)) {
+            if ((expected <= max_nodes) && (depth > 0)) {
                 per_depth_values[depth] = expected;
                 info.total_nodes += expected;
 
@@ -171,13 +180,9 @@ BenchmarkResult perft_benchmark(Position& pos, int depth, std::uint64_t expected
 
 #include <iostream>
 
-std::string run_perft(std::string preset, std::string mode) {
+std::string run_perft(Preset preset, PerftMode mode) {
     PresetInfo test_info;
-    try {
-        test_info = make_preset(preset);
-    } catch (const std::runtime_error& e) {
-        return e.what();
-    }
+    test_info = make_preset(preset);
 
     Position test_pos("startpos");
     auto start = std::chrono::steady_clock::now();
@@ -200,7 +205,7 @@ std::string run_perft(std::string preset, std::string mode) {
     int percentage = 0;
     std::cerr << "\r[>                    ] 0%" << std::flush;
 
-    lines += "----- Perft " + mode + " -----\n\n";
+    lines += "\n----- Perft -----\n\n";
     double total_dur = 0.0;
     std::uint64_t total_nodes = 0;
     for (ExpectedPerft perft_state : test_info.positions) {
@@ -208,9 +213,9 @@ std::string run_perft(std::string preset, std::string mode) {
         Position pos(perft_state.fen);
         
         for (const auto [depth, expected] : perft_state.depths) {
-            if (mode == "Test") {
+            if (mode == PerftMode::Test) {
                 lines += perft_test(pos, depth, expected);
-            } else if (mode == "Benchmark") {
+            } else if (mode == PerftMode::Benchmark) {
                 BenchmarkResult benchmark_info = perft_benchmark(pos, depth, expected);
                 lines += benchmark_info.line;
                 total_dur += benchmark_info.duration;
@@ -237,7 +242,7 @@ std::string run_perft(std::string preset, std::string mode) {
     std::cerr << "\033[A\r" << clear_header << "\r" << std::flush;
 
     lines += '\n';
-    if (mode == "Benchmark") {
+    if (mode == PerftMode::Benchmark) {
         std::string total = "Total: " + std::to_string(total_nodes) + " nodes in " + std::format("{:.2f}", total_dur);
         total += "s - Average Speed: " + std::format("{:.2f}", total_nodes / total_dur) + " nodes/s\n";
         lines += total;

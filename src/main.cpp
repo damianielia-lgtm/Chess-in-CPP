@@ -1,7 +1,37 @@
-#include "interface/io.h"
+#include <string>
+#include <iostream>
+#include <stdexcept>
+
+#include "interface/cli_parser.h"
+#include "interface/executor.h"
+#include "interface/session.h"
 
 int main() {
-    user_input_loop();
+    Session session;
+    
+    while (true) {
+        std::cout << "chess> ";
+        std::string line;
+        
+        if(!std::getline(std::cin, line)) { break; }
+        if (line.empty()) { continue; }
+        if (line == "exit") { break; }
+
+        Command command;
+        try {
+            command = parse(line);
+        } catch (const std::invalid_argument& e) {
+            std::cerr << "\033[31m" << e.what() << "\033[0m\n";
+            continue;
+        }
+        
+        try {
+            execute(command, session);
+        } catch (const std::invalid_argument& e) {
+            std::cerr << "\033[31m" << e.what() << "\033[0m\n";
+            continue;
+        }
+    }
 
     return 0;
 }

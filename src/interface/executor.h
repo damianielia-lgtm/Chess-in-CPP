@@ -1,0 +1,6 @@
+#pragma once
+
+#include "commands.h"
+#include "session.h"
+
+void execute(const Command& command, Session& session);
