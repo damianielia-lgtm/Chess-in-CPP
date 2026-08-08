@@ -16,10 +16,10 @@ public:
         moves_[count_++] = move;
     }
 
-    [[nodiscard]] std::size_t size() const noexcept { return count_; }
-    [[nodiscard]] bool full() const noexcept { return count_ == capacity; }
-    [[nodiscard]] bool empty() const noexcept { return count_ == 0; }
-    [[nodiscard]] void clear() noexcept { count_ = 0; }
+    std::size_t size() const noexcept { return count_; }
+    bool full() const noexcept { return count_ == capacity; }
+    bool empty() const noexcept { return count_ == 0; }
+    void clear() noexcept { count_ = 0; }
 
     using const_iterator = std::array<Move, capacity>::const_iterator;
     const_iterator begin() const { return moves_.begin(); }

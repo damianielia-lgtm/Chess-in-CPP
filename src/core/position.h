@@ -38,24 +38,24 @@ public:
     explicit Position(const std::string_view fen_string);
     std::string to_fen() const;
 
-    [[nodiscard]] Move resolve_uci(const std::string_view uci);
+    Move resolve_uci(const std::string_view uci);
 
-    [[nodiscard]] Piece piece_at(Square index) const noexcept {
+    Piece piece_at(Square index) const noexcept {
         assert(index.is_valid());
         return board_[index.index()];
     }
 
-    [[nodiscard]] Color turn() const noexcept { return turn_;};
-    [[nodiscard]] Color opposite_turn() const noexcept { return static_cast<Color>(static_cast<std::uint8_t>(turn_) ^ 1); }
-    [[nodiscard]] CastlingRights castling_rights() const noexcept { return castling_rights_; }
-    [[nodiscard]] Square en_passant_target() const noexcept { return en_passant_target_; }
-    [[nodiscard]] int halfmove_clock() const noexcept { return halfmove_clock_; }
-    [[nodiscard]] int fullmove_number() const noexcept { return fullmove_number_; }
-    [[nodiscard]] Square king_square(Color color) const noexcept { return (color == Color::White) ? white_king_ : black_king_; }
+    Color turn() const noexcept { return turn_;};
+    Color opposite_turn() const noexcept { return static_cast<Color>(static_cast<std::uint8_t>(turn_) ^ 1); }
+    CastlingRights castling_rights() const noexcept { return castling_rights_; }
+    Square en_passant_target() const noexcept { return en_passant_target_; }
+    int halfmove_clock() const noexcept { return halfmove_clock_; }
+    int fullmove_number() const noexcept { return fullmove_number_; }
+    Square king_square(Color color) const noexcept { return (color == Color::White) ? white_king_ : black_king_; }
 
     void make_move(const Move move) noexcept;
     void unmake_move(const Move move, const Piece capture) noexcept;
-    [[nodiscard]] UndoState apply_move(const Move move) noexcept;
+    UndoState apply_move(const Move move) noexcept;
     void revert_move(const Move move, const UndoState& undo_state) noexcept;
 
     bool operator==(const Position&) const = default;

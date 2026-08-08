@@ -3,7 +3,7 @@
 #include <chrono>
 #include <iostream>
 #include <string>
-#include <chrono>
+#include <format>
 #include <cstdint>
 
 #include "../core/position.h"
@@ -45,11 +45,13 @@ private:
     }
 
     void make_header(std::chrono::milliseconds duration) {
-        auto mins = std::chrono::duration_cast<std::chrono::minutes>(duration);
+        using namespace std::chrono;
+
+        auto mins = duration_cast<:minutes>(duration);
         duration -= mins;
-        auto secs = std::chrono::duration_cast<std::chrono::seconds>(duration);
+        auto secs = duration_cast<seconds>(duration);
         duration -= secs;
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+        auto ms = duration_cast<milliseconds>(duration);
         std::string formatted_time = std::format("{:02}:{:02}.{:03}", mins.count(), secs.count(), ms.count());
         header_ = "Calculating " + std::to_string(total_nodes_) + " nodes, expected duration " + formatted_time;
     }

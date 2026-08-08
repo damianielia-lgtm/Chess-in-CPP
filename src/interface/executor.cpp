@@ -4,6 +4,7 @@
 #include <variant>
 #include <string_view>
 
+#include "../core/position.h"
 #include "../diagnostics/perft.h"
 #include "../diagnostics/debugger.h"
 #include "commands.h"
@@ -12,15 +13,16 @@
 
 constexpr std::string_view help_content = 
     "\033[1mCore\033[0m\n"
+    "   \033[90mconfig\033[0m                                                                        set resource paths, board orientation, player names\n"
     "   \033[90mposition show\033[0m                                                                 print current position\n"
     "   \033[90mposition --startpos\033[0m                                                           set starting position\n"
-    "   \033[90mposition --fen \"<fen string>\"\033[0m                                                   load in specific fen\n"
+    "   \033[90mposition --fen \"<fen string>\"\033[0m                                                 load in specific fen\n"
     "   \033[90mmove <uci move>\033[0m                                                               apply uci move to current position\n\n"
 
     "\033[1mGame features\033[0m\n"
     "   \033[90mplay local [--time-control <initial+increment>] [--save <pgn name>]\033[0m           start a local game, both sides on this machine\n"
     "   \033[90mplay online\033[0m                                                                   start an online game\n"
-    "   \033[90mplay engine --color {white|black} --depth <n> [--save <pgn name>]\033[0m             play against the engine\n"
+    "   \033[90mplay engine --player-color {white|black} --depth <n> [--save <pgn name>]\033[0m      play against the engine\n"
     "   \033[90mreplay <saved pgn name>\033[0m                                                       replay a saved game\n"
     "   \033[90manalyze\033[0m                                                                       analyze current position\n\n"
 
@@ -33,7 +35,7 @@ constexpr std::string_view help_content =
     "   \033[90mpgn export <name> --output <file>\033[0m                                             export a saved pgn from game directory\n\n"
 
     "\033[1mFEN management\033[0m\n"
-    "   \033[90mfen list\033[0m list saved FENs\n"
+    "   \033[90mfen list\033[0m                                                                      list saved FENs\n"
     "   \033[90mfen save <name> \"<fen>\"\033[0m                                                       save a FEN string under a name\n"
     "   \033[90mfen show <name>\033[0m                                                               print a saved FEN\n"
     "   \033[90mfen delete <name>\033[0m                                                             delete a saved FEN\n"
@@ -66,8 +68,14 @@ void execute_impl(const MoveCommand& cmd, Session& session) { session.apply_uci_
 
 void execute_impl(const PerftPresetCommand& cmd, Session& session) { std::cout << run_test_preset(cmd.preset); }
 void execute_impl(const BenchmarkPerftPresetCommand& cmd, Session& session) { std::cout << run_benchmark_preset(cmd.preset); }
-void execute_impl(const PerftCommand& cmd, Session& session) { std::cout << run_test(session.current_position(), cmd.depth); }
-void execute_impl(const BenchmarkPerftCommand& cmd, Session& session) { std::cout << run_benchmark(session.current_position(), cmd.depth); }
+void execute_impl(const PerftCommand& cmd, Session& session) {
+    Position position = session.current_position();
+    std::cout << run_test(position, cmd.depth);
+}
+void execute_impl(const BenchmarkPerftCommand& cmd, Session& session) {
+    Position position = session.current_position();
+    std::cout << run_benchmark(position, cmd.depth);
+}
 void execute_impl(const DebugCommand& cmd, Session& session) { std::cout << debug_pos(session.current_position().to_fen(), cmd.depth); }
 
 void execute(const Command& command, Session& session) {

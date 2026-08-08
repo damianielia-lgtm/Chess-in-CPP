@@ -43,14 +43,14 @@ public:
         encoding_ |= static_cast<std::uint8_t>(flags) << 12;
     }
 
-    [[nodiscard]] std::string to_uci() const;
+    std::string to_uci() const;
 
-    [[nodiscard]] Square origin() const noexcept { return Square(encoding_ & 63); }
-    [[nodiscard]] Square target() const noexcept { return Square((encoding_ >> 6) & 63); }
-    [[nodiscard]] Square en_passant_capture() const noexcept { return Square(((encoding_ >> 6) & 7) | (encoding_ & 56)); }
-    [[nodiscard]] MoveKind kind() const noexcept { return static_cast<MoveKind>(encoding_ >> 12); }
+    Square origin() const noexcept { return Square(encoding_ & 63); }
+    Square target() const noexcept { return Square((encoding_ >> 6) & 63); }
+    Square en_passant_capture() const noexcept { return Square(((encoding_ >> 6) & 7) | (encoding_ & 56)); }
+    MoveKind kind() const noexcept { return static_cast<MoveKind>(encoding_ >> 12); }
 
-    [[nodiscard]] PieceType promotion_type() const noexcept {
+    PieceType promotion_type() const noexcept {
         switch (kind()) {
             case MoveKind::KnightPromotion: return PieceType::Knight;
             case MoveKind::KnightPromotionCapture: return PieceType::Knight;
@@ -64,7 +64,7 @@ public:
         }
     }
 
-    [[nodiscard]] bool is_capture() const noexcept {
+    bool is_capture() const noexcept {
         switch (kind()) {
             case MoveKind::Capture: return true;
             case MoveKind::EnPassant: return true;
@@ -75,11 +75,11 @@ public:
             default: return false;
         }
     }
-    [[nodiscard]] bool is_double_pawn() const noexcept { return kind() == MoveKind::DoublePawn; }
-    [[nodiscard]] bool is_en_passant() const noexcept { return kind() == MoveKind::EnPassant; }
-    [[nodiscard]] bool is_castling() const noexcept { return kind() == MoveKind::Castling; }
-    [[nodiscard]] bool is_promotion() const noexcept { return kind() > MoveKind::EnPassant; }
-    [[nodiscard]] bool is_loud() const noexcept {
+    bool is_double_pawn() const noexcept { return kind() == MoveKind::DoublePawn; }
+    bool is_en_passant() const noexcept { return kind() == MoveKind::EnPassant; }
+    bool is_castling() const noexcept { return kind() == MoveKind::Castling; }
+    bool is_promotion() const noexcept { return kind() > MoveKind::EnPassant; }
+    bool is_loud() const noexcept {
         switch (kind()) {
             case MoveKind::None: return false;
             case MoveKind::DoublePawn: return false;

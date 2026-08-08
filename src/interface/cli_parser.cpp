@@ -96,7 +96,7 @@ int parse_depth(std::string depth_string) {
         if (!std::isdigit(c)) { throw std::invalid_argument("Invalid depth."); }
     }
     int depth = std::stoi(depth_string);
-    if (depth == 0) { throw std::invalid_argument("Invalid depth."); }
+    if (depth == 0 || depth > 16) { throw std::invalid_argument("Invalid depth."); }
     return depth;
 }
 

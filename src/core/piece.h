@@ -61,13 +61,13 @@ public:
         }
     }
 
-    [[nodiscard]] bool empty() const noexcept { return static_cast<PieceType>(encoding_ & 7) == PieceType::Empty; }
-    [[nodiscard]] Color color() const noexcept {
+    bool empty() const noexcept { return static_cast<PieceType>(encoding_ & 7) == PieceType::Empty; }
+    Color color() const noexcept {
         assert(!empty());
         return static_cast<Color>(encoding_ >> 3);
     }
-    [[nodiscard]] PieceType type() const noexcept { return static_cast<PieceType>(encoding_ & 7); }
-    [[nodiscard]] char symbol() const noexcept {
+    PieceType type() const noexcept { return static_cast<PieceType>(encoding_ & 7); }
+    char symbol() const noexcept {
         switch (encoding_) {
             case 1: return 'P';
             case 2: return 'N';
@@ -87,11 +87,11 @@ public:
         }
         return '.';
     }
-    [[nodiscard]] bool is_enemy(Color turn) const noexcept {
+    bool is_enemy(Color turn) const noexcept {
         assert(!empty());
         return color() != turn;
     }
-    [[nodiscard]] bool is_own(Color turn) const noexcept {
+    bool is_own(Color turn) const noexcept {
         assert(!empty());
         return color() == turn;
     }

@@ -57,10 +57,10 @@ Position::Position(const std::string_view fen_string) {
 
             if (token == '/') {
                 if (rank_square_count != 8) {
-                        throw std::invalid_argument("Rank must have 8 squares");
+                    throw std::invalid_argument("Rank must have 8 squares");
                 } else {
-                        rank_square_count = 0;
-                        continue;
+                    rank_square_count = 0;
+                    continue;
                 }
             } else if (rank_square_count >= 8) {
                 throw std::invalid_argument("Rank must have 8 squares");
@@ -68,18 +68,18 @@ Position::Position(const std::string_view fen_string) {
             
             if (std::isdigit(token)) {
                 if (std::isdigit(fen_info.board[token_index + 1])) {
-                        throw std::invalid_argument("Consecutive digits in board");
+                    throw std::invalid_argument("Consecutive digits in board");
                 }
 
                 if (token == '0' || token == '9') {
-                        throw std::invalid_argument("Invalid board piece");
+                    throw std::invalid_argument("Invalid board piece");
                 }
 
                 for (int i = 0; i < (token - '0'); i++) {
-                        square = Square(static_cast<std::uint8_t>(fen_index ^ 56)); // Reverses rank to fit our indexing
-                        set_piece(square, Piece());
-                        fen_index++;
-                        rank_square_count++;
+                    square = Square(static_cast<std::uint8_t>(fen_index ^ 56)); // Reverses rank to fit our indexing
+                    set_piece(square, Piece());
+                    fen_index++;
+                    rank_square_count++;
                 }
 
             } else if (std::string("pnbrqkPNBRQK").find(token) != std::string::npos) {
@@ -91,7 +91,7 @@ Position::Position(const std::string_view fen_string) {
                 if (token == 'k') {black_kings++;}
                 
                 if ((token == 'P' || token == 'p') && (square.rank() == 0 || square.rank() == 7)) {
-                        throw std::invalid_argument("Pawn on invalid rank");
+                    throw std::invalid_argument("Pawn on invalid rank");
                 }
                 
                 fen_index++;
@@ -124,33 +124,33 @@ Position::Position(const std::string_view fen_string) {
                 CastlingOption candidate_option(c);
 
                 switch(candidate_option.color()) {
-                        case Color::White:
-                            if (piece_at(Square('e', '1')) != Piece(Color::White, PieceType::King)) {
-                                throw std::invalid_argument("Missing white king for castling");
-                            } break;
-                        case Color::Black:
-                            if (piece_at(Square('e', '8')) != Piece(Color::Black, PieceType::King)) {
-                                throw std::invalid_argument("Missing black king for castling");
-                            } break;
+                    case Color::White:
+                        if (piece_at(Square('e', '1')) != Piece(Color::White, PieceType::King)) {
+                            throw std::invalid_argument("Missing white king for castling");
+                        } break;
+                    case Color::Black:
+                        if (piece_at(Square('e', '8')) != Piece(Color::Black, PieceType::King)) {
+                            throw std::invalid_argument("Missing black king for castling");
+                        } break;
                 }
 
                 switch (candidate_option.encoding()) {
-                        case CastlingType::WhiteKingside:
-                            if (piece_at(Square('h', '1')) != Piece(Color::White, PieceType::Rook)) {
-                                throw std::invalid_argument("Missing white rook for castling");
-                            } break;
-                        case CastlingType::WhiteQueenside: 
-                            if (piece_at(Square('a', '1')) != Piece(Color::White, PieceType::Rook)) {
-                                throw std::invalid_argument("Missing white rook for castling");
-                            } break;
-                        case CastlingType::BlackKingside:
-                            if (piece_at(Square('h', '8')) != Piece(Color::Black, PieceType::Rook)) {
-                                throw std::invalid_argument("Missing black rook for castling");
-                            } break;
-                        case CastlingType::BlackQueenside:
-                            if (piece_at(Square('a', '8')) != Piece(Color::Black, PieceType::Rook)) {
-                                throw std::invalid_argument("Missing black rook for castling");
-                            } break;
+                    case CastlingType::WhiteKingside:
+                        if (piece_at(Square('h', '1')) != Piece(Color::White, PieceType::Rook)) {
+                            throw std::invalid_argument("Missing white rook for castling");
+                        } break;
+                    case CastlingType::WhiteQueenside: 
+                        if (piece_at(Square('a', '1')) != Piece(Color::White, PieceType::Rook)) {
+                            throw std::invalid_argument("Missing white rook for castling");
+                        } break;
+                    case CastlingType::BlackKingside:
+                        if (piece_at(Square('h', '8')) != Piece(Color::Black, PieceType::Rook)) {
+                            throw std::invalid_argument("Missing black rook for castling");
+                        } break;
+                    case CastlingType::BlackQueenside:
+                        if (piece_at(Square('a', '8')) != Piece(Color::Black, PieceType::Rook)) {
+                            throw std::invalid_argument("Missing black rook for castling");
+                        } break;
                 }
                 
                 castling_rights_.grant(candidate_option);
@@ -219,7 +219,7 @@ Position::Position(const std::string_view fen_string) {
     }
 
     if (is_attacked_square(*this, king_square(opposite_turn()), turn_)) {
-        throw std::invalid_argument("CastlingSide not to move is in check");
+        throw std::invalid_argument("Side not to move is in check");
     }
 }
 

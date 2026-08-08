@@ -13,7 +13,7 @@ Move Position::resolve_uci(const std::string_view uci) {
         }
     }
 
-    throw std::invalid_argument(std::string(uci) + " not found in legal moves list.");
+    throw std::invalid_argument(std::string(uci) + " is not a legal move on the current position.");
 }
 
 std::string Move::to_uci() const {

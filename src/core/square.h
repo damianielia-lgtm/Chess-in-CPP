@@ -24,13 +24,13 @@ public:
         assert(('1' <= rank) && (rank <= '8'));
     }
 
-    [[nodiscard]] bool is_valid() const noexcept {return index_ <= 63;}
+    bool is_valid() const noexcept {return index_ <= 63;}
 
-    [[nodiscard]] std::uint8_t index() const noexcept { assert(is_valid()); return index_; }
-    [[nodiscard]] std::uint8_t file() const noexcept { assert(is_valid()); return index_ % 8; }
-    [[nodiscard]] std::uint8_t rank() const noexcept { assert(is_valid()); return index_ / 8; }
-    [[nodiscard]] char uci_file() const noexcept { assert(is_valid()); return (index_ % 8) + 'a'; }
-    [[nodiscard]] char uci_rank() const noexcept { assert(is_valid()); return (index_ / 8) + '1'; }
+    std::uint8_t index() const noexcept { assert(is_valid()); return index_; }
+    std::uint8_t file() const noexcept { assert(is_valid()); return index_ % 8; }
+    std::uint8_t rank() const noexcept { assert(is_valid()); return index_ / 8; }
+    char uci_file() const noexcept { assert(is_valid()); return (index_ % 8) + 'a'; }
+    char uci_rank() const noexcept { assert(is_valid()); return (index_ / 8) + '1'; }
 
     bool operator==(const Square& other) const = default;
 

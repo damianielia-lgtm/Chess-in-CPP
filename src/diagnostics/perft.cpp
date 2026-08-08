@@ -71,10 +71,12 @@ std::string run_test(Position& position, int depth) {
 }
 
 std::string run_benchmark(Position& position, int depth) {
-    auto start = std::chrono::steady_clock::now();
+    using namespace std::chrono;
+
+    auto start = steady_clock::now();
     std::uint64_t nodes = perft(position, depth);
-    auto end = std::chrono::steady_clock::now();    
-    std::chrono::duration<double> dur = end - start; 
+    auto end = steady_clock::now();    
+    duration<double> dur = end - start; 
     double speed = std::round(nodes / dur.count() * 100.0) / 100.0;
 
     std::string lines;
@@ -84,11 +86,13 @@ std::string run_benchmark(Position& position, int depth) {
 }
 
 std::chrono::milliseconds estimate_time(std::uint64_t total_nodes) {
+    using namespace std::chrono;
+
     Position test_pos("startpos");
-    auto start = std::chrono::steady_clock::now();
+    auto start = steady_clock::now();
     perft(test_pos, 5);
-    auto end = std::chrono::steady_clock::now();
-    return std::chrono::duration_cast<std::chrono::milliseconds>((end - start) * total_nodes / 4865609);
+    auto end = steady_clock::now();
+    return duration_cast<milliseconds>((end - start) * total_nodes / 4865609);
 }
 
 std::string run_test_preset(Preset preset) {
@@ -123,6 +127,8 @@ std::string run_test_preset(Preset preset) {
 }
 
 std::string run_benchmark_preset(Preset preset) {
+    using namespace std::chrono;
+
     PresetInfo test_info;
     test_info = make_preset(preset);
 
@@ -143,10 +149,10 @@ std::string run_benchmark_preset(Preset preset) {
                 continue;
             }
 
-            auto start = std::chrono::steady_clock::now();
+            auto start = steady_clock::now();
             std::uint64_t nodes = perft(pos, depth);
-            auto end = std::chrono::steady_clock::now();
-            std::chrono::duration<double> dur = end - start; 
+            auto end = steady_clock::now();
+            duration<double> dur = end - start; 
             double speed = std::round(nodes / dur.count() * 100.0) / 100.0;
 
             lines += "Depth " + std::to_string(depth) + ": ";

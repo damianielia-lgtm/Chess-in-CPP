@@ -21,9 +21,9 @@ public:
         squares_[count_++] = target;
     }
 
-    [[nodiscard]] constexpr std::size_t size() const noexcept { return count_; }
-    [[nodiscard]] constexpr bool full() const noexcept { return count_ == maximum; }
-    [[nodiscard]] constexpr bool empty() const noexcept { return count_ == 0; }
+    constexpr std::size_t size() const noexcept { return count_; }
+    constexpr bool full() const noexcept { return count_ == maximum; }
+    constexpr bool empty() const noexcept { return count_ == 0; }
 
     using const_iterator = std::array<Square, maximum>::const_iterator;
     constexpr const_iterator begin() const noexcept { return squares_.begin(); }

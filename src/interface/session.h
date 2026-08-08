@@ -16,7 +16,7 @@ public:
         current_position_.apply_move(current_position_.resolve_uci(uci_move));
     }
 
-    [[nodiscard]] Position& current_position() noexcept { return current_position_; }
+    const Position& current_position() const noexcept { return current_position_; }
 
 private:
     Position current_position_;

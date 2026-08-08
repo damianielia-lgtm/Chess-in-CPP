@@ -46,12 +46,12 @@ public:
         assert(move.is_castling());
     }
 
-    [[nodiscard]] CastlingType encoding() const noexcept { return encoding_; }
-    [[nodiscard]] std::uint8_t index() const noexcept { return static_cast<std::uint8_t>(encoding_); }
-    [[nodiscard]] Color color() const noexcept { return static_cast<Color>(index() >> 1); }
-    [[nodiscard]] CastlingSide side() const noexcept { return static_cast<CastlingSide>(index() & 1); }
+    CastlingType encoding() const noexcept { return encoding_; }
+    std::uint8_t index() const noexcept { return static_cast<std::uint8_t>(encoding_); }
+    Color color() const noexcept { return static_cast<Color>(index() >> 1); }
+    CastlingSide side() const noexcept { return static_cast<CastlingSide>(index() & 1); }
 
-    [[nodiscard]] Move castling_king_movement() const noexcept {
+    Move castling_king_movement() const noexcept {
         switch (encoding_) {
             case CastlingType::WhiteKingside: return Move(Square('e', '1'), Square('g', '1'), MoveKind::Castling);
             case CastlingType::WhiteQueenside: return Move(Square('e', '1'), Square('c', '1'), MoveKind::Castling);
@@ -60,7 +60,7 @@ public:
         }
         return Move(Square('e', '1'), Square('g', '1'), MoveKind::Castling);
     }
-    [[nodiscard]] Move castling_rook_movement() const noexcept {
+    Move castling_rook_movement() const noexcept {
         switch (encoding_) {
             case CastlingType::WhiteKingside: return Move(Square('h', '1'), Square('f', '1'), MoveKind::None);
             case CastlingType::WhiteQueenside: return Move(Square('a', '1'), Square('d', '1'), MoveKind::None);
@@ -70,7 +70,7 @@ public:
         return Move(Square('h', '1'), Square('f', '1'), MoveKind::None);
     }
 
-    [[nodiscard]] char fen_char() const noexcept {
+    char fen_char() const noexcept {
         switch (encoding_) {
             case CastlingType::WhiteKingside: return 'K';
             case CastlingType::WhiteQueenside: return 'Q';
@@ -95,9 +95,9 @@ class CastlingRights {
 public:
     CastlingRights() noexcept = default;
 
-    [[nodiscard]] std::uint8_t encoding() const noexcept { return encoding_; }
+    std::uint8_t encoding() const noexcept { return encoding_; }
 
-    [[nodiscard]] bool has(CastlingOption index) const noexcept { return (encoding_ >> index.index()) & 1; }
+    bool has(CastlingOption index) const noexcept { return (encoding_ >> index.index()) & 1; }
 
     void revoke(CastlingOption option) noexcept {
         const auto bit = std::uint8_t{1} << option.index();

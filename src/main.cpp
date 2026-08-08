@@ -17,15 +17,8 @@ int main() {
         if (line.empty()) { continue; }
         if (line == "exit") { break; }
 
-        Command command;
         try {
-            command = parse(line);
-        } catch (const std::invalid_argument& e) {
-            std::cerr << "\033[31m" << e.what() << "\033[0m\n";
-            continue;
-        }
-        
-        try {
+            Command command = parse(line);
             execute(command, session);
         } catch (const std::invalid_argument& e) {
             std::cerr << "\033[31m" << e.what() << "\033[0m\n";
