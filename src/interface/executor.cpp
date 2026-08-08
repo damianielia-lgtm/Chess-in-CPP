@@ -15,8 +15,11 @@ void execute_impl(const PositionFenCommand& cmd, Session& session) { session.set
 
 void execute_impl(const MoveCommand& cmd, Session& session) { session.apply_uci_move(cmd.uci); }
 
-void execute_impl(const PerftPresetCommand& cmd, Session& session) { std::cout << run_perft(cmd.preset, cmd.mode); }
-void execute_impl(const DebugCommand& cmd, Session& session) { std::cout << debug_pos(session.fen(), cmd.depth); }
+void execute_impl(const PerftPresetCommand& cmd, Session& session) { std::cout << run_test_preset(cmd.preset); }
+void execute_impl(const BenchmarkPerftPresetCommand& cmd, Session& session) { std::cout << run_benchmark_preset(cmd.preset); }
+void execute_impl(const PerftCommand& cmd, Session& session) { std::cout << run_test(session.current_position(), cmd.depth); }
+void execute_impl(const BenchmarkPerftCommand& cmd, Session& session) { std::cout << run_benchmark(session.current_position(), cmd.depth); }
+void execute_impl(const DebugCommand& cmd, Session& session) { std::cout << debug_pos(session.current_position().to_fen(), cmd.depth); }
 
 void execute(const Command& command, Session& session) {
     std::visit(

@@ -16,8 +16,7 @@ public:
         current_position_.apply_move(current_position_.resolve_uci(uci_move));
     }
 
-    [[nodiscard]] const Position& current_position() const noexcept { return current_position_; }
-    [[nodiscard]] const std::string fen() const noexcept { return current_position_.to_fen(); }
+    [[nodiscard]] Position& current_position() noexcept { return current_position_; }
 
 private:
     Position current_position_;

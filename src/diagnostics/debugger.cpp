@@ -37,7 +37,7 @@ std::map<std::string, uint64_t> stockfish_results(StockfishProcess& sf, std::str
     return sf_output;
 }
 
-std::map<std::string, uint64_t> perft_div(std::string fen_string, int depth) {
+std::map<std::string, uint64_t> debug_perft(std::string fen_string, int depth) {
     Position position(fen_string);
     Position original_pos = position;
     std::map<std::string, uint64_t> divide;
@@ -76,7 +76,7 @@ std::string stockfish_apply_move(StockfishProcess& sf, std::string fen, std::str
 std::string debugger(StockfishProcess& sf, std::string fen, int depth) {
     std::map<std::string, uint64_t> my_engine;
     try {
-        my_engine = perft_div(fen, depth);
+        my_engine = debug_perft(fen, depth);
     } catch (const std::runtime_error& e) {
         return e.what();
     }

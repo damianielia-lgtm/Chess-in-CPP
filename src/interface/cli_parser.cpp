@@ -90,11 +90,23 @@ Preset parse_preset(const std::string_view preset) {
     }
 }
 
+int parse_depth(std::string depth_string) {
+    if (depth_string.length() > 6) { throw std::invalid_argument("Invalid depth."); }
+    for (unsigned char c : depth_string) {
+        if (!std::isdigit(c)) { throw std::invalid_argument("Invalid depth."); }
+    }
+    int depth = std::stoi(depth_string);
+    if (depth == 0) { throw std::invalid_argument("Invalid depth."); }
+    return depth;
+}
+
 Command parse_perft(const std::vector<std::string>& tokens) {
     check_token_count(tokens, 3);
     std::string perft_command = tokens[1];
     if (perft_command == "--preset") {
-        return PerftPresetCommand{parse_preset(tokens[2]), PerftMode::Test};
+        return PerftPresetCommand{parse_preset(tokens[2])};
+    } else if (perft_command == "--depth") {
+        return PerftCommand{parse_depth(tokens[2])};
     } else {
         throw std::invalid_argument("Unreconized perft command.");
     }
@@ -106,21 +118,15 @@ Command parse_benchmark(const std::vector<std::string>& tokens) {
     if (benchmark_command == "perft") {
         std::string perft_benchmark_command = tokens[2];
         if (perft_benchmark_command == "--preset") {
-            return PerftPresetCommand{parse_preset(tokens[3]), PerftMode::Benchmark};
+            return BenchmarkPerftPresetCommand{parse_preset(tokens[3])};
+        } else if (perft_benchmark_command == "--depth") {
+            return BenchmarkPerftCommand{parse_depth(tokens[3])};
         } else {
             throw std::invalid_argument("Unreconized benchmark perft command.");
         }
     } else {
         throw std::invalid_argument("Unreconized benchmark command.");
     }
-}
-
-int parse_depth(std::string depth_string) {
-    for (unsigned char c : depth_string) {
-        if (!std::isdigit(c)) { throw std::invalid_argument("Invalid depth."); }
-    }
-    if (depth_string == "0") { throw std::invalid_argument("Invalid depth."); }
-    return std::stoi(depth_string);
 }
 
 Command parse_debug(const std::vector<std::string>& tokens) {
