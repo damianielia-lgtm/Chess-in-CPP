@@ -2,10 +2,14 @@
 
 #include <variant>
 #include <string>
+#include <optional>
 
 #include "../diagnostics/presets.h"
+#include "../application/game.h"
 
 struct HelpCommand {};
+
+struct PlayCommand { std::optional<TimeControl> time; };
 
 struct PositionShowCommand {};
 struct PositionStartposCommand {};
@@ -21,6 +25,8 @@ struct DebugCommand { int depth; };
 
 using Command = std::variant<
     HelpCommand,
+
+    PlayCommand,
 
     PositionShowCommand,
     PositionStartposCommand,

@@ -7,8 +7,10 @@
 #include "../core/position.h"
 #include "../diagnostics/perft.h"
 #include "../diagnostics/debugger.h"
+#include "../application/session.h"
+#include "../application/game_loop.h"
+#include "../application/game.h"
 #include "commands.h"
-#include "session.h"
 #include "display.h"
 
 constexpr std::string_view help_content = 
@@ -58,7 +60,12 @@ constexpr std::string_view help_content =
     "   \033[90mreport show <name>\033[0m                                                            print a saved reports\n"
     "   \033[90mreport delete <name>\033[0m                                                          delete a saved report\n";
 
-void execute_impl(const HelpCommand&, Session& session) { std::cout << help_content; }
+void execute_impl(const HelpCommand&, Session&) { std::cout << help_content; }
+
+void execute_impl(const PlayCommand& cmd, Session& session) {
+    GameState game = play_local(cmd.time);
+    session.store_last_game(game);
+}
 
 void execute_impl(const PositionShowCommand&, Session& session) { print_pos_info(session.current_position()); }
 void execute_impl(const PositionStartposCommand&, Session& session) { session.reset_pos(); }
@@ -66,8 +73,8 @@ void execute_impl(const PositionFenCommand& cmd, Session& session) { session.set
 
 void execute_impl(const MoveCommand& cmd, Session& session) { session.apply_uci_move(cmd.uci); }
 
-void execute_impl(const PerftPresetCommand& cmd, Session& session) { std::cout << run_test_preset(cmd.preset); }
-void execute_impl(const BenchmarkPerftPresetCommand& cmd, Session& session) { std::cout << run_benchmark_preset(cmd.preset); }
+void execute_impl(const PerftPresetCommand& cmd, Session&) { std::cout << run_test_preset(cmd.preset); }
+void execute_impl(const BenchmarkPerftPresetCommand& cmd, Session&) { std::cout << run_benchmark_preset(cmd.preset); }
 void execute_impl(const PerftCommand& cmd, Session& session) {
     Position position = session.current_position();
     std::cout << run_test(position, cmd.depth);

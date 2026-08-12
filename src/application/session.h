@@ -2,9 +2,12 @@
 
 #include <string>
 #include <string_view>
+#include <optional>
+#include <utility>
 
 #include "../core/position.h"
 #include "../core/move.h"
+#include "game.h"
 
 class Session {
 public:
@@ -18,6 +21,9 @@ public:
 
     const Position& current_position() const noexcept { return current_position_; }
 
+    void store_last_game(GameState game) { last_game_ = std::move(game); }
+
 private:
     Position current_position_;
+    std::optional<GameState> last_game_;
 };

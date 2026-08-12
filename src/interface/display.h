@@ -3,10 +3,13 @@
 #include <chrono>
 #include <iostream>
 #include <string>
-#include <format>
+#include <vector>
+#include <optional>
 #include <cstdint>
 
 #include "../core/position.h"
+#include "../application/game.h"
+#include "output_construction.h"
 
 class PerftProgress {
 public:
@@ -45,15 +48,9 @@ private:
     }
 
     void make_header(std::chrono::milliseconds duration) {
-        using namespace std::chrono;
-
-        auto mins = duration_cast<:minutes>(duration);
-        duration -= mins;
-        auto secs = duration_cast<seconds>(duration);
-        duration -= secs;
-        auto ms = duration_cast<milliseconds>(duration);
-        std::string formatted_time = std::format("{:02}:{:02}.{:03}", mins.count(), secs.count(), ms.count());
-        header_ = "Calculating " + std::to_string(total_nodes_) + " nodes, expected duration " + formatted_time;
+        header_ =
+            "Calculating " + std::to_string(total_nodes_)
+            + " nodes, expected duration " + format_time(duration);
     }
 
     std::uint64_t total_nodes_;
@@ -61,5 +58,43 @@ private:
     std::string header_;
 };
 
-void print_board(const Position& position, const bool flip = false);
+class GameDisplay {
+public:
+    GameDisplay(bool is_timed) :
+        show_clock_(is_timed),
+        rendered_line_count_(0),
+        error_message_(std::nullopt) {}
+
+    void render(const GameState& game) {
+        std::vector<std::string> lines = construct_game_lines(game, show_clock_, error_message_);
+        rendered_line_count_ = lines.size();
+
+        std::string prompt_line = lines.back();
+        lines.pop_back();
+        for (const std::string& line : lines) {
+            std::cout << line << '\n';
+        }
+
+        std::cout << prompt_line;
+    }
+
+    void update(const GameState& game) {
+        for (int __ = 0; __ < rendered_line_count_; __++) { // Clear line by line, going up
+            std::cout << "\r"; // Go to the start of line
+            std::cout << "\033[2K"; // Clear line
+            std::cout << "\033[A"; // Go up one line
+        }
+
+        render(game);
+    }
+
+    void set_error(std::string message) { error_message_ = message; }
+    void clear_error() { error_message_ = std::nullopt; }
+
+private:
+    bool show_clock_;
+    int rendered_line_count_ = 0;
+    std::optional<std::string> error_message_;
+};
+
 void print_pos_info(const Position& position);

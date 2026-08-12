@@ -85,7 +85,25 @@ public:
 
             case 0: return '.';
         }
-        return '.';
+    }
+    int material_value() const noexcept {
+        switch (encoding_) {
+            case 1: return 1;
+            case 2: return 3;
+            case 3: return 3;
+            case 4: return 5;
+            case 5: return 9;
+            
+            case 9: return -1;
+            case 10: return -3;
+            case 11: return -3;
+            case 12: return -5;
+            case 13: return -9;
+
+            case 0: return 0;
+            case 6: return 0;
+            case 14: return 0;
+        }
     }
     bool is_enemy(Color turn) const noexcept {
         assert(!empty());

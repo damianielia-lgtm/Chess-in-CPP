@@ -7,8 +7,10 @@
 #include <cctype>
 #include <vector>
 #include <stdexcept>
+#include <chrono>
 
 #include "commands.h"
+#include "../application/game.h"
 
 void check_token_count(const std::vector<std::string>& tokens, const std::size_t count) {
     if (tokens.size() < count) {
@@ -76,6 +78,55 @@ Command parse_move(const std::vector<std::string>& tokens) {
     return MoveCommand{tokens[1]};
 }
 
+int parse_number_string(std::string string) {
+    if (string.length() > 6) { throw std::invalid_argument("Integer too large."); }
+    for (unsigned char c : string) {
+        if (!std::isdigit(c)) { throw std::invalid_argument("Invalid integer."); }
+    }
+    return std::stoi(string);
+}
+
+TimeControl parse_time(const std::string_view time) {
+    auto first = time.find('+');
+    auto last = time.rfind('+');
+    
+    if (first == std::string::npos || first != last) {
+        throw std::invalid_argument("Invalid time string.");
+    }
+    
+    std::string initial{time.substr(0, first)};
+    std::string increment{time.substr(first + 1)};
+
+    TimeControl time_control;
+    time_control.initial = std::chrono::seconds{parse_number_string(initial)};
+    time_control.increment = std::chrono::seconds{parse_number_string(increment)};
+    
+    return time_control;
+}
+
+Command parse_game(const std::vector<std::string>& tokens) {
+    std::string game_command = require_token(tokens, 1);
+    if (game_command == "local") {
+        std::string local_command;
+        try {
+            local_command = require_token(tokens, 2);
+        } catch (const std::invalid_argument&) {
+            check_token_count(tokens, 2);
+            return PlayCommand{};
+        }
+
+        if (local_command == "--time-control") {
+            check_token_count(tokens, 4);
+            std::string time_command = require_token(tokens, 3);
+            return PlayCommand{parse_time(time_command)};
+        } else {
+            throw std::invalid_argument("Unreconized play local command.");
+        }
+    } else {
+        throw std::invalid_argument("Unreconized play command.");
+    }
+}
+
 Preset parse_preset(const std::string_view preset) {
     if (preset == "instant") {
         return Preset::Instant;
@@ -91,12 +142,8 @@ Preset parse_preset(const std::string_view preset) {
 }
 
 int parse_depth(std::string depth_string) {
-    if (depth_string.length() > 6) { throw std::invalid_argument("Invalid depth."); }
-    for (unsigned char c : depth_string) {
-        if (!std::isdigit(c)) { throw std::invalid_argument("Invalid depth."); }
-    }
-    int depth = std::stoi(depth_string);
-    if (depth == 0 || depth > 16) { throw std::invalid_argument("Invalid depth."); }
+    int depth = parse_number_string(depth_string);
+    if (depth == 0 || depth > 16) { throw std::invalid_argument("Depth must be between 0 and 16."); }
     return depth;
 }
 
@@ -146,6 +193,8 @@ Command parse(std::string line) {
         return parse_position(tokens);
     } else if (base_command == "move") {
         return parse_move(tokens);
+    } else if (base_command == "play") {
+        return parse_game(tokens);
     } else if (base_command == "perft") {
         return parse_perft(tokens);
     } else if (base_command == "benchmark") {

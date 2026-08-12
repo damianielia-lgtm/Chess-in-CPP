@@ -4,11 +4,11 @@
 
 #include "interface/cli_parser.h"
 #include "interface/executor.h"
-#include "interface/session.h"
+#include "application/session.h"
 
 int main() {
     Session session;
-    
+
     while (true) {
         std::cout << "chess> ";
         std::string line;
