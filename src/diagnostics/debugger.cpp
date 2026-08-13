@@ -11,6 +11,7 @@
 #include "../core/position.h"
 #include "../core/move.h"
 #include "../movegen/legal_moves.h"
+#include "../notation/uci.h"
 
 std::map<std::string, uint64_t> stockfish_results(StockfishProcess& sf, std::string fen, int depth) {
     sendCommand(sf, "position fen " + fen);
@@ -109,7 +110,7 @@ std::string debugger(StockfishProcess& sf, std::string fen, int depth) {
         if (stockfish[uci_move] != nodes) {
             Position pos(fen);
             Position before_simulation = pos;
-            Move move = pos.resolve_uci(uci_move);
+            Move move = resolve_uci(pos, uci_move);
 
             UndoState move_state = pos.apply_move(move);
             std::string child_fen = pos.to_fen();

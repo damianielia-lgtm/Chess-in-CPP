@@ -13,6 +13,7 @@
 #include "../movegen/legal_moves.h"
 #include "../movegen/attacks.h"
 #include "../interface/display.h"
+#include "../notation/uci.h"
 
 bool insufficient_material(const Position& position) {
     int minor_count = 0;
@@ -92,7 +93,7 @@ void GameState::play_move(
         return;
     }
 
-    Move move = current_position_.resolve_uci(uci_move);
+    Move move = resolve_uci(current_position_, uci_move);
     UndoState move_state = current_position_.apply_move(move);
 
     update_material(move_state.captured_piece);

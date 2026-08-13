@@ -38,8 +38,6 @@ public:
     explicit Position(const std::string_view fen_string);
     std::string to_fen() const;
 
-    Move resolve_uci(const std::string_view uci);
-
     Piece piece_at(Square index) const noexcept {
         assert(index.is_valid());
         return board_[index.index()];

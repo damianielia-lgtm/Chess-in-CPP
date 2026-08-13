@@ -1,13 +1,14 @@
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 #include "../core/move.h"
 #include "../core/piece.h"
 #include "../core/position.h"
 #include "../movegen/legal_moves.h"
 
-Move Position::resolve_uci(const std::string_view uci) {
-    for (const Move move : all_moves(*this, false)) {
+Move resolve_uci(Position& position, const std::string_view uci) {
+    for (const Move move : all_moves(position, false)) {
         if (move.to_uci() == uci) {
             return move;
         }
