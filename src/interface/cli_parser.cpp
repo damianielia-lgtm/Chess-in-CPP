@@ -186,6 +186,25 @@ Command parse_debug(const std::vector<std::string>& tokens) {
     }
 }
 
+Command parse_pgn(const std::vector<std::string>& tokens) {
+    std::string pgn_command = require_token(tokens, 1);
+    if (pgn_command == "save") {
+        check_token_count(tokens, 3);
+        return PgnSaveCommand{tokens[2]};
+    } else if (pgn_command == "show") {
+        check_token_count(tokens, 3);
+        return PgnShowCommand{tokens[2]};
+    } else if (pgn_command == "delete") {
+        check_token_count(tokens, 3);
+        return PgnDeleteCommand{tokens[2]};
+    } else if (pgn_command == "list") {
+        check_token_count(tokens, 2);
+        return PgnListCommand{};
+    } else {
+        throw std::invalid_argument("Unreconized pgn command.");
+    }
+}
+
 Command parse(std::string line) {
     std::vector<std::string> tokens = tokenizer(line);
     std::string base_command = require_token(tokens, 0);
@@ -201,6 +220,8 @@ Command parse(std::string line) {
         return parse_benchmark(tokens);
     } else if (base_command == "debug") {
         return parse_debug(tokens);
+    } else if (base_command == "pgn") {
+        return parse_pgn(tokens);
     } else if (base_command == "help") {
         return HelpCommand{};
     } else {

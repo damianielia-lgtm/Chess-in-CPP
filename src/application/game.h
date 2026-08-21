@@ -8,11 +8,12 @@
 
 #include "../core/position.h"
 #include "../core/piece.h"
+#include "../core/move.h"
 #include "../movegen/attacks.h"
 
 enum class GameResult {
-    WhiteCheckmate,
-    BlackCheckmate,
+    WhiteCheckmated,
+    BlackCheckmated,
     WhiteResign,
     BlackResign,
     WhiteTimeout,
@@ -42,7 +43,7 @@ public:
         current_position_(Position()),
         result_(std::nullopt),
         positions_history_({Position()}),
-        uci_moves_history_({}),
+        moves_history_({}),
         white_captured_material_({}),
         black_captured_material_({}),
         material_comparison_(0),
@@ -79,12 +80,15 @@ public:
             : clock_->black_time);
     }
 
+    const std::vector<Position>& positions() const noexcept { return positions_history_; }
+    const std::vector<Move>& moves() const noexcept { return moves_history_; }
+
 private:
     Position current_position_;
     std::optional<GameResult> result_;
 
     std::vector<Position> positions_history_;
-    std::vector<std::string> uci_moves_history_;
+    std::vector<Move> moves_history_;
 
     std::vector<Piece> white_captured_material_;
     std::vector<Piece> black_captured_material_;

@@ -10,6 +10,8 @@
 #include "../application/session.h"
 #include "../application/game_loop.h"
 #include "../application/game.h"
+#include "../storage/file_manager.h"
+#include "../notation/pgn.h"
 #include "commands.h"
 #include "display.h"
 
@@ -64,7 +66,7 @@ void execute_impl(const HelpCommand&, Session&) { std::cout << help_content; }
 
 void execute_impl(const PlayCommand& cmd, Session& session) {
     GameState game = play_local(cmd.time);
-    session.store_last_game(game);
+    session.store_last_game(std::move(game));
 }
 
 void execute_impl(const PositionShowCommand&, Session& session) { print_pos_info(session.current_position()); }
@@ -84,6 +86,31 @@ void execute_impl(const BenchmarkPerftCommand& cmd, Session& session) {
     std::cout << run_benchmark(position, cmd.depth);
 }
 void execute_impl(const DebugCommand& cmd, Session& session) { std::cout << debug_pos(session.current_position().to_fen(), cmd.depth); }
+
+void execute_impl(const PgnDeleteCommand& cmd, Session&) {
+    std::filesystem::path dir = make_pgn_path(cmd.name);
+    delete_file(dir);
+}
+void execute_impl(const PgnSaveCommand& cmd, Session& session) {
+    std::filesystem::path dir = make_pgn_path(cmd.name);
+    std::vector<std::string> pgn_lines = construct_pgn_lines(session.last_game());
+    write_file(dir, pgn_lines);
+}
+void execute_impl(const PgnShowCommand& cmd, Session& session) {
+    std::filesystem::path dir = make_pgn_path(cmd.name);
+    for (const std::string& line : read_file(dir)) {
+        std::cout << line << '\n';
+    }
+}
+void execute_impl(const PgnListCommand&, Session&) {
+    if (pgn_list().empty()) {
+        std::cout << "No saved PGN's yet." << '\n';
+    } else {
+        for (const std::string& line : pgn_list()) {
+            std::cout << line << '\n';
+        }
+    }
+}
 
 void execute(const Command& command, Session& session) {
     std::visit(

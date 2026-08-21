@@ -121,9 +121,9 @@ std::string construct_game_end_message(const GameState& game) {
     assert(game.has_ended());
 
     switch (game.result()) {
-        case GameResult::WhiteCheckmate:
+        case GameResult::WhiteCheckmated:
             return "White has won by checkmate.";
-        case GameResult::BlackCheckmate:
+        case GameResult::BlackCheckmated:
             return "Black has won by checkmate.";
         case GameResult::WhiteResign:
             return "White has resigned. Black wins";

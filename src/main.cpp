@@ -5,8 +5,10 @@
 #include "interface/cli_parser.h"
 #include "interface/executor.h"
 #include "application/session.h"
+#include "storage/file_manager.h"
 
 int main() {
+    initialize_directories();
     Session session;
 
     while (true) {

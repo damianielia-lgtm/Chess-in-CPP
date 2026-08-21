@@ -94,12 +94,11 @@ void GameState::play_move(
     }
 
     Move move = resolve_uci(current_position_, uci_move);
+    moves_history_.push_back(move);
+
     UndoState move_state = current_position_.apply_move(move);
-
     update_material(move_state.captured_piece);
-
     positions_history_.push_back(current_position_);
-    uci_moves_history_.push_back(uci_move);
 
     if (is_timed_game()) {
         if (move_submitter == Color::White) {
@@ -117,8 +116,8 @@ void GameState::play_move(
         );
         result_ = (in_check)
             ? ((current_position_.turn() == Color::White)
-                ? GameResult::BlackCheckmate
-                : GameResult::WhiteCheckmate)
+                ? GameResult::WhiteCheckmated
+                : GameResult::BlackCheckmated)
             : GameResult::Stalemate;
     } else if (insufficient_material(current_position_)) {
         result_ = GameResult::InsufficientMaterial;

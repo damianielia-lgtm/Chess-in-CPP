@@ -4,6 +4,7 @@
 #include <string_view>
 #include <optional>
 #include <utility>
+#include <stdexcept>
 
 #include "../core/position.h"
 #include "../core/move.h"
@@ -23,6 +24,13 @@ public:
     const Position& current_position() const noexcept { return current_position_; }
 
     void store_last_game(GameState game) { last_game_ = std::move(game); }
+    const GameState& last_game() const {
+        if (!last_game_) {
+            throw std::invalid_argument("No last game exists");
+        }
+
+        return last_game_.value();
+    }
 
 private:
     Position current_position_;

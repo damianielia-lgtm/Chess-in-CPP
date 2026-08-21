@@ -23,6 +23,11 @@ struct PerftCommand { int depth; };
 struct BenchmarkPerftCommand { int depth; };
 struct DebugCommand { int depth; };
 
+struct PgnDeleteCommand { std::string name; };
+struct PgnSaveCommand { std::string name; };
+struct PgnShowCommand { std::string name; };
+struct PgnListCommand {};
+
 using Command = std::variant<
     HelpCommand,
 
@@ -38,5 +43,10 @@ using Command = std::variant<
     BenchmarkPerftPresetCommand,
     PerftCommand,
     BenchmarkPerftCommand,
-    DebugCommand
+    DebugCommand,
+
+    PgnDeleteCommand,
+    PgnSaveCommand,
+    PgnShowCommand,
+    PgnListCommand
 >;
