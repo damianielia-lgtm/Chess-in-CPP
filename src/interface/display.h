@@ -8,7 +8,7 @@
 #include <cstdint>
 
 #include "../core/position.h"
-#include "../application/game.h"
+#include "../game/game.h"
 #include "output_construction.h"
 
 class PerftProgress {
@@ -79,7 +79,7 @@ public:
     }
 
     void update(const GameState& game) {
-        for (int __ = 0; __ < rendered_line_count_; __++) { // Clear line by line, going up
+        for (int i = 0; i < rendered_line_count_; i++) { // Clear line by line, going up
             std::cout << "\r"; // Go to the start of line
             std::cout << "\033[2K"; // Clear line
             std::cout << "\033[A"; // Go up one line
@@ -93,8 +93,12 @@ public:
 
 private:
     bool show_clock_;
-    int rendered_line_count_ = 0;
+    std::size_t rendered_line_count_ = 0;
     std::optional<std::string> error_message_;
 };
 
 void print_pos_info(const Position& position);
+
+void print_help();
+
+void print_lines(const std::vector<std::string>& lines);

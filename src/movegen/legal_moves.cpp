@@ -9,10 +9,12 @@
 #include "castling.h"
 #include "attacks.h"
 
+namespace {
+
 void pseudo_pawn_moves(
     Square origin,
     const Position& position,
-    bool loud,
+    MoveGeneration loud,
     auto& emit
 ) {
     const std::uint8_t turn_index = static_cast<std::uint8_t>(position.turn());
@@ -41,7 +43,7 @@ void pseudo_pawn_moves(
             emit(Move(origin, target, MoveKind::RookPromotion));
             emit(Move(origin, target, MoveKind::QueenPromotion));
         } else {
-            if (!loud) {
+            if (loud == MoveGeneration::All) {
                 emit(Move(origin, target, MoveKind::None));
             }
         }
@@ -53,14 +55,14 @@ void pseudo_pawn_moves(
         position.piece_at(double_pawn_push.intermediate).empty() &&
         position.piece_at(double_pawn_push.target).empty()
     ) {
-        if (!loud) { emit(Move(origin, double_pawn_push.target, MoveKind::DoublePawn)); }
+        if (loud == MoveGeneration::All) { emit(Move(origin, double_pawn_push.target, MoveKind::DoublePawn)); }
     }
 }
 
 void pseudo_sliding_moves(
     Square origin,
     const Position& position,
-    bool loud,
+    MoveGeneration loud,
     const std::array<Targets<7>, 4>& table,
     auto& emit
 ) {
@@ -68,7 +70,7 @@ void pseudo_sliding_moves(
         for (const Square target_index : ray) {
             Piece piece = position.piece_at(target_index);
             if (piece.empty()) {
-                if (!loud) {
+                if (loud == MoveGeneration::All) {
                     emit(Move(origin, target_index, MoveKind::None));
                 }
                 continue;
@@ -85,14 +87,14 @@ void pseudo_sliding_moves(
 void pseudo_piece_moves(
     Square origin,
     const Position& position,
-    bool loud,
+    MoveGeneration loud,
     const Targets<8>& table,
     auto& emit
 ) {
     for (const Square target_index : table) {
         Piece piece = position.piece_at(target_index);
         if (piece.empty()) {
-            if (!loud) {
+            if (loud == MoveGeneration::All) {
                 emit(Move(origin, target_index, MoveKind::None));
             }
         } else if (piece.is_enemy(position.turn())) {
@@ -105,36 +107,38 @@ void pseudo_moves(
     Square origin,
     const PieceType piece_moved,
     const Position& position,
-    bool loud,
+    MoveGeneration loud,
     auto& emit
 ) {
     switch (piece_moved) {
-    case PieceType::Pawn:
-        pseudo_pawn_moves(origin, position, loud, emit);
-        break;
-    case PieceType::Knight:
-        pseudo_piece_moves(origin, position, loud, TABLES.KNIGHT_MOVEMENT[origin.index()], emit);
-        break;
-    case PieceType::Bishop:
-        pseudo_sliding_moves(origin, position, loud, TABLES.BISHOP_MOVEMENT[origin.index()], emit);
-        break;
-    case PieceType::Rook:
-        pseudo_sliding_moves(origin, position, loud, TABLES.ROOK_MOVEMENT[origin.index()], emit);
-        break;
-    case PieceType::Queen:
-        pseudo_sliding_moves(origin, position, loud, TABLES.BISHOP_MOVEMENT[origin.index()], emit);
-        pseudo_sliding_moves(origin, position, loud, TABLES.ROOK_MOVEMENT[origin.index()], emit);
-        break;
-    case PieceType::King:
-        pseudo_piece_moves(origin, position, loud, TABLES.KING_MOVEMENT[origin.index()], emit);
-        break;
+        case PieceType::Pawn:
+            pseudo_pawn_moves(origin, position, loud, emit);
+            break;
+        case PieceType::Knight:
+            pseudo_piece_moves(origin, position, loud, TABLES.KNIGHT_MOVEMENT[origin.index()], emit);
+            break;
+        case PieceType::Bishop:
+            pseudo_sliding_moves(origin, position, loud, TABLES.BISHOP_MOVEMENT[origin.index()], emit);
+            break;
+        case PieceType::Rook:
+            pseudo_sliding_moves(origin, position, loud, TABLES.ROOK_MOVEMENT[origin.index()], emit);
+            break;
+        case PieceType::Queen:
+            pseudo_sliding_moves(origin, position, loud, TABLES.BISHOP_MOVEMENT[origin.index()], emit);
+            pseudo_sliding_moves(origin, position, loud, TABLES.ROOK_MOVEMENT[origin.index()], emit);
+            break;
+        case PieceType::King:
+            pseudo_piece_moves(origin, position, loud, TABLES.KING_MOVEMENT[origin.index()], emit);
+            break;
     }
+}
+
 }
 
 void generate_all_moves(
     MovesList& legal_moves,
     Position& position,
-    bool loud
+    MoveGeneration loud
 ) {
     legal_moves.clear();
 
@@ -154,7 +158,7 @@ void generate_all_moves(
         pseudo_moves(square, piece.type(), position, loud, emit_if_legal);
     }
     
-    if (!loud) {
+    if (loud == MoveGeneration::All) {
         CastlingOption castling_index(position.turn(), CastlingSide::Kingside);
         if (can_castle(position, castling_index)) {
             legal_moves.push(castling_index.castling_king_movement());
@@ -167,7 +171,7 @@ void generate_all_moves(
     }
 }
 
-MovesList all_moves(Position& position, bool loud) {
+MovesList all_moves(Position& position, MoveGeneration loud) {
     MovesList legal_moves;
     generate_all_moves(legal_moves, position, loud);
     return legal_moves;

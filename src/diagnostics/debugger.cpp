@@ -2,16 +2,19 @@
 
 #include <vector>
 #include <string>
-#include <iostream>
 #include <sstream>
 #include <map>
+#include <expected>
 
-#include "stockfish_bridge.h"
-#include "perft.h"
 #include "../core/position.h"
 #include "../core/move.h"
 #include "../movegen/legal_moves.h"
 #include "../notation/uci.h"
+#include "../errors.h"
+#include "stockfish_bridge.h"
+#include "perft.h"
+
+namespace {
 
 std::map<std::string, uint64_t> stockfish_results(StockfishProcess& sf, std::string fen, int depth) {
     sendCommand(sf, "position fen " + fen);
@@ -23,7 +26,7 @@ std::map<std::string, uint64_t> stockfish_results(StockfishProcess& sf, std::str
     std::map<std::string, uint64_t> sf_output;
     
     while (std::getline(ss, token, '\n')) {
-        const std::size_t delimiter_pos = token.rfind(": ");
+        std::size_t delimiter_pos = token.rfind(": ");
 
         if (delimiter_pos == std::string::npos) { continue; }
 
@@ -38,20 +41,21 @@ std::map<std::string, uint64_t> stockfish_results(StockfishProcess& sf, std::str
     return sf_output;
 }
 
-std::map<std::string, uint64_t> debug_perft(std::string fen_string, int depth) {
+std::expected<std::map<std::string, uint64_t>, std::string> debug_perft(std::string fen_string, int depth) {
     Position position(fen_string);
     Position original_pos = position;
     std::map<std::string, uint64_t> divide;
 
-    for (const Move move : all_moves(position, false)) {
+    for (const Move move : all_moves(position, MoveGeneration::All)) {
         UndoState move_state = position.apply_move(move);
         divide[move.to_uci()] = perft(position, depth - 1);
         position.revert_move(move, move_state);
 
         if (position != original_pos) {
-            throw std::runtime_error(
+            return std::unexpected(
                 "undo move bug: applying and reverting move '" + move.to_uci()
-                + "' from fen '" + fen_string + "', got '" + position.to_fen() + "'.\n");
+                + "' from fen '" + fen_string + "', got '" + position.to_fen() + "'.\n"
+            );
         }
     }
 
@@ -71,39 +75,39 @@ std::string stockfish_apply_move(StockfishProcess& sf, std::string fen, std::str
         }
     }
 
-    throw std::runtime_error("Unexpected Stockfish behavior.");
+    throw StockfishError("Unexpected Stockfish behavior.");
 }
 
 std::string debugger(StockfishProcess& sf, std::string fen, int depth) {
-    std::map<std::string, uint64_t> my_engine;
-    try {
-        my_engine = debug_perft(fen, depth);
-    } catch (const std::runtime_error& e) {
-        return e.what();
+    auto perft_result = debug_perft(fen, depth);
+
+    if (!perft_result) {
+        return perft_result.error();
     }
+
+    std::map<std::string, uint64_t> my_engine = std::move(*perft_result);
     std::map<std::string, uint64_t> stockfish = stockfish_results(sf, fen, depth);
 
     for (const auto& [move, nodes] : my_engine) {
         if (!stockfish.contains(move)) {
-            return "excess node: " + move + " (final fen: '" + fen + "')\n";
+            return "excess node: " + move + " (final fen: '" + fen + "')";
         }
     }
     for (const auto& [move, nodes] : stockfish) {
         if (!my_engine.contains(move)) {
-            return "missing node: " + move + " (final fen: '" + fen + "')\n";
+            return "missing node: " + move + " (final fen: '" + fen + "')";
         }
     }
 
     if (depth == 1) {
         for (const auto& [move, nodes] : my_engine) {
             if (nodes != 1) {
-                std::string bug_message;
-                bug_message += "depth 1 mismatch: move '" + move + "' gives " + std::to_string(nodes);
-                bug_message += " instead of 1 (final fen: '" + fen + "')\n";
-                return bug_message;
+                return "depth 1 mismatch: move '" + move + "' gives "
+                    + std::to_string(nodes) + " instead of 1 (final fen: '"
+                    + fen + "')";
             }
         }
-        return "No bugs found on this position!\n";
+        return "No bugs found on this position!";
     }
 
     for (const auto& [uci_move, nodes] : my_engine) {
@@ -117,28 +121,28 @@ std::string debugger(StockfishProcess& sf, std::string fen, int depth) {
             std::string stockfish_fen = stockfish_apply_move(sf, fen, uci_move);
 
             if (child_fen != stockfish_fen) {
-                std::string bug_message;
-                bug_message += "do move bug: applying move '" + uci_move + "' to fen '" + fen;
-                bug_message += "' (expected '" + stockfish_fen + "', got '" + child_fen + "')\n";
-                return bug_message;
+                return "do move bug: applying move '" + uci_move
+                    + "' to fen '" + fen + "' (expected '" + stockfish_fen
+                    + "', got '" + child_fen + "')";
             }
 
             pos.revert_move(move, move_state);
             if (pos != before_simulation) {
-                std::string bug_message;
-                bug_message += "undo move bug: reverting move '" + uci_move + "' from fen '" + child_fen;
-                bug_message += "' (expected '" + fen + "', got '" + pos.to_fen() + "')\n";
-                return bug_message;
+                return "undo move bug: reverting move '" + uci_move
+                    + "' from fen '" + child_fen + "' (expected '" + fen
+                    + "', got '" + pos.to_fen() + "')";
             }
 
             return uci_move + " " + debugger(sf, child_fen, depth - 1);
         }
     }
 
-    return "No bugs found on this position!\n";
+    return "No bugs found on this position!";
 }
 
-std::string debug_pos(std::string fen, int depth) {
+}
+
+std::vector<std::string> debug_pos(std::string fen, int depth) {
     StockfishProcess sf = startStockfish(
         L"C:\\Users\\User\\Downloads\\stockfish-windows-x86-64-avx2\\stockfish\\stockfish-windows-x86-64-avx2.exe"
     );
@@ -149,9 +153,10 @@ std::string debug_pos(std::string fen, int depth) {
     readUntil(sf, "readyok");
 
     if (fen == "startpos") { fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"; }
-    std::string debug_lines = debugger(sf, fen, depth);
+    std::vector<std::string> debug_line;
+    debug_line.push_back(debugger(sf, fen, depth));
 
     sf.requestQuit();
 
-    return debug_lines;
+    return debug_line;
 }

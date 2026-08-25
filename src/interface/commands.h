@@ -4,8 +4,8 @@
 #include <string>
 #include <optional>
 
-#include "../diagnostics/presets.h"
-#include "../application/game.h"
+#include "../storage/presets.h"
+#include "../game/game.h"
 
 struct HelpCommand {};
 

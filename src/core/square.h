@@ -24,7 +24,7 @@ public:
         assert(('1' <= rank) && (rank <= '8'));
     }
 
-    bool is_valid() const noexcept {return index_ <= 63;}
+    bool is_valid() const noexcept { return index_ <= 63; }
 
     std::uint8_t index() const noexcept { assert(is_valid()); return index_; }
     std::uint8_t file() const noexcept { assert(is_valid()); return index_ % 8; }

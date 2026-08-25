@@ -3,13 +3,12 @@
 #include <vector>
 #include <string>
 #include <cassert>
-#include <cmath>
 #include <chrono>
 #include <format>
 
 #include "../core/move.h"
 #include "../core/piece.h"
-#include "../application/game.h"
+#include "../game/game.h"
 #include "san.h"
 
 std::vector<std::string> construct_pgn_lines(const GameState& game) {

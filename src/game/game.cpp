@@ -1,10 +1,9 @@
 #include "game.h"
 
 #include <string>
-#include <iostream>
 #include <chrono>
 #include <optional>
-#include <stdexcept>
+#include <cassert>
 
 #include "../core/position.h"
 #include "../core/move.h"
@@ -12,8 +11,46 @@
 #include "../core/square.h"
 #include "../movegen/legal_moves.h"
 #include "../movegen/attacks.h"
-#include "../interface/display.h"
 #include "../notation/uci.h"
+
+namespace {
+
+Square valid_ep_target(const Position& position) {
+    Position modifiable_copy = position;
+
+    for (const Move move : all_moves(modifiable_copy, MoveGeneration::All)) {
+        if (
+            move.is_en_passant() &&
+            move.target() == position.en_passant_target()
+        ) {
+            return move.target();
+        }
+    }
+
+    return Square();
+}
+
+bool is_repeated_position(const Position& position1, const Position& position2) {
+    for (const Square square : Square::all()) {
+        if (position1.piece_at(square) != position2.piece_at(square)) {
+            return false;
+        }
+    }
+
+    if (position1.turn() != position2.turn()) {
+        return false;
+    }
+
+    if (position1.castling_rights() != position2.castling_rights()) {
+        return false;
+    }
+
+    if (valid_ep_target(position1) != valid_ep_target(position2)) {
+        return false;
+    }
+
+    return true;
+}
 
 bool insufficient_material(const Position& position) {
     int minor_count = 0;
@@ -54,61 +91,49 @@ bool insufficient_material(const Position& position) {
     return true;
 }
 
-void GameState::play_move(
-    std::string uci_move,
-    std::optional<std::chrono::milliseconds> time_taken
-) {
-    if (result_) {
-        throw std::runtime_error("Game has already ended");
-    }
+}
 
-    Color move_submitter = current_position_.turn();
+void GameState::deduct_time(std::chrono::milliseconds time_taken) {
+    assert(is_timed_game());
 
-    if (is_timed_game()) {
-        assert(time_taken);
-        if (move_submitter == Color::White) {
-            clock_->white_time -= time_taken.value();
-            if (clock_->white_time <= std::chrono::milliseconds::zero()) {
-                result_ = GameResult::WhiteTimeout;
-                return;
-            }
-        } else {
-            clock_->black_time -= time_taken.value();
-            if (clock_->black_time <= std::chrono::milliseconds::zero()) {
-                result_ = GameResult::BlackTimeout;
-                return;
-            }
+    if (current_position_.turn() == Color::White) {
+        clock_->white_time -= time_taken;
+        if (clock_->white_time <= std::chrono::milliseconds::zero()) {
+            clock_->white_time = std::chrono::milliseconds::zero();
+            result_ = GameResult::WhiteTimeout;
+        }
+    } else {
+        clock_->black_time -= time_taken;
+        if (clock_->black_time <= std::chrono::milliseconds::zero()) {
+            clock_->black_time = std::chrono::milliseconds::zero();
+            result_ = GameResult::BlackTimeout;
         }
     }
+}
 
-    if (uci_move == "resign") {
-        result_ = (move_submitter == Color::White)
-            ? GameResult::WhiteResign
-            : GameResult::BlackResign;
-        return;
-    }
-
-    if (uci_move == "draw") {
-        result_ = GameResult::Agreement;
-        return;
-    }
+void GameState::play_move(std::string uci_move) {
+    assert(!result_.has_value());
 
     Move move = resolve_uci(current_position_, uci_move);
     moves_history_.push_back(move);
 
-    UndoState move_state = current_position_.apply_move(move);
-    update_material(move_state.captured_piece);
-    positions_history_.push_back(current_position_);
-
     if (is_timed_game()) {
-        if (move_submitter == Color::White) {
+        if (current_position_.turn() == Color::White) {
             clock_->white_time += clock_->increment;
         } else {
             clock_->black_time += clock_->increment;
         }
     }
 
-    if (all_moves(current_position_, false).empty()) {
+    UndoState move_state = current_position_.apply_move(move);
+    update_material(move_state.captured_piece);
+    positions_history_.push_back(current_position_);
+}
+
+void GameState::check_game_end() {
+    assert(!result_.has_value());
+
+    if (all_moves(current_position_, MoveGeneration::All).empty()) {
         bool in_check = is_attacked_square(
             current_position_,
             current_position_.king_square(current_position_.turn()),
@@ -125,8 +150,8 @@ void GameState::play_move(
         result_ = GameResult::FiftyMoveRule;
     } else {
         int same_positions_count = 0;
-        for (const Position position : positions_history_) {
-            if (position == current_position_) { same_positions_count++; }
+        for (const Position& position : positions_history_) {
+            if (is_repeated_position(position, current_position_)) { same_positions_count++; }
         }
         if (same_positions_count >= 3) {
             result_ = GameResult::ThreefoldRepetition;

@@ -1,8 +1,10 @@
+#include "stockfish_bridge.h"
+
 #include <windows.h>
 #include <string>
-#include <stdexcept>
 #include <iostream>
-#include "stockfish_bridge.h"
+
+#include "../errors.h"
 
 namespace {
     struct HandleGuard {
@@ -136,19 +138,19 @@ StockfishProcess startStockfish(const std::wstring& stockfishPath) {
     HandleGuard stdinWrite;
 
     if (!CreatePipe(stdoutRead.put(), stdoutWrite.put(), &sa, 0)) {
-        throw std::runtime_error("Failed to create stdout pipe");
+        throw StockfishError("Failed to create stdout pipe");
     }
 
     if (!SetHandleInformation(stdoutRead.get(), HANDLE_FLAG_INHERIT, 0)) {
-        throw std::runtime_error("Failed to configure stdout pipe");
+        throw StockfishError("Failed to configure stdout pipe");
     }
 
     if (!CreatePipe(stdinRead.put(), stdinWrite.put(), &sa, 0)) {
-        throw std::runtime_error("Failed to create stdin pipe");
+        throw StockfishError("Failed to create stdin pipe");
     }
 
     if (!SetHandleInformation(stdinWrite.get(), HANDLE_FLAG_INHERIT, 0)) {
-        throw std::runtime_error("Failed to configure stdin pipe");
+        throw StockfishError("Failed to configure stdin pipe");
     }
 
     STARTUPINFOW startupInfo{};
@@ -176,7 +178,7 @@ StockfishProcess startStockfish(const std::wstring& stockfishPath) {
     );
 
     if (!success) {
-        throw std::runtime_error("Failed to start Stockfish");
+        throw StockfishError("Failed to start Stockfish");
     }
 
     StockfishProcess sf;
@@ -200,7 +202,7 @@ void sendCommand(StockfishProcess& sf, const std::string& command) {
     );
 
     if (!success || bytesWritten != line.size()) {
-        throw std::runtime_error("Failed to write command to Stockfish");
+        throw StockfishError("Failed to write command to Stockfish");
     }
 }
 
@@ -213,11 +215,11 @@ std::string readLine(StockfishProcess& sf) {
         BOOL success = ReadFile(sf.stdoutRead, &ch, 1, &bytesRead, nullptr);
 
         if (!success) {
-            throw std::runtime_error("Failed to read from Stockfish");
+            throw StockfishError("Failed to read from Stockfish");
         }
 
         if (bytesRead == 0) {
-            throw std::runtime_error("Stockfish closed its output pipe unexpectedly");
+            throw StockfishError("Stockfish closed its output pipe unexpectedly");
         }
 
         if (ch == '\r') {

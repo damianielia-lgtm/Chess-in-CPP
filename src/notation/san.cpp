@@ -4,7 +4,6 @@
 #include <string_view>
 #include <vector>
 #include <algorithm>
-#include <stdexcept>
 
 #include "../core/move.h"
 #include "../core/piece.h"
@@ -12,12 +11,15 @@
 #include "../core/castling_rights.h"
 #include "../movegen/legal_moves.h"
 #include "../movegen/attacks.h"
+#include "../errors.h"
 
-std::string to_san(Position& position, const Move move) {
+std::string to_san(const Position& position, const Move move) {
+    Position modifiable_copy = position;
+
     Square target = move.target();
     Square origin = move.origin();
-    Piece moving_piece = position.piece_at(origin);
-    MovesList legal_moves = all_moves(position, false);
+    Piece moving_piece = modifiable_copy.piece_at(origin);
+    MovesList legal_moves = all_moves(modifiable_copy, MoveGeneration::All);
 
     std::string piece_field;
     if (moving_piece.type() != PieceType::Pawn) {
@@ -36,7 +38,7 @@ std::string to_san(Position& position, const Move move) {
             if (
                 candidate.origin() != origin && 
                 candidate.target() == target &&
-                position.piece_at(candidate.origin()) == moving_piece
+                modifiable_copy.piece_at(candidate.origin()) == moving_piece
             ) {
                 ambiguous_squares.push_back(candidate.origin());
             }
@@ -77,18 +79,18 @@ std::string to_san(Position& position, const Move move) {
     }
 
     std::string check_or_mate_field;
-    UndoState move_state = position.apply_move(move);
+    UndoState move_state = modifiable_copy.apply_move(move);
     bool in_check = is_attacked_square(
-        position,
-        position.king_square(position.turn()),
-        position.opposite_turn()
+        modifiable_copy,
+        modifiable_copy.king_square(modifiable_copy.turn()),
+        modifiable_copy.opposite_turn()
     );
     if (in_check) {
-        check_or_mate_field = (all_moves(position, false).empty())
+        check_or_mate_field = (all_moves(modifiable_copy, MoveGeneration::All).empty())
             ? '#'
             : '+';
     }
-    position.revert_move(move, move_state);
+    modifiable_copy.revert_move(move, move_state);
 
 
     if (move.is_castling()) {
@@ -113,12 +115,13 @@ std::string to_san(Position& position, const Move move) {
     return san;
 }
 
-Move resolve_san(Position& position, const std::string_view san) {
-    for (const Move move : all_moves(position, false)) {
+Move resolve_san(const Position& position, const std::string_view san) {
+    Position modifiable_copy = position;
+    for (const Move move : all_moves(modifiable_copy, MoveGeneration::All)) {
         if (to_san(position, move) == san) {
             return move;
         }
     }
 
-    throw std::invalid_argument(std::string(san) + " is not a legal move on the current position.");
+    throw IllegalMoveError(std::string(san) + " is not a legal move on the current position.");
 }

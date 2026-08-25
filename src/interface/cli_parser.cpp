@@ -1,40 +1,40 @@
 #include "cli_parser.h"
 
-#include <iostream>
 #include <string>
 #include <string_view>
-#include <algorithm>
 #include <cctype>
 #include <vector>
-#include <stdexcept>
 #include <chrono>
 
 #include "commands.h"
-#include "../application/game.h"
+#include "../game/game.h"
+#include "../errors.h"
 
-void check_token_count(const std::vector<std::string>& tokens, const std::size_t count) {
+namespace {
+
+void check_token_count(const std::vector<std::string>& tokens, std::size_t count) {
     if (tokens.size() < count) {
-        throw std::invalid_argument("Command is missing fields, type 'help' to view commands.");
+        throw CommandError("Command is missing fields, type 'help' to view commands.");
     } else if (tokens.size() > count) {
-        throw std::invalid_argument("Command has extra fields, type 'help' to view commands.");
+        throw CommandError("Command has extra fields, type 'help' to view commands.");
     }
 }
 
-const std::string& require_token(const std::vector<std::string>& tokens, const std::size_t index) {
+const std::string& require_token(const std::vector<std::string>& tokens, std::size_t index) {
     if (tokens.size() > index) {
         return tokens[index];
     } else {
-        throw std::invalid_argument("Command is missing fields, type 'help' to view commands.");
+        throw CommandError("Command is missing fields, type 'help' to view commands.");
     }
 }
 
-std::vector<std::string> tokenizer(std::string_view line) {
+std::vector<std::string> tokenizer(const std::string_view line) {
     std::string token;
     std::vector<std::string> tokens;
     bool in_quotes = false;
 
     for (char c : line) {
-        if (!in_quotes && c == ' ') {
+        if (!in_quotes && std::isspace(c)) {
             if (!token.empty()) {
                 tokens.push_back(token);
                 token.clear();
@@ -50,7 +50,7 @@ std::vector<std::string> tokenizer(std::string_view line) {
         token += c;
     }
 
-    if (in_quotes) { throw std::invalid_argument("Unmatched quotation."); }
+    if (in_quotes) { throw CommandError("Unmatched quotation."); }
 
     if (!token.empty()) { tokens.push_back(token); }
 
@@ -69,7 +69,7 @@ Command parse_position(const std::vector<std::string>& tokens) {
         check_token_count(tokens, 2);
         return PositionStartposCommand{};
     } else {
-        throw std::invalid_argument("Unreconized position command.");
+        throw CommandError("Unrecognized position command.");
     }
 }
 
@@ -79,9 +79,10 @@ Command parse_move(const std::vector<std::string>& tokens) {
 }
 
 int parse_number_string(std::string string) {
-    if (string.length() > 6) { throw std::invalid_argument("Integer too large."); }
+    if (string.empty()) { throw CommandError("Invalid integer."); }
+    if (string.length() > 6) { throw CommandError("Integer too large."); }
     for (unsigned char c : string) {
-        if (!std::isdigit(c)) { throw std::invalid_argument("Invalid integer."); }
+        if (!std::isdigit(c)) { throw CommandError("Invalid integer."); }
     }
     return std::stoi(string);
 }
@@ -91,7 +92,7 @@ TimeControl parse_time(const std::string_view time) {
     auto last = time.rfind('+');
     
     if (first == std::string::npos || first != last) {
-        throw std::invalid_argument("Invalid time string.");
+        throw CommandError("Invalid time string.");
     }
     
     std::string initial{time.substr(0, first)};
@@ -107,23 +108,21 @@ TimeControl parse_time(const std::string_view time) {
 Command parse_game(const std::vector<std::string>& tokens) {
     std::string game_command = require_token(tokens, 1);
     if (game_command == "local") {
-        std::string local_command;
-        try {
-            local_command = require_token(tokens, 2);
-        } catch (const std::invalid_argument&) {
-            check_token_count(tokens, 2);
+        if (tokens.size() == 2) {
             return PlayCommand{};
         }
+
+        std::string local_command = require_token(tokens, 2);
 
         if (local_command == "--time-control") {
             check_token_count(tokens, 4);
             std::string time_command = require_token(tokens, 3);
             return PlayCommand{parse_time(time_command)};
         } else {
-            throw std::invalid_argument("Unreconized play local command.");
+            throw CommandError("Unrecognized play local command.");
         }
     } else {
-        throw std::invalid_argument("Unreconized play command.");
+        throw CommandError("Unrecognized play command.");
     }
 }
 
@@ -137,13 +136,13 @@ Preset parse_preset(const std::string_view preset) {
     } else if (preset == "extended") {
         return Preset::Extended;
     } else {
-        throw std::invalid_argument("Invalid preset");
+        throw CommandError("Invalid preset");
     }
 }
 
 int parse_depth(std::string depth_string) {
     int depth = parse_number_string(depth_string);
-    if (depth == 0 || depth > 16) { throw std::invalid_argument("Depth must be between 0 and 16."); }
+    if (depth == 0 || depth > 16) { throw CommandError("Depth must be between 1 and 16."); }
     return depth;
 }
 
@@ -155,7 +154,7 @@ Command parse_perft(const std::vector<std::string>& tokens) {
     } else if (perft_command == "--depth") {
         return PerftCommand{parse_depth(tokens[2])};
     } else {
-        throw std::invalid_argument("Unreconized perft command.");
+        throw CommandError("Unrecognized perft command.");
     }
 }
 
@@ -169,10 +168,10 @@ Command parse_benchmark(const std::vector<std::string>& tokens) {
         } else if (perft_benchmark_command == "--depth") {
             return BenchmarkPerftCommand{parse_depth(tokens[3])};
         } else {
-            throw std::invalid_argument("Unreconized benchmark perft command.");
+            throw CommandError("Unrecognized benchmark perft command.");
         }
     } else {
-        throw std::invalid_argument("Unreconized benchmark command.");
+        throw CommandError("Unrecognized benchmark command.");
     }
 }
 
@@ -182,7 +181,7 @@ Command parse_debug(const std::vector<std::string>& tokens) {
     if (debug_command == "--depth") {
         return DebugCommand{parse_depth(tokens[2])};
     } else {
-        throw std::invalid_argument("Unreconized debug command.");
+        throw CommandError("Unrecognized debug command.");
     }
 }
 
@@ -201,8 +200,10 @@ Command parse_pgn(const std::vector<std::string>& tokens) {
         check_token_count(tokens, 2);
         return PgnListCommand{};
     } else {
-        throw std::invalid_argument("Unreconized pgn command.");
+        throw CommandError("Unrecognized pgn command.");
     }
+}
+
 }
 
 Command parse(std::string line) {
@@ -223,8 +224,9 @@ Command parse(std::string line) {
     } else if (base_command == "pgn") {
         return parse_pgn(tokens);
     } else if (base_command == "help") {
+        check_token_count(tokens, 1);
         return HelpCommand{};
     } else {
-        throw std::invalid_argument("Unreconized command.");
+        throw CommandError("Unrecognized command.");
     }
 }

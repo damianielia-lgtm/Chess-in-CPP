@@ -56,14 +56,7 @@ public:
     UndoState apply_move(const Move move) noexcept;
     void revert_move(const Move move, const UndoState& undo_state) noexcept;
 
-    bool operator==(const Position& other) const {
-        return (
-            board_ == other.board_
-            && turn_ == other.turn_
-            && castling_rights_ == other.castling_rights_
-            && en_passant_target_ == other.en_passant_target_
-        );
-    }
+    bool operator==(const Position&) const = default;
 
 private:
     std::array<Piece, 64> board_;

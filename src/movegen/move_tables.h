@@ -9,6 +9,8 @@
 template<std::size_t maximum>
 class Targets {
 public:
+    constexpr Targets() noexcept = default;
+    
     constexpr Targets(std::initializer_list<Square> init) {
         assert(init.size() <= maximum);
         for (auto target : init) {
@@ -51,7 +53,7 @@ struct MoveTables {
 };
 
 constexpr bool in_board(int rank, int file) {
-return (0 <= rank && rank <= 7 && 0 <= file && file <= 7);
+    return (0 <= rank && rank <= 7 && 0 <= file && file <= 7);
 }
 
 constexpr std::array<std::array<int, 2>, 8> knight_offsets = {{{1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}}};

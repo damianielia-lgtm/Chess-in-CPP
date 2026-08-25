@@ -6,6 +6,8 @@
 #include "attacks.h"
 #include "move_tables.h"
 
+namespace {
+
 constexpr std::array<Targets<3>, 4> CastlingEmpty = {{
     {Square('f', '1'), Square('g', '1')},
     {Square('b', '1'), Square('c', '1'), Square('d', '1')},
@@ -18,6 +20,8 @@ constexpr std::array<Targets<3>, 4> CastlingSafe = {{
     {Square('e', '8'), Square('f', '8'), Square('g', '8')},
     {Square('e', '8'), Square('d', '8'), Square('c', '8')}
 }};
+
+}
 
 bool can_castle(const Position& position, const CastlingOption castling_index) {
     if (!position.castling_rights().has(castling_index)) { return false; }

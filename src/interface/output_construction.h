@@ -6,7 +6,7 @@
 #include <optional>
 
 #include "../core/position.h"
-#include "../application/game.h"
+#include "../game/game.h"
 
 std::string format_time(std::chrono::milliseconds duration);
 

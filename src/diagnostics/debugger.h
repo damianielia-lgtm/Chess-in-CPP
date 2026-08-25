@@ -1,5 +1,6 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
-std::string debug_pos(std::string fen, int depth);
+std::vector<std::string> debug_pos(std::string fen, int depth);

@@ -1,4 +1,3 @@
-#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -6,15 +5,17 @@
 #include "../core/piece.h"
 #include "../core/position.h"
 #include "../movegen/legal_moves.h"
+#include "../errors.h"
 
-Move resolve_uci(Position& position, const std::string_view uci) {
-    for (const Move move : all_moves(position, false)) {
+Move resolve_uci(const Position& position, const std::string_view uci) {
+    Position modifiable_copy = position;
+    for (const Move move : all_moves(modifiable_copy, MoveGeneration::All)) {
         if (move.to_uci() == uci) {
             return move;
         }
     }
 
-    throw std::invalid_argument(std::string(uci) + " is not a legal move on the current position.");
+    throw IllegalMoveError(std::string(uci) + " is not a legal move on the current position.");
 }
 
 std::string Move::to_uci() const {

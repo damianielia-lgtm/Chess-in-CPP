@@ -5,63 +5,79 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <stdexcept>
 #include <cctype>
+#include <algorithm>
 
-void initialize_directories() {
-    std::filesystem::create_directories(pgn_dir);
-    std::filesystem::create_directories(fen_dir);
-    std::filesystem::create_directories(report_dir);
+#include "../errors.h"
+
+namespace fs = std::filesystem;
+
+inline const std::filesystem::path pgn_dir{"data/pgn/"};
+inline const std::filesystem::path fen_dir{"data/fen/"};
+inline const std::filesystem::path report_dir{"data/reports/"};
+
+void initialize_directories() try {
+    fs::create_directories(pgn_dir);
+    fs::create_directories(fen_dir);
+    fs::create_directories(report_dir);
+} catch (const fs::filesystem_error& e) {
+    throw StorageError("Filesystem error: " + std::string{e.what()});
 }
 
+namespace {
+
 void validate_name(const std::string_view name) {
-    if (name.empty()) { throw std::invalid_argument("Name can't be empty."); }
+    if (name.empty()) { throw StorageError("Name can't be empty."); }
 
     for (unsigned char c : name) {
         if (std::isalnum(c)) { continue; }
         if (c == '-' || c == '_') { continue; }
-        throw std::invalid_argument("Invalid name. You can only use letters, digits, underscores, and dashes.");
+        throw StorageError("Invalid name. You can only use letters, digits, underscores, and dashes.");
     }
 }
 
-std::filesystem::path make_pgn_path(const std::string_view name) {
+}
+
+fs::path make_pgn_path(const std::string_view name) {
     validate_name(name);
-    std::filesystem::path dir = pgn_dir / name;
+    fs::path dir = pgn_dir / name;
     dir.replace_extension(".pgn");    
     return dir;
 }
 
-std::filesystem::path make_fen_path(const std::string_view name) {
+fs::path make_fen_path(const std::string_view name) {
     validate_name(name);
-    std::filesystem::path dir = fen_dir / name;
+    fs::path dir = fen_dir / name;
     dir.replace_extension(".fen");    
     return dir;
 }
 
-std::filesystem::path make_report_path(const std::string_view name) {
+fs::path make_report_path(const std::string_view name) {
     validate_name(name);
-    std::filesystem::path dir = report_dir / name;
+    fs::path dir = report_dir / name;
     dir.replace_extension(".txt");    
     return dir;
 }
 
-void delete_file(const std::filesystem::path& path) {
-    if (!std::filesystem::exists(path)) {
-        throw std::invalid_argument(path.string() + " not found.");
+void delete_file(const fs::path& path) try {
+    if (!fs::exists(path)) {
+        throw StorageError(path.string() + " not found.");
     }
 
-    std::filesystem::remove(path);
+    fs::remove(path);
+} catch (const fs::filesystem_error& e) {
+    throw StorageIoError("Filesystem error: " + std::string{e.what()});
 }
 
-void write_file(const std::filesystem::path& path, const std::vector<std::string>& contents) {
-    if (std::filesystem::exists(path)) {
-        throw std::invalid_argument(path.string() + " already exists.");
+void write_file(const fs::path& path, const std::vector<std::string>& contents) try {
+    if (fs::exists(path)) {
+        throw StorageError(path.string() + " already exists.");
     }
 
     std::ofstream output{path};
 
     if (!output) {
-        throw std::invalid_argument("Could not open " + path.string() + " for writing.");
+        throw StorageIoError("Could not open " + path.string() + " for writing.");
     }
 
     for (const std::string& line : contents) {
@@ -69,18 +85,20 @@ void write_file(const std::filesystem::path& path, const std::vector<std::string
     }
 
     if (!output) {
-        throw std::invalid_argument("Failed while writing to " + path.string() + ".");
+        throw StorageIoError("Failed while writing to " + path.string() + ".");
     }
+} catch (const fs::filesystem_error& e) {
+    throw StorageIoError("Filesystem error: " + std::string{e.what()});
 }
 
-std::vector<std::string> read_file(const std::filesystem::path& path) {
-    if (!std::filesystem::exists(path)) {
-        throw std::invalid_argument(path.string() + " not found.");
+std::vector<std::string> read_file(const fs::path& path) try {
+    if (!fs::exists(path)) {
+        throw StorageError(path.string() + " not found.");
     }
 
     std::ifstream input{path};
     if (!input) {
-        throw std::invalid_argument("Could not open " + path.string() + " for reading.");
+        throw StorageIoError("Could not open " + path.string() + " for reading.");
     }
 
     std::string line;
@@ -91,15 +109,17 @@ std::vector<std::string> read_file(const std::filesystem::path& path) {
     }
 
     if (input.bad()) {
-        throw std::invalid_argument("Failed while reading from " + path.string() + ".");
+        throw StorageIoError("Failed while reading from " + path.string() + ".");
     }
 
     return lines;
+} catch (const fs::filesystem_error& e) {
+    throw StorageError("Filesystem error: " + std::string{e.what()});
 }
 
-std::vector<std::string> pgn_list() {
+std::vector<std::string> pgn_list() try {
     std::vector<std::string> files;
-    for (const auto& entry : std::filesystem::directory_iterator{pgn_dir}) {
+    for (const auto& entry : fs::directory_iterator{pgn_dir}) {
         if (
             entry.is_regular_file() &&
             entry.path().extension() == ".pgn"
@@ -108,5 +128,8 @@ std::vector<std::string> pgn_list() {
         }
     }
 
+    std::sort(files.begin(), files.end());
     return files;
+} catch (const fs::filesystem_error& e) {
+    throw StorageError("Filesystem error: " + std::string{e.what()});
 }

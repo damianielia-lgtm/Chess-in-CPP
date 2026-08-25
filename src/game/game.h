@@ -5,6 +5,7 @@
 #include <string_view>
 #include <optional>
 #include <chrono>
+#include <cassert>
 
 #include "../core/position.h"
 #include "../core/piece.h"
@@ -50,8 +51,23 @@ public:
         clock_(time
             ? std::optional<ClockState>(ClockState{time->initial, time->initial, time->increment})
             : std::nullopt) {}
+    
+    void handle_user_input(
+        std::string input,
+        std::chrono::milliseconds time_taken
+    ) {
+        if (is_timed_game()) { deduct_time(time_taken); }
+        if (has_ended()) { return; }
 
-    void play_move(std::string uci_move, std::optional<std::chrono::milliseconds> time_taken);
+        if (input == "resign") {
+            resign();
+        } else if (input == "draw") {
+            offer_draw();
+        } else {
+            play_move(input);
+            check_game_end();
+        }
+    }
 
     const Position& current_position() const noexcept { return current_position_; }
 
@@ -70,10 +86,10 @@ public:
             ? white_captured_material_
             : black_captured_material_);
     }
-    const int material_comparison() const noexcept { return material_comparison_; }
+    int material_comparison() const noexcept { return material_comparison_; }
 
-    const bool is_timed_game() const noexcept { return clock_.has_value(); }
-    const std::chrono::milliseconds current_clock(Color color) const noexcept {
+    bool is_timed_game() const noexcept { return clock_.has_value(); }
+    std::chrono::milliseconds current_clock(Color color) const noexcept {
         assert(is_timed_game());
         return (color == Color::White
             ? clock_->white_time
@@ -110,4 +126,17 @@ private:
     }
 
     std::optional<ClockState> clock_;
+
+    void resign() {
+        result_ = (current_position_.turn() == Color::White)
+            ? GameResult::WhiteResign
+            : GameResult::BlackResign;
+    }
+    void offer_draw() {
+        result_ = GameResult::Agreement;
+    }
+    
+    void deduct_time(std::chrono::milliseconds time_taken);
+    void play_move(std::string uci_move);
+    void check_game_end();
 };

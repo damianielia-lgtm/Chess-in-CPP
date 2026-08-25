@@ -5,11 +5,12 @@
 #include <format>
 #include <vector>
 #include <optional>
+#include <cassert>
 
 #include "../core/position.h"
 #include "../core/square.h"
 #include "../core/piece.h"
-#include "../application/game.h"
+#include "../game/game.h"
 #include "../movegen/attacks.h"
 
 std::string format_time(std::chrono::milliseconds duration) {
@@ -75,9 +76,11 @@ std::vector<std::string> construct_board_lines(const Position& position, bool fl
     return lines;
 }
 
+namespace {
+
 std::string construct_material_line(const GameState& game) {
     std::string material_line;
-    int material_comparision = game.material_comparison();
+    int material_comparison = game.material_comparison();
 
     material_line += "White: ";
     for (bool first = true; const Piece white_captured_piece : game.captures(Color::White)) {
@@ -85,8 +88,8 @@ std::string construct_material_line(const GameState& game) {
         material_line += white_captured_piece.symbol();
         first = false;
     }
-    if (material_comparision > 0) {
-        material_line += " + " + std::to_string(material_comparision);
+    if (material_comparison > 0) {
+        material_line += " + " + std::to_string(material_comparison);
     }
 
     material_line += " | ";
@@ -97,8 +100,8 @@ std::string construct_material_line(const GameState& game) {
         material_line += black_captured_piece.symbol();
         first = false;
     }
-    if (material_comparision < 0) {
-        material_line += " + " + std::to_string(material_comparision * -1);
+    if (material_comparison < 0) {
+        material_line += " + " + std::to_string(material_comparison * -1);
     }
 
     return material_line;
@@ -122,9 +125,9 @@ std::string construct_game_end_message(const GameState& game) {
 
     switch (game.result()) {
         case GameResult::WhiteCheckmated:
-            return "White has won by checkmate.";
-        case GameResult::BlackCheckmated:
             return "Black has won by checkmate.";
+        case GameResult::BlackCheckmated:
+            return "White has won by checkmate.";
         case GameResult::WhiteResign:
             return "White has resigned. Black wins";
         case GameResult::BlackResign:
@@ -145,6 +148,8 @@ std::string construct_game_end_message(const GameState& game) {
         case GameResult::Agreement:
             return "The game has ended in a draw by agreement";
     }
+}
+
 }
 
 std::vector<std::string> construct_game_lines(

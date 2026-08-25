@@ -4,12 +4,12 @@
 #include <string_view>
 #include <optional>
 #include <utility>
-#include <stdexcept>
 
 #include "../core/position.h"
 #include "../core/move.h"
 #include "../notation/uci.h"
-#include "game.h"
+#include "../game/game.h"
+#include "../errors.h"
 
 class Session {
 public:
@@ -26,7 +26,7 @@ public:
     void store_last_game(GameState game) { last_game_ = std::move(game); }
     const GameState& last_game() const {
         if (!last_game_) {
-            throw std::invalid_argument("No last game exists");
+            throw SessionError("No last game exists");
         }
 
         return last_game_.value();

@@ -5,10 +5,6 @@
 #include <string_view>
 #include <vector>
 
-inline const std::filesystem::path pgn_dir{"data/pgn/"};
-inline const std::filesystem::path fen_dir{"data/fen/"};
-inline const std::filesystem::path report_dir{"data/reports/"};
-
 void initialize_directories();
 
 std::filesystem::path make_pgn_path(const std::string_view name);

@@ -8,11 +8,14 @@
 #include <cstdint>
 
 #include "../core/position.h"
+#include "../errors.h"
+
+namespace {
 
 std::vector<ExpectedPerft> epd_parser() {
     std::ifstream file("resources/diagnostics/perft_database.epd");
     if (!file) {
-        throw std::runtime_error("Could not load perft database");
+        throw StorageIoError("Could not load perft database");
     }
 
     std::vector<ExpectedPerft> pos_list;
@@ -60,6 +63,8 @@ const std::map<std::string, std::uint64_t> preset_max_nodes = {
     {"extended", 20000000}
 };
 
+}
+
 PresetInfo make_preset(Preset preset) {
     PresetInfo info;
     std::uint64_t max_nodes;
@@ -68,7 +73,6 @@ PresetInfo make_preset(Preset preset) {
         case Preset::Fast: max_nodes = preset_max_nodes.at("fast"); break;
         case Preset::Moderate: max_nodes = preset_max_nodes.at("moderate"); break;
         case Preset::Extended: max_nodes = preset_max_nodes.at("extended"); break;
-        default: throw std::invalid_argument("Invalid preset");
     }
 
     for (ExpectedPerft pos : epd_parser()) {
