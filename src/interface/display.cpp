@@ -65,10 +65,3 @@ void print_lines(const std::vector<std::string>& lines) {
         std::cout << line << '\n';
     }
 }
-
-void print_pos_info(const Position& position) {
-    for (const std::string& line : construct_board_lines(position, false)) {
-        std::cout << line << '\n';
-    }
-    std::cout << "Fen: " << position.to_fen() << '\n';
-}

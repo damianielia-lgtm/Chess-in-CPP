@@ -223,6 +223,9 @@ Command parse(std::string line) {
         return parse_debug(tokens);
     } else if (base_command == "pgn") {
         return parse_pgn(tokens);
+    } else if (base_command == "replay") {
+       check_token_count(tokens, 2);
+       return ReplayCommand{tokens[1]};
     } else if (base_command == "help") {
         check_token_count(tokens, 1);
         return HelpCommand{};

@@ -28,6 +28,8 @@ struct PgnSaveCommand { std::string name; };
 struct PgnShowCommand { std::string name; };
 struct PgnListCommand {};
 
+struct ReplayCommand { std::string name; };
+
 using Command = std::variant<
     HelpCommand,
 
@@ -48,5 +50,7 @@ using Command = std::variant<
     PgnDeleteCommand,
     PgnSaveCommand,
     PgnShowCommand,
-    PgnListCommand
+    PgnListCommand,
+
+    ReplayCommand
 >;

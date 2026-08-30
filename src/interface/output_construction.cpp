@@ -78,7 +78,7 @@ std::vector<std::string> construct_board_lines(const Position& position, bool fl
 
 namespace {
 
-std::string construct_material_line(const GameState& game) {
+std::string construct_material_line(const GameSnapshot& game) {
     std::string material_line;
     int material_comparison = game.material_comparison();
 
@@ -107,63 +107,69 @@ std::string construct_material_line(const GameState& game) {
     return material_line;
 }
 
-std::string construct_clock_line(const GameState& game) {
+std::string construct_clock_line(const GameSnapshot& game) {
     std::string clock_line;
-    clock_line += "White: " + format_time(game.current_clock(Color::White));
+    clock_line += "White: " + format_time(game.clock(Color::White));
     clock_line += " | ";
-    clock_line += "Black: " + format_time(game.current_clock(Color::Black));
+    clock_line += "Black: " + format_time(game.clock(Color::Black));
 
     return clock_line;
 }
 
-std::string construct_prompt_line(const GameState& game) {
-    return std::string(game.turn_name()) + " to move. ";
+std::string construct_prompt_line(const GameSnapshot& game) {
+    return game.turn() == Color::White
+        ? "White to move. "
+        : "Black to move. ";
 }
 
-std::string construct_game_end_message(const GameState& game) {
-    assert(game.has_ended());
-
-    switch (game.result()) {
-        case GameResult::WhiteCheckmated:
-            return "Black has won by checkmate.";
-        case GameResult::BlackCheckmated:
+std::string construct_game_end_message(const GameResult result) {
+    switch (result) {
+        case GameResult::White_by_Checkmate:
             return "White has won by checkmate.";
-        case GameResult::WhiteResign:
-            return "White has resigned. Black wins";
-        case GameResult::BlackResign:
-            return "Black has resigned. White wins";
-        case GameResult::WhiteTimeout:
-            return "White has timed-out. Black wins";
-        case GameResult::BlackTimeout:
-            return "Black has timed-out. White wins";
+        case GameResult::Black_by_Checkmate:
+            return "Black has won by checkmate.";
+        case GameResult::White_by_Resignation:
+            return "Black has resigned. White wins.";
+        case GameResult::Black_by_Resignation:
+            return "White has resigned. Black wins.";
+        case GameResult::White_by_Timeout:
+            return "Black has timed-out. White wins.";
+        case GameResult::Black_by_Timeout:
+            return "White has timed-out. Black wins.";
+        case GameResult::White_by_Unknown:
+            return "White has won.";
+        case GameResult::Black_by_Unknown:
+            return "Black has won.";
 
-        case GameResult::Stalemate:
+        case GameResult::Draw_by_Stalemate:
             return "The game has ended in a stalemate.";
-        case GameResult::InsufficientMaterial:
+        case GameResult::Draw_by_InsufficientMaterial:
             return "The game has ended in a draw due to insufficient material.";
-        case GameResult::FiftyMoveRule:
+        case GameResult::Draw_by_FiftyMove:
             return "The game has ended in a draw due to the fifty move rule.";
-        case GameResult::ThreefoldRepetition:
+        case GameResult::Draw_by_ThreefoldRepetition:
             return "The game has ended in a draw due to threefold repetition.";
-        case GameResult::Agreement:
-            return "The game has ended in a draw by agreement";
+        case GameResult::Draw_by_Agreement:
+            return "The game has ended in a draw by agreement.";
+        case GameResult::Draw_by_Unknown:
+            return "The game has ended in a draw.";
     }
 }
 
 }
 
 std::vector<std::string> construct_game_lines(
-    const GameState& game,
-    bool show_clock,
-    std::optional<std::string> error
+    const GameSnapshot& game,
+    std::optional<std::string> error,
+    std::optional<GameResult> result_message
 ) {
     std::vector<std::string> lines;
 
-    for (const std::string& line : construct_board_lines(game.current_position(), false)) {
+    for (const std::string& line : construct_board_lines(game.position(), false)) {
         lines.push_back(line);
     }
 
-    if (show_clock) { lines.push_back(construct_clock_line(game)); }
+    if (game.is_timed_game()) { lines.push_back(construct_clock_line(game)); }
 
     lines.push_back(construct_material_line(game));
 
@@ -175,12 +181,9 @@ std::vector<std::string> construct_game_lines(
         lines.push_back(error_line);
     }
 
-    if (game.has_ended()) {
-        std::string end_message;
-        end_message += "\033[34m";
-        end_message += construct_game_end_message(game);
-        end_message += "\033[0m\n";
-        lines.push_back(end_message);
+    if (result_message) {
+        lines.push_back("\033[34m" + construct_game_end_message(*result_message) + "\033[0m");
+        lines.push_back("");
     } else {
         lines.push_back(construct_prompt_line(game));
     }

@@ -60,13 +60,13 @@ private:
 
 class GameDisplay {
 public:
-    GameDisplay(bool is_timed) :
-        show_clock_(is_timed),
+    GameDisplay() :
         rendered_line_count_(0),
-        error_message_(std::nullopt) {}
+        error_message_(std::nullopt),
+        result_(std::nullopt) {}
 
-    void render(const GameState& game) {
-        std::vector<std::string> lines = construct_game_lines(game, show_clock_, error_message_);
+    void render(const GameSnapshot& game){
+        std::vector<std::string> lines = construct_game_lines(game, error_message_, result_);
         rendered_line_count_ = lines.size();
 
         std::string prompt_line = lines.back();
@@ -78,7 +78,7 @@ public:
         std::cout << prompt_line;
     }
 
-    void update(const GameState& game) {
+    void update(const GameSnapshot& game) {
         for (int i = 0; i < rendered_line_count_; i++) { // Clear line by line, going up
             std::cout << "\r"; // Go to the start of line
             std::cout << "\033[2K"; // Clear line
@@ -91,13 +91,14 @@ public:
     void set_error(std::string message) { error_message_ = message; }
     void clear_error() { error_message_ = std::nullopt; }
 
+    void set_result(GameResult result) { result_ = result; }
+    void clear_result() { result_ = std::nullopt; }
+
 private:
-    bool show_clock_;
     std::size_t rendered_line_count_ = 0;
     std::optional<std::string> error_message_;
+    std::optional<GameResult> result_;
 };
-
-void print_pos_info(const Position& position);
 
 void print_help();
 

@@ -20,11 +20,14 @@ namespace {
 void execute_impl(const HelpCommand&, Session&) { print_help(); }
 
 void execute_impl(const PlayCommand& cmd, Session& session) {
-    std::optional<GameState> game = play_local(cmd.time);
+    std::optional<Game> game = play_local(cmd.time);
     if (game.has_value()) { session.store_last_game(std::move(game.value())); }
 }
 
-void execute_impl(const PositionShowCommand&, Session& session) { print_pos_info(session.current_position()); }
+void execute_impl(const PositionShowCommand&, Session& session) {
+    print_lines(construct_board_lines(session.current_position(), false));
+    print_lines({session.current_position().to_fen()});
+}
 void execute_impl(const PositionStartposCommand&, Session& session) { session.reset_pos(); }
 void execute_impl(const PositionFenCommand& cmd, Session& session) { session.set_pos(cmd.fen); }
 
@@ -64,6 +67,14 @@ void execute_impl(const PgnListCommand&, Session&) {
     } else {
         print_lines(list);
     }
+}
+
+void execute_impl(const ReplayCommand& cmd, Session&) {
+    std::filesystem::path dir = make_pgn_path(cmd.name);
+    std::vector<std::string> pgn_lines = read_file(dir);
+    ParsedPGN parsed = parse_pgn_document(pgn_lines);
+    Game game = reconstruct_game(parsed);
+    replay(game);
 }
 
 }

@@ -23,8 +23,8 @@ public:
 
     const Position& current_position() const noexcept { return current_position_; }
 
-    void store_last_game(GameState game) { last_game_ = std::move(game); }
-    const GameState& last_game() const {
+    void store_last_game(Game game) { last_game_ = std::move(game); }
+    const Game& last_game() const {
         if (!last_game_) {
             throw SessionError("No last game exists");
         }
@@ -34,5 +34,5 @@ public:
 
 private:
     Position current_position_;
-    std::optional<GameState> last_game_;
+    std::optional<Game> last_game_;
 };

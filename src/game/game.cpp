@@ -11,7 +11,6 @@
 #include "../core/square.h"
 #include "../movegen/legal_moves.h"
 #include "../movegen/attacks.h"
-#include "../notation/uci.h"
 
 namespace {
 
@@ -93,68 +92,133 @@ bool insufficient_material(const Position& position) {
 
 }
 
-void GameState::deduct_time(std::chrono::milliseconds time_taken) {
-    assert(is_timed_game());
-
-    if (current_position_.turn() == Color::White) {
-        clock_->white_time -= time_taken;
-        if (clock_->white_time <= std::chrono::milliseconds::zero()) {
-            clock_->white_time = std::chrono::milliseconds::zero();
-            result_ = GameResult::WhiteTimeout;
-        }
-    } else {
-        clock_->black_time -= time_taken;
-        if (clock_->black_time <= std::chrono::milliseconds::zero()) {
-            clock_->black_time = std::chrono::milliseconds::zero();
-            result_ = GameResult::BlackTimeout;
-        }
-    }
-}
-
-void GameState::play_move(std::string uci_move) {
-    assert(!result_.has_value());
-
-    Move move = resolve_uci(current_position_, uci_move);
-    moves_history_.push_back(move);
+void Game::check_game_end() {
+    assert(!has_ended());
 
     if (is_timed_game()) {
-        if (current_position_.turn() == Color::White) {
-            clock_->white_time += clock_->increment;
-        } else {
-            clock_->black_time += clock_->increment;
+        if (live_state_.clock(Color::White) <= std::chrono::milliseconds::zero()) {
+            finish(GameResult::Black_by_Timeout);
+            return;
+        }
+        if (live_state_.clock(Color::Black) <= std::chrono::milliseconds::zero()) {
+            finish(GameResult::White_by_Timeout);
+            return;
         }
     }
 
-    UndoState move_state = current_position_.apply_move(move);
-    update_material(move_state.captured_piece);
-    positions_history_.push_back(current_position_);
-}
-
-void GameState::check_game_end() {
-    assert(!result_.has_value());
-
-    if (all_moves(current_position_, MoveGeneration::All).empty()) {
+    Position position = live_state_.position();
+    if (all_moves(position, MoveGeneration::All).empty()) {
         bool in_check = is_attacked_square(
-            current_position_,
-            current_position_.king_square(current_position_.turn()),
-            current_position_.opposite_turn()
+            position,
+            position.king_square(position.turn()),
+            position.opposite_turn()
         );
-        result_ = (in_check)
-            ? ((current_position_.turn() == Color::White)
-                ? GameResult::WhiteCheckmated
-                : GameResult::BlackCheckmated)
-            : GameResult::Stalemate;
-    } else if (insufficient_material(current_position_)) {
-        result_ = GameResult::InsufficientMaterial;
-    } else if (current_position_.halfmove_clock() >= 100) {
-        result_ = GameResult::FiftyMoveRule;
-    } else {
+        finish(
+            in_check
+            ? ((live_state_.turn() == Color::White)
+                ? GameResult::Black_by_Checkmate
+                : GameResult::White_by_Checkmate)
+            : GameResult::Draw_by_Stalemate
+        );
+    }
+    
+    else if (insufficient_material(position)) {
+        finish(GameResult::Draw_by_InsufficientMaterial);
+    }
+    
+    else if (position.halfmove_clock() >= 100) {
+        finish(GameResult::Draw_by_FiftyMove);
+    }
+    
+    else {
         int same_positions_count = 0;
-        for (const Position& position : positions_history_) {
-            if (is_repeated_position(position, current_position_)) { same_positions_count++; }
+        for (const GameSnapshot& snapshot : snapshots_) {
+            if (is_repeated_position(position, snapshot.position())) { same_positions_count++; }
         }
         if (same_positions_count >= 3) {
-            result_ = GameResult::ThreefoldRepetition;
+            finish(GameResult::Draw_by_ThreefoldRepetition);
+        }
+    }
+}
+
+void Game::consume_time(std::chrono::milliseconds time_taken) noexcept {
+    assert(!has_ended());
+    assert(is_timed_game());
+    live_state_.consume_time(live_state_.turn(), time_taken);
+}
+
+void Game::play_move(Move move) {
+    assert(!has_ended());
+
+    Color mover = live_state_.turn();
+
+    live_state_.play_move(move);
+
+    if (is_timed_game()) {
+        live_state_.add_increment(mover, time_control_->increment);
+    }
+
+    snapshots_.push_back(live_state_.make_snapshot());
+}
+
+void Game::resign() noexcept {
+    assert(!has_ended());
+    finish(
+        live_position().turn() == Color::White
+            ? GameResult::Black_by_Resignation
+            : GameResult::White_by_Resignation
+    );
+}
+
+void Game::agree_draw() noexcept {
+    assert(!has_ended());
+    finish(GameResult::Draw_by_Agreement);
+}
+
+void Game::record_unknown_result(GameResult result) noexcept {
+    assert(
+        result == GameResult::White_by_Unknown ||
+        result == GameResult::Black_by_Unknown ||
+        result == GameResult::Draw_by_Unknown
+    );
+
+    finish(result);
+}
+
+void LiveGameState::consume_time(Color side, std::chrono::milliseconds time_taken) noexcept {
+    assert(is_timed_game());
+
+    if (side == Color::White) {
+        clocks_->white_time -= time_taken;
+        clocks_->white_time = std::max(clocks_->white_time, std::chrono::milliseconds::zero());
+    } else {
+        clocks_->black_time -= time_taken;
+        clocks_->black_time = std::max(clocks_->black_time, std::chrono::milliseconds::zero());
+    }
+}
+
+void LiveGameState::add_increment(Color side, std::chrono::milliseconds increment) noexcept {
+    assert(is_timed_game());
+
+    if (side == Color::White) {
+        clocks_->white_time += increment;
+    } else {
+        clocks_->black_time += increment;
+    }
+}
+
+void LiveGameState::play_move(Move move) {
+    incoming_move_ = move;
+    UndoState move_state = position_.apply_move(move);
+    update_captures(move_state.captured_piece);
+}
+
+void LiveGameState::update_captures(const Piece captured_piece) noexcept {
+    if (!captured_piece.empty()) {
+        if (captured_piece.color() == Color::White) {
+            black_captured_material_.push_back(captured_piece);
+        } else if (captured_piece.color() == Color::Black) {
+            white_captured_material_.push_back(captured_piece);
         }
     }
 }
