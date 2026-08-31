@@ -26,7 +26,7 @@ void execute_impl(const PlayCommand& cmd, Session& session) {
 
 void execute_impl(const PositionShowCommand&, Session& session) {
     print_lines(construct_board_lines(session.current_position(), false));
-    print_lines({session.current_position().to_fen()});
+    print_lines({"Fen: \"" + session.current_position().to_fen() + '\"'});
 }
 void execute_impl(const PositionStartposCommand&, Session& session) { session.reset_pos(); }
 void execute_impl(const PositionFenCommand& cmd, Session& session) { session.set_pos(cmd.fen); }

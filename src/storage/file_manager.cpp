@@ -114,7 +114,7 @@ std::vector<std::string> read_file(const fs::path& path) try {
 
     return lines;
 } catch (const fs::filesystem_error& e) {
-    throw StorageError("Filesystem error: " + std::string{e.what()});
+    throw StorageIoError("Filesystem error: " + std::string{e.what()});
 }
 
 std::vector<std::string> pgn_list() try {
@@ -131,5 +131,5 @@ std::vector<std::string> pgn_list() try {
     std::sort(files.begin(), files.end());
     return files;
 } catch (const fs::filesystem_error& e) {
-    throw StorageError("Filesystem error: " + std::string{e.what()});
+    throw StorageIoError("Filesystem error: " + std::string{e.what()});
 }

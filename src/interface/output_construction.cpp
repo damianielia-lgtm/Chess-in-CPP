@@ -24,7 +24,11 @@ std::string format_time(std::chrono::milliseconds duration) {
     return std::format("{:02}:{:02}.{:03}", mins.count(), secs.count(), ms.count());
 }
 
-std::vector<std::string> construct_board_lines(const Position& position, bool flip) {
+std::vector<std::string> construct_board_lines(
+    const Position& position,
+    bool flip,
+    std::optional<Move> move
+) {
     std::vector<std::string> lines;
 
     Square king_in_check =
@@ -35,6 +39,13 @@ std::vector<std::string> construct_board_lines(const Position& position, bool fl
         )
         ? position.king_square(position.turn())
         : Square(); // invalid index
+
+    Square to_highlight1 = Square(); // invalid index
+    Square to_highlight2 = Square(); // invalid index
+    if (move) {
+        to_highlight1 = move.value().origin();
+        to_highlight2 = move.value().target();
+    }
 
     lines.push_back((flip)
         ? "    h   g   f   e   d   c   b   a    "
@@ -55,6 +66,10 @@ std::vector<std::string> construct_board_lines(const Position& position, bool fl
 
             if (square == king_in_check) {
                 board_line += "\033[31m";
+                board_line += position.piece_at(square).symbol();
+                board_line += "\033[0m";
+            } else if (square == to_highlight1 || square == to_highlight2) {
+                board_line += "\x1b[33m";
                 board_line += position.piece_at(square).symbol();
                 board_line += "\033[0m";
             } else {
@@ -78,11 +93,11 @@ std::vector<std::string> construct_board_lines(const Position& position, bool fl
 
 namespace {
 
-std::string construct_material_line(const GameSnapshot& game) {
+std::string construct_material_line(const GameSnapshot& game, const GameMetadata& metadata) {
     std::string material_line;
     int material_comparison = game.material_comparison();
 
-    material_line += "White: ";
+    material_line += metadata.white_name + ": ";
     for (bool first = true; const Piece white_captured_piece : game.captures(Color::White)) {
         if (!first) { material_line += ", "; }
         material_line += white_captured_piece.symbol();
@@ -94,7 +109,7 @@ std::string construct_material_line(const GameSnapshot& game) {
 
     material_line += " | ";
     
-    material_line += "Black: ";
+    material_line += metadata.black_name + ": ";
     for (bool first = true; const Piece black_captured_piece : game.captures(Color::Black)) {
         if (!first) { material_line += ", "; }
         material_line += black_captured_piece.symbol();
@@ -107,39 +122,39 @@ std::string construct_material_line(const GameSnapshot& game) {
     return material_line;
 }
 
-std::string construct_clock_line(const GameSnapshot& game) {
+std::string construct_clock_line(const GameSnapshot& game, const GameMetadata& metadata) {
     std::string clock_line;
-    clock_line += "White: " + format_time(game.clock(Color::White));
+    clock_line += metadata.white_name + ": " + format_time(game.clock(Color::White));
     clock_line += " | ";
-    clock_line += "Black: " + format_time(game.clock(Color::Black));
+    clock_line += metadata.black_name + ": " + format_time(game.clock(Color::Black));
 
     return clock_line;
 }
 
-std::string construct_prompt_line(const GameSnapshot& game) {
+std::string construct_prompt_line(const GameSnapshot& game, const GameMetadata& metadata) {
     return game.turn() == Color::White
-        ? "White to move. "
-        : "Black to move. ";
+        ? metadata.white_name + " to move. "
+        : metadata.black_name + " to move. ";
 }
 
-std::string construct_game_end_message(const GameResult result) {
+std::string construct_game_end_message(const GameResult result, const GameMetadata& metadata) {
     switch (result) {
         case GameResult::White_by_Checkmate:
-            return "White has won by checkmate.";
+            return metadata.white_name + " has won by checkmate.";
         case GameResult::Black_by_Checkmate:
-            return "Black has won by checkmate.";
+            return metadata.black_name + " has won by checkmate.";
         case GameResult::White_by_Resignation:
-            return "Black has resigned. White wins.";
+            return metadata.black_name + " has resigned. " + metadata.white_name + " wins.";
         case GameResult::Black_by_Resignation:
-            return "White has resigned. Black wins.";
+            return metadata.white_name + " has resigned. " + metadata.black_name + " wins.";
         case GameResult::White_by_Timeout:
-            return "Black has timed-out. White wins.";
+            return metadata.black_name + " has timed-out. " + metadata.white_name + " wins.";
         case GameResult::Black_by_Timeout:
-            return "White has timed-out. Black wins.";
+            return metadata.white_name + " has timed-out. " + metadata.black_name + " wins.";
         case GameResult::White_by_Unknown:
-            return "White has won.";
+            return metadata.white_name + " has won.";
         case GameResult::Black_by_Unknown:
-            return "Black has won.";
+            return metadata.black_name + " has won.";
 
         case GameResult::Draw_by_Stalemate:
             return "The game has ended in a stalemate.";
@@ -159,19 +174,20 @@ std::string construct_game_end_message(const GameResult result) {
 }
 
 std::vector<std::string> construct_game_lines(
-    const GameSnapshot& game,
+    const GameSnapshot& snapshot,
     std::optional<std::string> error,
-    std::optional<GameResult> result_message
+    std::optional<GameResult> result_message,
+    const GameMetadata& metadata
 ) {
     std::vector<std::string> lines;
 
-    for (const std::string& line : construct_board_lines(game.position(), false)) {
+    for (const std::string& line : construct_board_lines(snapshot.position(), false, snapshot.last_move())) {
         lines.push_back(line);
     }
 
-    if (game.is_timed_game()) { lines.push_back(construct_clock_line(game)); }
+    if (snapshot.is_timed_game()) { lines.push_back(construct_clock_line(snapshot, metadata)); }
 
-    lines.push_back(construct_material_line(game));
+    lines.push_back(construct_material_line(snapshot, metadata));
 
     if (error) {
         std::string error_line;
@@ -182,10 +198,10 @@ std::vector<std::string> construct_game_lines(
     }
 
     if (result_message) {
-        lines.push_back("\033[34m" + construct_game_end_message(*result_message) + "\033[0m");
+        lines.push_back("\033[34m" + construct_game_end_message(*result_message, metadata) + "\033[0m");
         lines.push_back("");
     } else {
-        lines.push_back(construct_prompt_line(game));
+        lines.push_back(construct_prompt_line(snapshot, metadata));
     }
 
     return lines;

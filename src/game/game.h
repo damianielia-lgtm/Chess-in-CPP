@@ -135,6 +135,12 @@ private:
     void update_captures(const Piece captured_piece) noexcept;
 };
 
+struct GameMetadata {
+    std::string white_name;
+    std::string black_name;
+    std::optional<TimeControl> time_control;
+};
+
 class Game {
 public:
     Game(
@@ -142,14 +148,12 @@ public:
         std::string black_name,
         std::optional<TimeControl> time = std::nullopt
     ):
-        white_name_(std::move(white_name)),
-        black_name_(std::move(black_name)),
-        time_control_(time),
+        metadata_(GameMetadata{white_name, black_name, time}),
         live_state_(LiveGameState(time
             ? std::optional<std::chrono::milliseconds>{time->initial}
             : std::optional<std::chrono::milliseconds>{})),
-        result_(std::nullopt),
-        snapshots_({live_state_.make_snapshot()}) {}
+        snapshots_({live_state_.make_snapshot()}),
+        result_(std::nullopt) {}
 
     const std::vector<GameSnapshot>& all_snapshots() const noexcept { return snapshots_; }
     GameSnapshot live_snapshot() const { return live_state_.make_snapshot(); }
@@ -161,11 +165,11 @@ public:
         return *result_;
     }
     
-    bool is_timed_game() const noexcept { return time_control_.has_value(); }
-
+    bool is_timed_game() const noexcept { return metadata_.time_control.has_value(); }
     const std::string& name(Color color) const noexcept {
-        return (color == Color::White) ? white_name_ : black_name_;
+        return (color == Color::White) ? metadata_.white_name : metadata_.black_name;
     }
+    const GameMetadata& metadata() const noexcept { return metadata_; }
 
     std::size_t snapshot_count() const noexcept { return snapshots_.size(); }
     const GameSnapshot& snapshot_at(std::size_t index) const noexcept {
@@ -182,12 +186,11 @@ public:
     void record_unknown_result(GameResult result) noexcept;
 
 private:
-    std::string white_name_;
-    std::string black_name_;
-    std::optional<TimeControl> time_control_;
+    GameMetadata metadata_;
 
     LiveGameState live_state_;
+    std::vector<GameSnapshot> snapshots_;
+
     std::optional<GameResult> result_;
     void finish(GameResult result) noexcept { assert(!result_.has_value()); result_ = result; }
-    std::vector<GameSnapshot> snapshots_;
 };

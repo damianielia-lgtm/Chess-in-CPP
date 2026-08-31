@@ -155,7 +155,7 @@ void Game::play_move(Move move) {
     live_state_.play_move(move);
 
     if (is_timed_game()) {
-        live_state_.add_increment(mover, time_control_->increment);
+        live_state_.add_increment(mover, metadata_.time_control->increment);
     }
 
     snapshots_.push_back(live_state_.make_snapshot());

@@ -14,7 +14,7 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control) {
 
     std::size_t cursor = 0;
     Game game("White", "Black", time_control);
-    GameDisplay display;
+    GameDisplay display(game.metadata());
 
     display.render(game.snapshot_at(cursor));
     
@@ -79,7 +79,7 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control) {
 void replay(const Game& game) {
     std::size_t cursor = 0;
 
-    GameDisplay display;
+    GameDisplay display(game.metadata());
     if (cursor == game.snapshot_count() - 1) { display.set_result(game.result()); }
     display.render(game.snapshot_at(cursor));
 

@@ -60,13 +60,19 @@ private:
 
 class GameDisplay {
 public:
-    GameDisplay() :
+    GameDisplay(GameMetadata metadata) :
         rendered_line_count_(0),
         error_message_(std::nullopt),
-        result_(std::nullopt) {}
+        result_(std::nullopt),
+        metatdata_(std::move(metadata)) {}
 
     void render(const GameSnapshot& game){
-        std::vector<std::string> lines = construct_game_lines(game, error_message_, result_);
+        std::vector<std::string> lines = construct_game_lines(
+            game,
+            error_message_,
+            result_,
+            metatdata_
+        );
         rendered_line_count_ = lines.size();
 
         std::string prompt_line = lines.back();
@@ -98,6 +104,7 @@ private:
     std::size_t rendered_line_count_ = 0;
     std::optional<std::string> error_message_;
     std::optional<GameResult> result_;
+    GameMetadata metatdata_;
 };
 
 void print_help();

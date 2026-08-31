@@ -10,10 +10,15 @@
 
 std::string format_time(std::chrono::milliseconds duration);
 
-std::vector<std::string> construct_board_lines(const Position& position, bool flip);
+std::vector<std::string> construct_board_lines(
+    const Position& position,
+    bool flip,
+    std::optional<Move> move = std::nullopt
+);
 
 std::vector<std::string> construct_game_lines(
-    const GameSnapshot& game,
+    const GameSnapshot& snapshot,
     std::optional<std::string> error,
-    std::optional<GameResult> result
+    std::optional<GameResult> result_message,
+    const GameMetadata& metadata
 );
