@@ -82,6 +82,76 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control) {
     return game;
 }
 
+std::optional<Game> analyze(const Position& position, bool clear_output_at_end) {
+    std::size_t cursor = 0;
+    Game game("White", "Black", std::nullopt, position);
+    GameDisplay display(game.metadata());
+
+    display.render(game.snapshot_at(cursor));
+    
+    while (true) {
+        display.clear_error();
+
+        std::string user_input;
+        if(!std::getline(std::cin, user_input)) { return std::nullopt; }
+
+        if (user_input == "exit") {
+            if (!game.has_ended()) { game.finish_without_result(); }
+            break;
+        }
+
+        if (user_input == "flip") {
+            display.flip_board();
+        }
+
+        else if (user_input == "next") {
+            if (cursor < game.snapshot_count() - 1) { cursor++; }
+        } else if (user_input == "previous") {
+            if (cursor > 0) { cursor--; }
+        } else if (user_input == "first") {
+            cursor = 0;
+        } else if (user_input == "last") {
+            cursor = game.snapshot_count() - 1;
+        }
+        
+        else {
+            while (cursor < game.snapshot_count() - 1) {
+                game.pop_state();
+            }
+            
+            if (user_input == "resign") {
+                game.resign();
+            } else if (user_input == "draw") {
+                game.agree_draw();
+            } else {
+                try {
+                    game.play_move(
+                        resolve_uci(game.live_position(), user_input)
+                    );
+                    game.check_game_end();
+                    cursor++;
+                } catch (const IllegalMoveError& e) {
+                    display.set_error(e.what());
+                }
+            }
+
+            if (game.has_ended()) { display.set_result(game.result());; }
+        }
+
+        if (cursor == game.snapshot_count() - 1) {
+            display.update(game.live_snapshot());
+        } else {
+            display.update(game.snapshot_at(cursor));
+        }
+    }
+
+    if (clear_output_at_end) {
+        display.clear_rendered_area();
+    }
+
+    return game;
+}
+
 void replay(const Game& game) {
     std::size_t cursor = 0;
 
@@ -98,6 +168,11 @@ void replay(const Game& game) {
 
         if (user_input == "flip") {
             display.flip_board();
+        }
+
+        else if (user_input == "analyze") {
+            display.clear_rendered_area();
+            analyze(game.snapshot_at(cursor).position(), true);
         }
 
         else if (user_input == "next") {

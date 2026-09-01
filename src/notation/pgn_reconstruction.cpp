@@ -21,7 +21,8 @@ Game reconstruct_game(const ParsedPGN& pgn_data) {
     Game game(
         pgn_data.white_name,
         pgn_data.black_name,
-        keep_clocks ? pgn_data.time_control : std::nullopt
+        keep_clocks ? pgn_data.time_control : std::nullopt,
+        pgn_data.starting_position
     );
 
     int movenumber = 1;

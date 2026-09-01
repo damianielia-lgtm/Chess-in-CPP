@@ -271,6 +271,9 @@ Command parse(std::string line) {
     } else if (base_command == "replay") {
         check_token_count(tokens, 2);
         return ReplayCommand{tokens[1]};
+    } else if (base_command == "analyze") {
+        check_token_count(tokens, 1);
+        return AnalyzeCommand{};
     } else if (base_command == "help") {
         check_token_count(tokens, 1);
         return HelpCommand{};

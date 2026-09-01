@@ -11,6 +11,7 @@ struct HelpCommand {};
 
 struct PlayCommand { std::optional<TimeControl> time; };
 struct ReplayCommand { std::string name; };
+struct AnalyzeCommand {};
 
 struct PositionShowCommand {};
 struct PositionStartposCommand {};
@@ -44,6 +45,7 @@ using Command = std::variant<
 
     PlayCommand,
     ReplayCommand,
+    AnalyzeCommand,
 
     PositionShowCommand,
     PositionStartposCommand,

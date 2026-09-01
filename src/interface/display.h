@@ -104,6 +104,16 @@ public:
 
     void flip_board() { flip_board_ = !flip_board_; }
 
+    void clear_rendered_area() {
+        for (int i = 0; i < rendered_line_count_; i++) {
+            std::cout << "\r";
+            std::cout << "\033[2K";
+            std::cout << "\033[A";
+        }
+
+        rendered_line_count_ = 0;
+    }
+
 private:
     std::size_t rendered_line_count_ = 0;
     std::optional<std::string> error_message_;

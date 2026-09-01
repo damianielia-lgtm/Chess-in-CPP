@@ -28,7 +28,9 @@ enum class GameResult {
     Draw_by_FiftyMove,
     Draw_by_ThreefoldRepetition,
     Draw_by_Agreement,
-    Draw_by_Unknown
+    Draw_by_Unknown,
+
+    Unknown_End
 };
 
 struct TimeControl {
@@ -92,24 +94,20 @@ private:
 
 class LiveGameState {
 public:
-    LiveGameState(std::optional<std::chrono::milliseconds> initial = std::nullopt):
-        position_(Position()),
-        incoming_move_(std::nullopt),
-        white_captured_material_({}),
-        black_captured_material_({}),
-        clocks_(initial
-            ? std::optional<ClockState>(ClockState{*initial, *initial})
-            : std::nullopt) {}
+    LiveGameState(
+        Position position,
+        std::optional<Move> move,
+        std::vector<Piece> white_captures,
+        std::vector<Piece> black_captures,
+        std::optional<ClockState> clock
+    ):
+        position_(std::move(position)),
+        incoming_move_(std::move(move)),
+        white_captured_material_(std::move(white_captures)),
+        black_captured_material_(std::move(black_captures)),
+        clocks_(std::move(clock)) {}
 
-    GameSnapshot make_snapshot() const {
-        return GameSnapshot(
-            position_,
-            incoming_move_,
-            white_captured_material_,
-            black_captured_material_,
-            clocks_
-        );
-    }
+    GameSnapshot make_snapshot() const;
 
     const Position& position() const noexcept { return position_; }
     Color turn() const noexcept { return position_.turn(); }
@@ -139,6 +137,7 @@ struct GameMetadata {
     std::string white_name;
     std::string black_name;
     std::optional<TimeControl> time_control;
+    Position starting_position;
 };
 
 class Game {
@@ -146,12 +145,19 @@ public:
     Game(
         std::string white_name,
         std::string black_name,
-        std::optional<TimeControl> time = std::nullopt
+        std::optional<TimeControl> time = std::nullopt,
+        std::optional<Position> starting_pos = std::nullopt
     ):
-        metadata_(GameMetadata{white_name, black_name, time}),
-        live_state_(LiveGameState(time
-            ? std::optional<std::chrono::milliseconds>{time->initial}
-            : std::optional<std::chrono::milliseconds>{})),
+        metadata_(GameMetadata{white_name, black_name, time, starting_pos ? *starting_pos : Position()}),
+        live_state_(LiveGameState(
+            starting_pos ? *starting_pos : Position(),
+            std::nullopt,
+            {},
+            {},
+            time
+                ? std::optional<ClockState>(ClockState{time->initial, time->initial})
+                : std::nullopt
+        )),
         snapshots_({live_state_.make_snapshot()}),
         result_(std::nullopt) {}
 
@@ -176,6 +182,22 @@ public:
         assert(index < snapshots_.size());
         return snapshots_[index];
     }
+    void pop_state() noexcept {
+        assert(!snapshots_.empty());
+        snapshots_.pop_back();
+        live_state_ = LiveGameState(
+            snapshots_.back().position(),
+            snapshots_.back().last_move(),
+            snapshots_.back().captures(Color::White),
+            snapshots_.back().captures(Color::Black),
+            snapshots_.back().has_clock_data()
+                ? std::optional<ClockState>(ClockState{snapshots_.back().clock(Color::White), snapshots_.back().clock(Color::Black)})
+                : std::nullopt
+        );
+        result_ = std::nullopt;
+        check_game_end();
+    }
+    void finish_without_result() noexcept { assert(!result_.has_value()); result_ = GameResult::Unknown_End; }
 
     void consume_time(std::chrono::milliseconds time_taken) noexcept;
     void play_move(Move move);

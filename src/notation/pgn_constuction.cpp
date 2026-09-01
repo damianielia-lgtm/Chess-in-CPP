@@ -9,6 +9,7 @@
 
 #include "../core/move.h"
 #include "../core/piece.h"
+#include "../core/position.h"
 #include "../interface/output_construction.h"
 #include "san.h"
 
@@ -44,8 +45,17 @@ std::vector<std::string> construct_pgn_lines(const Game& game) {
         case GameResult::Black_by_Unknown:
             result = "0-1";
             break;
-        default:
+        case GameResult::Draw_by_Agreement:
+        case GameResult::Draw_by_FiftyMove:
+        case GameResult::Draw_by_InsufficientMaterial:
+        case GameResult::Draw_by_Stalemate:
+        case GameResult::Draw_by_ThreefoldRepetition:
+        case GameResult::Draw_by_Unknown:
             result = "1/2-1/2";
+            break;
+        case GameResult::Unknown_End:
+            result = "*";
+            break;
     }
 
     lines.push_back("[Result \"" + result + "\"]");
@@ -67,11 +77,17 @@ std::vector<std::string> construct_pgn_lines(const Game& game) {
     }
     lines.push_back("[TimeControl \"" + timecontrol + "\"]");
 
+    if (game.metadata().starting_position != Position()) {
+        lines.push_back("[SetUp \"1\"]");
+        lines.push_back("[FEN \"" + game.metadata().starting_position.to_fen() + "\"]");
+    }
+
     lines.push_back("");
 
     std::string moves_line;
-    int move_clock = 1;
+    int move_clock = game.metadata().starting_position.fullmove_number();
     bool added_comment = false;
+    bool first_movenumber = true;
 
     for (std::size_t index = 1; index < game.all_snapshots().size(); index++) {
         Position position = game.all_snapshots()[index - 1].position();
@@ -82,13 +98,16 @@ std::vector<std::string> construct_pgn_lines(const Game& game) {
         if (position.turn() == Color::White) {
             moves_line += std::to_string(move_clock);
             moves_line += ". ";
-            move_clock++;
-        } else if (added_comment) {
-            moves_line += std::to_string(move_clock - 1);
+        } else if (added_comment || first_movenumber) {
+            moves_line += std::to_string(move_clock);
             moves_line += "... ";
         }
 
         moves_line += to_san(position, *move) + ' ';
+        
+        if (position.turn() == Color::Black) {
+            move_clock++;
+        }
 
         if (game.is_timed_game()) {
             milliseconds clock = game.all_snapshots()[index].clock(position.turn());
@@ -102,6 +121,8 @@ std::vector<std::string> construct_pgn_lines(const Game& game) {
             lines.push_back(moves_line);
             moves_line.clear();
         }
+
+        first_movenumber = false;
     }
     moves_line += result;
     lines.push_back(moves_line);

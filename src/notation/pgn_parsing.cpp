@@ -20,6 +20,7 @@ GameResult parse_outcome(const std::string& token) {
     if (token == "1-0") { return GameResult::White_by_Unknown; }
     if (token == "0-1") { return GameResult::Black_by_Unknown; }
     if (token == "1/2-1/2") { return GameResult::Draw_by_Unknown; }
+    if (token == "*") { return GameResult::Unknown_End; }
     throw PgnError("Result must be \"0-1\", \"1-0\", or \"1/2-1/2\".");
 }
 
@@ -170,6 +171,7 @@ struct TagPairs {
     std::string Black;
     GameResult Result;
     std::optional<TimeControl> TimeControl;
+    std::optional<Position> FEN;
 };
 
 TagPairs parse_tags(const std::vector<std::string>& tags) {
@@ -179,6 +181,10 @@ TagPairs parse_tags(const std::vector<std::string>& tags) {
     bool found_Black_tag = false;
     bool found_Result_tag = false;
     bool found_TimeControl_tag = false;
+    bool found_SetUp_tag = false;
+    bool found_FEN_tag = false;
+
+    bool expect_FEN_tag = false;
 
     for (const std::string& line : tags) {
         TagPair tag_value = parse_tag_pair(line);
@@ -215,12 +221,40 @@ TagPairs parse_tags(const std::vector<std::string>& tags) {
                 parsed_tags.TimeControl = parse_timecontrol(value);
                 found_TimeControl_tag = true;
             }
+        } else if (name == "SetUp") {
+            if (found_SetUp_tag) {
+                throw PgnError("Repeated \"SetUp\" tag.");
+            } else {
+                if (value == "0") {
+                    expect_FEN_tag = false;
+                } else if (value ==  "1") {
+                    expect_FEN_tag = true;
+                } else {
+                    throw PgnError("Invalid \"SetUp\" tag value.");
+                }
+                found_SetUp_tag = true;
+            }
+        } else if (name == "FEN") {
+            if (found_FEN_tag) {
+                throw PgnError("Repeated \"FEN\" tag.");
+            } else {
+                try {
+                    parsed_tags.FEN = Position(value); 
+                } catch (const FenError& e) {
+                    throw PgnError("Invalid fen inside \"FEN\" tag.");
+                }
+                found_FEN_tag = true;
+            }
         }
         // Ignore un-needed PGN tags.
     }
 
     if (!found_White_tag || !found_Black_tag || !found_Result_tag) {
         throw PgnError("Some mandatory tags are not present.");
+    }
+
+    if (expect_FEN_tag != found_FEN_tag) {
+        throw PgnError("\"SetUp\" tag does not match \"FEN\" tag.");
     }
 
     return parsed_tags;
@@ -241,13 +275,14 @@ std::vector<MoveTextToken> tokenise_movetext(const std::vector<std::string>& mov
     int variation_depth = 0;
     bool in_brace_comment = false;
 
+    auto flush_token = [&](TokenType type) {
+        if (!token.empty()) {
+            tokens.push_back(MoveTextToken{type, std::move(token)});
+            token.clear();
+        }
+    };
+
     for (const std::string& line : movetext) {
-        auto flush_token = [&](TokenType type) {
-            if (!token.empty()) {
-                tokens.push_back(MoveTextToken{type, std::move(token)});
-                token.clear();
-            }
-        };
 
         for (size_t i = 0; i < line.size(); i++) {
             unsigned char c = line[i];
@@ -304,7 +339,11 @@ std::vector<MoveTextToken> tokenise_movetext(const std::vector<std::string>& mov
             }
         }
         
-        flush_token(TokenType::Text);
+        if (!in_brace_comment) {
+            flush_token(TokenType::Text);
+        } else {
+            token += ' ';
+        }
     }
 
     if (in_brace_comment) { throw PgnError("Unmatched brace comment."); }
@@ -371,7 +410,7 @@ struct MoveTextData {
     GameResult outcome;
 };
 
-MoveTextData parse_movetext(const std::vector<std::string>& movetext) {
+MoveTextData parse_movetext(const std::vector<std::string>& movetext, const Position& starting_pos) {
     MoveTextData parsed_movetext;
     std::vector<MoveTextToken> tokens = tokenise_movetext(movetext);
 
@@ -385,9 +424,31 @@ MoveTextData parse_movetext(const std::vector<std::string>& movetext) {
     parsed_movetext.outcome = parse_outcome(tokens.back().text);
     tokens.pop_back();
 
-    int expected_move_number = 1;
-    bool expecting_white = true;
-    bool saw_movenumber_field = false;
+    if (tokens.empty()) {
+        return parsed_movetext;
+    }
+
+    int expected_move_number = starting_pos.fullmove_number();
+    bool expecting_white;
+
+    if (tokens.front().type != TokenType::Text) {
+        throw PgnError("Movetext must start with a valid movenumber.");
+    }
+
+    if (starting_pos.turn() == Color::White) {
+        if (tokens.front().text != std::to_string(expected_move_number) + '.') {
+            throw PgnError("Invalid movenumber.");
+        }
+        expecting_white = true;
+    } else {
+        if (tokens.front().text != std::to_string(expected_move_number) + "...") {
+            throw PgnError("Invalid movenumber.");
+        }
+        expecting_white = false;
+    }
+    tokens.erase(tokens.begin());
+
+    bool saw_movenumber_field = true;
 
     for (const MoveTextToken& token : tokens) {
 
@@ -445,6 +506,10 @@ MoveTextData parse_movetext(const std::vector<std::string>& movetext) {
         }
     }
 
+    if (saw_movenumber_field) {
+        throw PgnError("Movenumber doesn't follow a move.");
+    }
+
     return parsed_movetext;
 }
 
@@ -459,8 +524,12 @@ ParsedPGN parse_pgn_document(const std::vector<std::string>& lines) {
     parsed.black_name = tag_pairs.Black;
     parsed.result = tag_pairs.Result;
     parsed.time_control = tag_pairs.TimeControl;
+    parsed.starting_position = tag_pairs.FEN;
 
-    MoveTextData movetext = parse_movetext(sections.movetext);
+    MoveTextData movetext = parse_movetext(
+        sections.movetext,
+        parsed.starting_position ? *parsed.starting_position : Position()
+    );
     parsed.plies = std::move(movetext.plies);
     if (parsed.result != movetext.outcome) {
         throw PgnError("Tag and Movetext results disagree.");

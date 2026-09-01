@@ -179,7 +179,8 @@ void Game::record_unknown_result(GameResult result) noexcept {
     assert(
         result == GameResult::White_by_Unknown ||
         result == GameResult::Black_by_Unknown ||
-        result == GameResult::Draw_by_Unknown
+        result == GameResult::Draw_by_Unknown ||
+        result == GameResult::Unknown_End
     );
 
     finish(result);
@@ -221,4 +222,14 @@ void LiveGameState::update_captures(const Piece captured_piece) noexcept {
             white_captured_material_.push_back(captured_piece);
         }
     }
+}
+
+GameSnapshot LiveGameState::make_snapshot() const {
+    return GameSnapshot(
+        position_,
+        incoming_move_,
+        white_captured_material_,
+        black_captured_material_,
+        clocks_
+    );
 }

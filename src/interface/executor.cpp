@@ -22,7 +22,7 @@ void execute_impl(const HelpCommand&, Session&) { print_help(); }
 
 void execute_impl(const PlayCommand& cmd, Session& session) {
     std::optional<Game> game = play_local(cmd.time);
-    if (game.has_value()) { session.store_last_game(std::move(game.value())); }
+    if (game.has_value()) { session.store_last_game(std::move(*game)); }
 }
 void execute_impl(const ReplayCommand& cmd, Session&) {
     std::filesystem::path dir = make_pgn_path(cmd.name);
@@ -30,6 +30,10 @@ void execute_impl(const ReplayCommand& cmd, Session&) {
     ParsedPGN parsed = parse_pgn_document(pgn_lines);
     Game game = reconstruct_game(parsed);
     replay(game);
+}
+void execute_impl(const AnalyzeCommand&, Session& session) {
+    std::optional<Game> game = analyze(session.current_position(), false);
+    if (game.has_value()) { session.store_last_game(std::move(*game)); }
 }
 
 void execute_impl(const PositionShowCommand&, Session& session) {
@@ -119,7 +123,7 @@ void execute_impl(const ReportShowCommand& cmd, Session& session) {
 }
 void execute_impl(const ReportListCommand&, Session&) {
     std::vector<std::string> files_list = report_list();
-    print_lines(files_list.empty() ? std::vector<std::string>{"No saved reportss yet."} : files_list);
+    print_lines(files_list.empty() ? std::vector<std::string>{"No saved reports yet."} : files_list);
 }
 
 }

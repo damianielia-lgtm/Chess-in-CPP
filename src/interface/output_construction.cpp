@@ -101,7 +101,8 @@ std::string construct_material_line(const GameSnapshot& game, const GameMetadata
     std::string material_line;
     int material_comparison = game.material_comparison();
 
-    material_line += metadata.white_name + ": ";
+    material_line += metadata.white_name + ':';
+    if (!game.captures(Color::White).empty()) { material_line += ' '; }
     for (bool first = true; const Piece white_captured_piece : game.captures(Color::White)) {
         if (!first) { material_line += ", "; }
         material_line += white_captured_piece.symbol();
@@ -113,7 +114,8 @@ std::string construct_material_line(const GameSnapshot& game, const GameMetadata
 
     material_line += " | ";
     
-    material_line += metadata.black_name + ": ";
+    material_line += metadata.black_name + ':';
+    if (!game.captures(Color::Black).empty()) { material_line += ' '; }
     for (bool first = true; const Piece black_captured_piece : game.captures(Color::Black)) {
         if (!first) { material_line += ", "; }
         material_line += black_captured_piece.symbol();
@@ -172,6 +174,9 @@ std::string construct_game_end_message(const GameResult result, const GameMetada
             return "The game has ended in a draw by agreement.";
         case GameResult::Draw_by_Unknown:
             return "The game has ended in a draw.";
+
+        case GameResult::Unknown_End:
+            return "The game has ended.";
     }
 }
 
