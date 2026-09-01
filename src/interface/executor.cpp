@@ -46,8 +46,16 @@ void execute_impl(const PositionSavedFenCommand& cmd, Session& session) {
 }
 void execute_impl(const MoveCommand& cmd, Session& session) { session.apply_uci_move(cmd.uci); }
 
-void execute_impl(const PerftPresetCommand& cmd, Session&) { print_lines(run_test_preset(cmd.preset)); }
-void execute_impl(const BenchmarkPerftPresetCommand& cmd, Session&) { print_lines(run_benchmark_preset(cmd.preset)); }
+void execute_impl(const PerftPresetCommand& cmd, Session& session) {
+    std::vector<std::string> lines = run_test_preset(cmd.preset);
+    print_lines(lines);
+    session.store_last_report(lines);
+}
+void execute_impl(const BenchmarkPerftPresetCommand& cmd, Session& session) {
+    std::vector<std::string> lines = run_benchmark_preset(cmd.preset);
+    print_lines(lines);
+    session.store_last_report(lines);
+}
 void execute_impl(const PerftCommand& cmd, Session& session) {
     Position position = session.current_position();
     print_lines(run_test(position, cmd.depth));
@@ -94,6 +102,24 @@ void execute_impl(const FenShowCommand& cmd, Session& session) {
 void execute_impl(const FenListCommand&, Session&) {
     std::vector<std::string> files_list = fen_list();
     print_lines(files_list.empty() ? std::vector<std::string>{"No saved FEN's yet."} : files_list);
+}
+
+void execute_impl(const ReportDeleteCommand& cmd, Session&) {
+    std::filesystem::path dir = make_report_path(cmd.name);
+    delete_file(dir);
+}
+void execute_impl(const ReportSaveCommand& cmd, Session& session) {
+    std::filesystem::path dir = make_report_path(cmd.name);
+    std::vector<std::string> report_lines = session.last_report();
+    write_file(dir, report_lines);
+}
+void execute_impl(const ReportShowCommand& cmd, Session& session) {
+    std::filesystem::path dir = make_report_path(cmd.name);
+    print_lines(read_file(dir));
+}
+void execute_impl(const ReportListCommand&, Session&) {
+    std::vector<std::string> files_list = report_list();
+    print_lines(files_list.empty() ? std::vector<std::string>{"No saved reportss yet."} : files_list);
 }
 
 }

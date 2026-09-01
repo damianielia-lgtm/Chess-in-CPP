@@ -34,6 +34,11 @@ struct FenSaveCommand { std::string name; };
 struct FenShowCommand { std::string name; };
 struct FenListCommand {};
 
+struct ReportDeleteCommand { std::string name; };
+struct ReportSaveCommand { std::string name; };
+struct ReportShowCommand { std::string name; };
+struct ReportListCommand {};
+
 using Command = std::variant<
     HelpCommand,
 
@@ -60,5 +65,10 @@ using Command = std::variant<
     FenDeleteCommand,
     FenSaveCommand,
     FenShowCommand,
-    FenListCommand
+    FenListCommand,
+    
+    ReportDeleteCommand,
+    ReportSaveCommand,
+    ReportShowCommand,
+    ReportListCommand
 >;

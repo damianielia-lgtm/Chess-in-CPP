@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include <string_view>
 #include <optional>
 #include <utility>
@@ -29,10 +30,20 @@ public:
             throw SessionError("No last game exists");
         }
 
-        return last_game_.value();
+        return *last_game_;
+    }
+    
+    void store_last_report(std::vector<std::string> lines) { last_report_ = std::move(lines); }
+    const std::vector<std::string>& last_report() const {
+        if (!last_report_) {
+            throw SessionError("No last report exists");
+        }
+
+        return *last_report_;
     }
 
 private:
     Position current_position_;
     std::optional<Game> last_game_;
+    std::optional<std::vector<std::string>> last_report_;
 };

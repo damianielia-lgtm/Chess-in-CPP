@@ -33,7 +33,7 @@ std::vector<std::string> tokenizer(const std::string_view line) {
     std::vector<std::string> tokens;
     bool in_quotes = false;
 
-    for (char c : line) {
+    for (unsigned char c : line) {
         if (!in_quotes && std::isspace(c)) {
             if (!token.empty()) {
                 tokens.push_back(token);
@@ -226,6 +226,25 @@ Command parse_fen(const std::vector<std::string>& tokens) {
     }
 }
 
+Command parse_report(const std::vector<std::string>& tokens) {
+    std::string report_command = require_token(tokens, 1);
+    if (report_command == "save") {
+        check_token_count(tokens, 3);
+        return ReportSaveCommand{tokens[2]};
+    } else if (report_command == "show") {
+        check_token_count(tokens, 3);
+        return ReportShowCommand{tokens[2]};
+    } else if (report_command == "delete") {
+        check_token_count(tokens, 3);
+        return ReportDeleteCommand{tokens[2]};
+    } else if (report_command == "list") {
+        check_token_count(tokens, 2);
+        return ReportListCommand{};
+    } else {
+        throw CommandError("Unrecognized report command.");
+    }
+}
+
 }
 
 Command parse(std::string line) {
@@ -247,6 +266,8 @@ Command parse(std::string line) {
         return parse_pgn(tokens);
     } else if (base_command == "fen") {
         return parse_fen(tokens);
+    } else if (base_command == "report") {
+        return parse_report(tokens);
     } else if (base_command == "replay") {
         check_token_count(tokens, 2);
         return ReplayCommand{tokens[1]};

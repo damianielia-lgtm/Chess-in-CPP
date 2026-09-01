@@ -102,6 +102,15 @@ std::chrono::milliseconds estimate_time(std::uint64_t total_nodes) {
     return duration_cast<milliseconds>((end - start) * total_nodes / 4865609);
 }
 
+std::string preset_name(Preset preset) {
+    switch (preset) {
+        case Preset::Instant: return "Instant";
+        case Preset::Fast: return "Fast";
+        case Preset::Moderate: return "Moderate";
+        case Preset::Extended: return "Extended";
+    }
+}
+
 }
 
 std::vector<std::string> run_test_preset(Preset preset) {
@@ -111,8 +120,7 @@ std::vector<std::string> run_test_preset(Preset preset) {
     PerftProgress progress(test_info.total_nodes, estimate_time(test_info.total_nodes));
 
     std::vector<std::string> lines;
-    lines.push_back("");
-    lines.push_back("----- Perft Test -----");
+    lines.push_back("----- Perft Test -- Preset " + preset_name(preset) + " -----");
     lines.push_back("");
     for (ExpectedPerft& perft_state : test_info.positions) {
         lines.push_back("");
@@ -136,8 +144,6 @@ std::vector<std::string> run_test_preset(Preset preset) {
         }
     }
 
-    lines.push_back("");
-
     return lines;
 }
 
@@ -150,8 +156,7 @@ std::vector<std::string> run_benchmark_preset(Preset preset) {
     PerftProgress progress(test_info.total_nodes, estimate_time(test_info.total_nodes));
 
     std::vector<std::string> lines;
-    lines.push_back("");
-    lines.push_back("----- Perft Benchmark -----");
+    lines.push_back("----- Perft Benchmark -- Preset " + preset_name(preset) + " -----");
     lines.push_back("");
     double total_dur = 0.0;
     std::uint64_t total_nodes = 0;
