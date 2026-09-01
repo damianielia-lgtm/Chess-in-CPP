@@ -65,6 +65,9 @@ Command parse_position(const std::vector<std::string>& tokens) {
     } else if (position_command == "--fen") {
         check_token_count(tokens, 3);
         return PositionFenCommand{tokens[2]};
+    } else if (position_command == "--saved-fen") {
+        check_token_count(tokens, 3);
+        return PositionSavedFenCommand{tokens[2]};
     } else if (position_command == "--startpos") {
         check_token_count(tokens, 2);
         return PositionStartposCommand{};
@@ -204,6 +207,25 @@ Command parse_pgn(const std::vector<std::string>& tokens) {
     }
 }
 
+Command parse_fen(const std::vector<std::string>& tokens) {
+    std::string fen_command = require_token(tokens, 1);
+    if (fen_command == "save") {
+        check_token_count(tokens, 3);
+        return FenSaveCommand{tokens[2]};
+    } else if (fen_command == "show") {
+        check_token_count(tokens, 3);
+        return FenShowCommand{tokens[2]};
+    } else if (fen_command == "delete") {
+        check_token_count(tokens, 3);
+        return FenDeleteCommand{tokens[2]};
+    } else if (fen_command == "list") {
+        check_token_count(tokens, 2);
+        return FenListCommand{};
+    } else {
+        throw CommandError("Unrecognized fen command.");
+    }
+}
+
 }
 
 Command parse(std::string line) {
@@ -223,9 +245,11 @@ Command parse(std::string line) {
         return parse_debug(tokens);
     } else if (base_command == "pgn") {
         return parse_pgn(tokens);
+    } else if (base_command == "fen") {
+        return parse_fen(tokens);
     } else if (base_command == "replay") {
-       check_token_count(tokens, 2);
-       return ReplayCommand{tokens[1]};
+        check_token_count(tokens, 2);
+        return ReplayCommand{tokens[1]};
     } else if (base_command == "help") {
         check_token_count(tokens, 1);
         return HelpCommand{};

@@ -15,6 +15,7 @@ constexpr std::string_view help_content =
     "   \033[90mposition show\033[0m                                                                 print current position\n"
     "   \033[90mposition --startpos\033[0m                                                           set starting position\n"
     "   \033[90mposition --fen \"<fen string>\"\033[0m                                                 load in specific fen\n"
+    "   \033[90mposition --saved-fen \"<saved fen name>\"\033[0m                                       load in saved fen\n"
     "   \033[90mmove <uci move>\033[0m                                                               apply uci move to current position\n\n"
 
     "\033[1mGame features\033[0m\n"

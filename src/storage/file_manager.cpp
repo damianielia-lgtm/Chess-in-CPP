@@ -36,6 +36,23 @@ void validate_name(const std::string_view name) {
     }
 }
 
+std::vector<std::string> list_files(fs::path dir, const std::string& extension) try {
+    std::vector<std::string> files;
+    for (const auto& entry : fs::directory_iterator{dir}) {
+        if (
+            entry.is_regular_file() &&
+            entry.path().extension() == extension
+        ) {
+            files.push_back(entry.path().stem().string());
+        }
+    }
+
+    std::sort(files.begin(), files.end());
+    return files;
+} catch (const fs::filesystem_error& e) {
+    throw StorageIoError("Filesystem error: " + std::string{e.what()});
+}
+
 }
 
 fs::path make_pgn_path(const std::string_view name) {
@@ -117,19 +134,6 @@ std::vector<std::string> read_file(const fs::path& path) try {
     throw StorageIoError("Filesystem error: " + std::string{e.what()});
 }
 
-std::vector<std::string> pgn_list() try {
-    std::vector<std::string> files;
-    for (const auto& entry : fs::directory_iterator{pgn_dir}) {
-        if (
-            entry.is_regular_file() &&
-            entry.path().extension() == ".pgn"
-        ) {
-            files.push_back(entry.path().stem().string());
-        }
-    }
-
-    std::sort(files.begin(), files.end());
-    return files;
-} catch (const fs::filesystem_error& e) {
-    throw StorageIoError("Filesystem error: " + std::string{e.what()});
-}
+std::vector<std::string> pgn_list() { return list_files(pgn_dir, ".pgn"); }
+std::vector<std::string> fen_list() { return list_files(fen_dir, ".fen"); }
+std::vector<std::string> report_list() { return list_files(report_dir, ".txt"); }

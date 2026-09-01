@@ -14,4 +14,7 @@ std::filesystem::path make_report_path(const std::string_view name);
 void delete_file(const std::filesystem::path& path);
 void write_file(const std::filesystem::path& path, const std::vector<std::string>& contents);
 std::vector<std::string> read_file(const std::filesystem::path& path);
+
 std::vector<std::string> pgn_list();
+std::vector<std::string> fen_list();
+std::vector<std::string> report_list();

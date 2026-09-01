@@ -11,6 +11,7 @@
 #include "../game/game.h"
 #include "../storage/file_manager.h"
 #include "../notation/pgn.h"
+#include "../errors.h"
 #include "commands.h"
 #include "display.h"
 #include "session.h"
@@ -23,6 +24,13 @@ void execute_impl(const PlayCommand& cmd, Session& session) {
     std::optional<Game> game = play_local(cmd.time);
     if (game.has_value()) { session.store_last_game(std::move(game.value())); }
 }
+void execute_impl(const ReplayCommand& cmd, Session&) {
+    std::filesystem::path dir = make_pgn_path(cmd.name);
+    std::vector<std::string> pgn_lines = read_file(dir);
+    ParsedPGN parsed = parse_pgn_document(pgn_lines);
+    Game game = reconstruct_game(parsed);
+    replay(game);
+}
 
 void execute_impl(const PositionShowCommand&, Session& session) {
     print_lines(construct_board_lines(session.current_position(), false));
@@ -30,7 +38,12 @@ void execute_impl(const PositionShowCommand&, Session& session) {
 }
 void execute_impl(const PositionStartposCommand&, Session& session) { session.reset_pos(); }
 void execute_impl(const PositionFenCommand& cmd, Session& session) { session.set_pos(cmd.fen); }
-
+void execute_impl(const PositionSavedFenCommand& cmd, Session& session) {
+    std::filesystem::path dir = make_fen_path(cmd.name);
+    std::vector<std::string> lines = read_file(dir);
+    if (lines.size() != 1) { throw FenError("Saved fen must be one line."); }
+    session.set_pos(lines[0]);
+}
 void execute_impl(const MoveCommand& cmd, Session& session) { session.apply_uci_move(cmd.uci); }
 
 void execute_impl(const PerftPresetCommand& cmd, Session&) { print_lines(run_test_preset(cmd.preset)); }
@@ -61,20 +74,26 @@ void execute_impl(const PgnShowCommand& cmd, Session& session) {
     print_lines(read_file(dir));
 }
 void execute_impl(const PgnListCommand&, Session&) {
-    std::vector<std::string> list = pgn_list();
-    if (list.empty()) {
-        print_lines({"No saved PGN's yet."});
-    } else {
-        print_lines(list);
-    }
+    std::vector<std::string> files_list = pgn_list();
+    print_lines(files_list.empty() ? std::vector<std::string>{"No saved PGN's yet."} : files_list);
 }
 
-void execute_impl(const ReplayCommand& cmd, Session&) {
-    std::filesystem::path dir = make_pgn_path(cmd.name);
-    std::vector<std::string> pgn_lines = read_file(dir);
-    ParsedPGN parsed = parse_pgn_document(pgn_lines);
-    Game game = reconstruct_game(parsed);
-    replay(game);
+void execute_impl(const FenDeleteCommand& cmd, Session&) {
+    std::filesystem::path dir = make_fen_path(cmd.name);
+    delete_file(dir);
+}
+void execute_impl(const FenSaveCommand& cmd, Session& session) {
+    std::filesystem::path dir = make_fen_path(cmd.name);
+    std::string fen_line = session.current_position().to_fen();
+    write_file(dir, {fen_line});
+}
+void execute_impl(const FenShowCommand& cmd, Session& session) {
+    std::filesystem::path dir = make_fen_path(cmd.name);
+    print_lines(read_file(dir));
+}
+void execute_impl(const FenListCommand&, Session&) {
+    std::vector<std::string> files_list = fen_list();
+    print_lines(files_list.empty() ? std::vector<std::string>{"No saved FEN's yet."} : files_list);
 }
 
 }
