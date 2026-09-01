@@ -181,11 +181,12 @@ std::vector<std::string> construct_game_lines(
     const GameSnapshot& snapshot,
     std::optional<std::string> error,
     std::optional<GameResult> result_message,
-    const GameMetadata& metadata
+    const GameMetadata& metadata,
+    bool flip_board
 ) {
     std::vector<std::string> lines;
 
-    for (const std::string& line : construct_board_lines(snapshot.position(), false, snapshot.last_move())) {
+    for (const std::string& line : construct_board_lines(snapshot.position(), flip_board, snapshot.last_move())) {
         lines.push_back(line);
     }
 

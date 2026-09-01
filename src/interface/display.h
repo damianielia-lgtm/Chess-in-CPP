@@ -64,14 +64,16 @@ public:
         rendered_line_count_(0),
         error_message_(std::nullopt),
         result_(std::nullopt),
-        metatdata_(std::move(metadata)) {}
+        metatdata_(std::move(metadata)),
+        flip_board_(false) {}
 
     void render(const GameSnapshot& game){
         std::vector<std::string> lines = construct_game_lines(
             game,
             error_message_,
             result_,
-            metatdata_
+            metatdata_,
+            flip_board_
         );
         rendered_line_count_ = lines.size();
 
@@ -100,11 +102,14 @@ public:
     void set_result(GameResult result) { result_ = result; }
     void clear_result() { result_ = std::nullopt; }
 
+    void flip_board() { flip_board_ = !flip_board_; }
+
 private:
     std::size_t rendered_line_count_ = 0;
     std::optional<std::string> error_message_;
     std::optional<GameResult> result_;
     GameMetadata metatdata_;
+    bool flip_board_;
 };
 
 void print_help();

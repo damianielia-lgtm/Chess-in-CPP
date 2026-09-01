@@ -20,5 +20,6 @@ std::vector<std::string> construct_game_lines(
     const GameSnapshot& snapshot,
     std::optional<std::string> error,
     std::optional<GameResult> result_message,
-    const GameMetadata& metadata
+    const GameMetadata& metadata,
+    bool flip_board
 );

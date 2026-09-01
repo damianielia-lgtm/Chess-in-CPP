@@ -11,7 +11,7 @@ namespace {
 
 constexpr std::string_view help_content =
     "\033[1mCore\033[0m\n"
-    "   \033[90mconfig\033[0m                                                                        set resource paths, board orientation, player names\n"
+    "   \033[90mconfig\033[0m                                                                        set resource paths, player names\n"
     "   \033[90mposition show\033[0m                                                                 print current position\n"
     "   \033[90mposition --startpos\033[0m                                                           set starting position\n"
     "   \033[90mposition --fen \"<fen string>\"\033[0m                                                 load in specific fen\n"

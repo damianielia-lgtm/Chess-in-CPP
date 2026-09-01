@@ -33,7 +33,11 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control) {
             if (game.has_ended()) { break; }
         }
         
-        if (user_input == "next") {
+        if (user_input == "flip") {
+            display.flip_board();
+        }
+
+        else if (user_input == "next") {
             if (cursor < game.snapshot_count() - 1) { cursor++; }
         } else if (user_input == "previous") {
             if (cursor > 0) { cursor--; }
@@ -43,7 +47,9 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control) {
             cursor = game.snapshot_count() - 1;
         } else if (cursor != game.snapshot_count() - 1) {
             display.set_error("Go to the most recent position to play moves.");
-        } else {
+        }
+        
+        else {
             if (user_input == "resign") {
                 game.resign();
             } else if (user_input == "draw") {
@@ -90,7 +96,11 @@ void replay(const Game& game) {
         std::string user_input;
         if(!std::getline(std::cin, user_input)) { return; }
 
-        if (user_input == "next") {
+        if (user_input == "flip") {
+            display.flip_board();
+        }
+
+        else if (user_input == "next") {
             if (cursor < game.snapshot_count() - 1) { cursor++; }
         } else if (user_input == "previous") {
             if (cursor > 0) { cursor--; }
