@@ -16,12 +16,16 @@
 std::string format_time(std::chrono::milliseconds duration) {
     using namespace std::chrono;
 
-    auto mins = duration_cast<minutes>(duration);
-    duration -= mins;
-    auto secs = duration_cast<seconds>(duration);
-    duration -= secs;
-    auto ms = duration_cast<milliseconds>(duration);
-    return std::format("{:02}:{:02}.{:03}", mins.count(), secs.count(), ms.count());
+    auto hms = hh_mm_ss{duration};
+    
+    std::string result = std::format("{}:{:02}:{:02}.{}", 
+        hms.hours().count(), 
+        hms.minutes().count(), 
+        hms.seconds().count(), 
+        hms.subseconds().count() / 100 // adjust for 1 digit millisecond/fraction
+    );
+
+    return result;
 }
 
 std::vector<std::string> construct_board_lines(
@@ -185,7 +189,7 @@ std::vector<std::string> construct_game_lines(
         lines.push_back(line);
     }
 
-    if (snapshot.is_timed_game()) { lines.push_back(construct_clock_line(snapshot, metadata)); }
+    if (snapshot.has_clock_data()) { lines.push_back(construct_clock_line(snapshot, metadata)); }
 
     lines.push_back(construct_material_line(snapshot, metadata));
 

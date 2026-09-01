@@ -74,9 +74,9 @@ public:
         return material_comparison;
     }
 
-    bool is_timed_game() const noexcept { return clocks_.has_value(); }
+    bool has_clock_data() const noexcept { return clocks_.has_value(); }
     std::chrono::milliseconds clock(Color color) const noexcept {
-        assert(is_timed_game());
+        assert(has_clock_data());
         return (color == Color::White
             ? clocks_->white_time
             : clocks_->black_time);
