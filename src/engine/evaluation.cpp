@@ -240,3 +240,6 @@ std::int16_t static_eval(const Position& position) {
 
     return (mg_eval * phase + eg_eval * (MAX_PHASE - phase)) / MAX_PHASE;
 }
+
+constexpr std::int16_t PAWN_VALUE = (MG_PPV[1] + MG_PPV[2]) / 2;
+std::int16_t normalize_centipawn(std::int16_t eval) { return eval * 100 / PAWN_VALUE; }
