@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cassert>
 #include <string_view>
 #include <cstdint>
@@ -61,7 +62,7 @@ public:
         assert(!empty());
         return static_cast<Color>(encoding_ >> 3);
     }
-    PieceType type() const noexcept { return static_cast<PieceType>(encoding_ & 7); }
+    constexpr PieceType type() const noexcept { return static_cast<PieceType>(encoding_ & 7); }
     char symbol() const noexcept {
         switch (encoding_) {
             case 1: return 'P';
@@ -109,6 +110,8 @@ public:
         return color() == turn;
     }
 
+    constexpr std::uint8_t encoding() const noexcept { return encoding_; }
+
     bool operator==(const Piece&) const = default;
 
 private:
@@ -116,3 +119,8 @@ private:
 };
 
 static_assert(sizeof(Piece) == 1);
+
+constexpr std::array<Piece, 12> ALL_PIECES = {{
+    Piece('P'), Piece('N'), Piece('B'), Piece('R'), Piece('Q'), Piece('K'),
+    Piece('p'), Piece('n'), Piece('b'), Piece('r'), Piece('q'), Piece('k')
+}};

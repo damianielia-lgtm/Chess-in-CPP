@@ -24,28 +24,28 @@ public:
         assert(('1' <= rank) && (rank <= '8'));
     }
 
-    bool is_valid() const noexcept { return index_ <= 63; }
+    constexpr bool is_valid() const noexcept { return index_ <= 63; }
 
-    std::uint8_t index() const noexcept { assert(is_valid()); return index_; }
-    std::uint8_t file() const noexcept { assert(is_valid()); return index_ % 8; }
-    std::uint8_t rank() const noexcept { assert(is_valid()); return index_ / 8; }
-    char uci_file() const noexcept { assert(is_valid()); return (index_ % 8) + 'a'; }
-    char uci_rank() const noexcept { assert(is_valid()); return (index_ / 8) + '1'; }
+    constexpr std::uint8_t index() const noexcept { assert(is_valid()); return index_; }
+    constexpr std::uint8_t file() const noexcept { assert(is_valid()); return index_ % 8; }
+    constexpr std::uint8_t rank() const noexcept { assert(is_valid()); return index_ / 8; }
+    constexpr char uci_file() const noexcept { assert(is_valid()); return (index_ % 8) + 'a'; }
+    constexpr char uci_rank() const noexcept { assert(is_valid()); return (index_ / 8) + '1'; }
 
     bool operator==(const Square& other) const = default;
 
     class Iterator {
     public:
-        explicit Iterator(std::uint8_t index) : current_(index) {}
+        constexpr explicit Iterator(std::uint8_t index) : current_(index) {}
 
-        Square operator*() const { return Square(current_); }
+        constexpr Square operator*() const { return Square(current_); }
         
-        Iterator& operator++() { 
+        constexpr Iterator& operator++() { 
             current_++; 
             return *this; 
         }
         
-        bool operator!=(const Iterator& other) const { 
+        constexpr bool operator!=(const Iterator& other) const { 
             return current_ != other.current_; 
         }
 
@@ -57,12 +57,19 @@ public:
         std::uint8_t start_index;
         std::uint8_t end_index;
 
-        Iterator begin() const { return Iterator(start_index); }
-        Iterator end() const { return Iterator(end_index + 1); }
+        constexpr Iterator begin() const { return Iterator(start_index); }
+        constexpr Iterator end() const { return Iterator(end_index + 1); }
     };
 
     static constexpr Range all() noexcept { 
         return Range{0, 63}; 
+    }
+
+    static constexpr Range iterate(
+        std::uint8_t start_index,
+        std::uint8_t end_index
+    ) noexcept { 
+        return Range{start_index, end_index}; 
     }
 
 private:
