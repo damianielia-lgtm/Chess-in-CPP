@@ -6,6 +6,7 @@
 
 #include "../storage/presets.h"
 #include "../game/game.h"
+#include "../config.h"
 
 struct HelpCommand {};
 
@@ -17,7 +18,7 @@ struct PositionShowCommand {};
 struct PositionStartposCommand {};
 struct PositionFenCommand { std::string fen; };
 struct PositionSavedFenCommand { std::string name; };
-struct MoveCommand { std::string uci; };
+struct MoveCommand { std::string move_string; };
 
 struct PerftPresetCommand { Preset preset; };
 struct BenchmarkPerftPresetCommand { Preset preset; };
@@ -39,6 +40,15 @@ struct ReportDeleteCommand { std::string name; };
 struct ReportSaveCommand { std::string name; };
 struct ReportShowCommand { std::string name; };
 struct ReportListCommand {};
+
+struct ConfigShowCommand {};
+struct ConfigSetPlayer1Command { std::string name; };
+struct ConfigSetPlayer2Command { std::string name; };
+struct ConfigSetEventCommand { std::string event; };
+struct ConfigSetSiteCommand { std::string site; };
+struct ConfigSetExportClocksCommand { bool export_cloks; };
+struct ConfigSetMoveInputCommand { MoveInput input; };
+struct ConfigSetBoardOrientationCommand { BoardOrientation orientation; };
 
 using Command = std::variant<
     HelpCommand,
@@ -72,5 +82,14 @@ using Command = std::variant<
     ReportDeleteCommand,
     ReportSaveCommand,
     ReportShowCommand,
-    ReportListCommand
+    ReportListCommand,
+
+    ConfigShowCommand,
+    ConfigSetPlayer1Command,
+    ConfigSetPlayer2Command,
+    ConfigSetEventCommand,
+    ConfigSetSiteCommand,
+    ConfigSetExportClocksCommand,
+    ConfigSetMoveInputCommand,
+    ConfigSetBoardOrientationCommand
 >;

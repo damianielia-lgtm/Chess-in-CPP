@@ -8,7 +8,7 @@
 #include "../core/position.h"
 #include "../game/game.h"
 
-std::vector<std::string> construct_pgn_lines(const Game& game);
+std::vector<std::string> construct_pgn_lines(const Game& game, bool save_clock_info);
 
 struct ParsedPly  {
     std::string san_move;
@@ -16,6 +16,8 @@ struct ParsedPly  {
 };
 
 struct ParsedPGN {
+    std::string event;
+    std::string site;
     std::string white_name;
     std::string black_name;
     std::optional<TimeControl> time_control;

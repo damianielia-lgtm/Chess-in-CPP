@@ -9,6 +9,7 @@
 
 #include "../core/position.h"
 #include "../game/game.h"
+#include "../config.h"
 #include "output_construction.h"
 
 class PerftProgress {
@@ -64,16 +65,15 @@ public:
         rendered_line_count_(0),
         error_message_(std::nullopt),
         result_(std::nullopt),
-        metatdata_(std::move(metadata)),
-        flip_board_(false) {}
+        metatdata_(std::move(metadata)) {}
 
-    void render(const GameSnapshot& game){
+    void render(const GameSnapshot& game, BoardOrientation board_orientation) {
         std::vector<std::string> lines = construct_game_lines(
             game,
             error_message_,
             result_,
             metatdata_,
-            flip_board_
+            board_orientation
         );
         rendered_line_count_ = lines.size();
 
@@ -86,14 +86,14 @@ public:
         std::cout << prompt_line;
     }
 
-    void update(const GameSnapshot& game) {
+    void update(const GameSnapshot& game, BoardOrientation board_orientation) {
         for (int i = 0; i < rendered_line_count_; i++) { // Clear line by line, going up
             std::cout << "\r"; // Go to the start of line
             std::cout << "\033[2K"; // Clear line
             std::cout << "\033[A"; // Go up one line
         }
 
-        render(game);
+        render(game, board_orientation);
     }
 
     void set_error(std::string message) { error_message_ = message; }
@@ -101,8 +101,6 @@ public:
 
     void set_result(GameResult result) { result_ = result; }
     void clear_result() { result_ = std::nullopt; }
-
-    void flip_board() { flip_board_ = !flip_board_; }
 
     void clear_rendered_area() {
         for (int i = 0; i < rendered_line_count_; i++) {
@@ -119,7 +117,6 @@ private:
     std::optional<std::string> error_message_;
     std::optional<GameResult> result_;
     GameMetadata metatdata_;
-    bool flip_board_;
 };
 
 void print_help();

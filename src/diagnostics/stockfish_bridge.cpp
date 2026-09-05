@@ -1,5 +1,6 @@
 #include "stockfish_bridge.h"
 
+#include <filesystem>
 #include <windows.h>
 #include <string>
 #include <iostream>
@@ -126,7 +127,7 @@ void StockfishProcess::close() noexcept {
     quitRequested = false;
 }
 
-StockfishProcess startStockfish(const std::wstring& stockfishPath) {
+StockfishProcess startStockfish(const std::filesystem::path& stockfishPath) {
     SECURITY_ATTRIBUTES sa{};
     sa.nLength = sizeof(SECURITY_ATTRIBUTES);
     sa.bInheritHandle = TRUE;
@@ -162,7 +163,7 @@ StockfishProcess startStockfish(const std::wstring& stockfishPath) {
 
     PROCESS_INFORMATION processInfo{};
 
-    std::wstring commandLine = L"\"" + stockfishPath + L"\"";
+    std::wstring commandLine = L"\"" + stockfishPath.wstring() + L"\"";
 
     BOOL success = CreateProcessW(
         nullptr,

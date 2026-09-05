@@ -143,9 +143,7 @@ std::string debugger(StockfishProcess& sf, std::string fen, int depth) {
 }
 
 std::vector<std::string> debug_pos(std::string fen, int depth) {
-    StockfishProcess sf = startStockfish(
-        L"C:\\Users\\User\\Downloads\\stockfish-windows-x86-64-avx2\\stockfish\\stockfish-windows-x86-64-avx2.exe"
-    );
+    StockfishProcess sf = startStockfish("resources/stockfish.exe");
 
     sendCommand(sf, "uci");
     readUntil(sf, "uciok");

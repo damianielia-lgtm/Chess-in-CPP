@@ -136,6 +136,8 @@ private:
 struct GameMetadata {
     std::string white_name;
     std::string black_name;
+    std::string event;
+    std::string site;
     std::optional<TimeControl> time_control;
     Position starting_position;
 };
@@ -145,19 +147,34 @@ public:
     Game(
         std::string white_name,
         std::string black_name,
+        std::string event,
+        std::string site,
         std::optional<TimeControl> time = std::nullopt,
         std::optional<Position> starting_pos = std::nullopt
     ):
-        metadata_(GameMetadata{white_name, black_name, time, starting_pos ? *starting_pos : Position()}),
-        live_state_(LiveGameState(
-            starting_pos ? *starting_pos : Position(),
-            std::nullopt,
-            {},
-            {},
-            time
-                ? std::optional<ClockState>(ClockState{time->initial, time->initial})
-                : std::nullopt
-        )),
+        metadata_(
+            GameMetadata{
+                white_name,
+                black_name,
+                event,
+                site,
+                time,
+                starting_pos
+                    ? *starting_pos
+                    : Position()
+            }
+        ),
+        live_state_(
+            LiveGameState(
+                starting_pos ? *starting_pos : Position(),
+                std::nullopt,
+                {},
+                {},
+                time
+                    ? std::optional<ClockState>(ClockState{time->initial, time->initial})
+                    : std::nullopt
+            )
+        ),
         snapshots_({live_state_.make_snapshot()}),
         result_(std::nullopt) {}
 

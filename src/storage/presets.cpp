@@ -9,19 +9,15 @@
 
 #include "../core/position.h"
 #include "../errors.h"
+#include "file_manager.h"
 
 namespace {
 
 std::vector<ExpectedPerft> epd_parser() {
-    std::ifstream file("resources/diagnostics/perft_database.epd");
-    if (!file) {
-        throw StorageIoError("Could not load perft database");
-    }
-
     std::vector<ExpectedPerft> pos_list;
     std::string line;
 
-    while (std::getline(file, line)) {
+    for (const std::string& line : read_file("resources/perft_database.epd")) {
         ExpectedPerft pos;
 
         std::vector<std::string> tokens;

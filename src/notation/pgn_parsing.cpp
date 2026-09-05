@@ -167,6 +167,8 @@ TagPair parse_tag_pair(std::string_view line) {
 }
 
 struct TagPairs {
+    std::string Event;
+    std::string Site;
     std::string White;
     std::string Black;
     GameResult Result;
@@ -177,6 +179,8 @@ struct TagPairs {
 TagPairs parse_tags(const std::vector<std::string>& tags) {
     TagPairs parsed_tags;
 
+    bool found_Event_tag = false;
+    bool found_Site_tag = false;
     bool found_White_tag = false;
     bool found_Black_tag = false;
     bool found_Result_tag = false;
@@ -193,7 +197,21 @@ TagPairs parse_tags(const std::vector<std::string>& tags) {
 
         if (value.empty()) { throw PgnError("Tag value can't be empty."); }
 
-        if (name == "White") {
+        if (name == "Event") {
+            if (found_Event_tag) {
+                throw PgnError("Repeated \"Event\" tag.");
+            } else {
+                parsed_tags.Event = value;
+                found_Event_tag = true;
+            }
+        } else if (name == "Site") {
+            if (found_Site_tag) {
+                throw PgnError("Repeated \"Site\" tag.");
+            } else {
+                parsed_tags.Site = value;
+                found_Site_tag = true;
+            }
+        } else if (name == "White") {
             if (found_White_tag) {
                 throw PgnError("Repeated \"White\" tag.");
             } else {
@@ -249,7 +267,13 @@ TagPairs parse_tags(const std::vector<std::string>& tags) {
         // Ignore un-needed PGN tags.
     }
 
-    if (!found_White_tag || !found_Black_tag || !found_Result_tag) {
+    if (
+        !found_Event_tag ||
+        !found_Site_tag ||
+        !found_White_tag ||
+        !found_Black_tag ||
+        !found_Result_tag
+    ) {
         throw PgnError("Some mandatory tags are not present.");
     }
 
@@ -520,6 +544,8 @@ ParsedPGN parse_pgn_document(const std::vector<std::string>& lines) {
     PgnSections sections = separate_sections(lines);
 
     TagPairs tag_pairs = parse_tags(sections.tags);
+    parsed.event = tag_pairs.Event;
+    parsed.site = tag_pairs.Site;
     parsed.white_name = tag_pairs.White;
     parsed.black_name = tag_pairs.Black;
     parsed.result = tag_pairs.Result;

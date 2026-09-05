@@ -12,6 +12,7 @@
 #include "../core/piece.h"
 #include "../game/game.h"
 #include "../movegen/attacks.h"
+#include "../config.h"
 
 std::string format_time(std::chrono::milliseconds duration) {
     using namespace std::chrono;
@@ -30,7 +31,7 @@ std::string format_time(std::chrono::milliseconds duration) {
 
 std::vector<std::string> construct_board_lines(
     const Position& position,
-    bool flip,
+    BoardOrientation orientation,
     std::optional<Move> move
 ) {
     std::vector<std::string> lines;
@@ -51,21 +52,21 @@ std::vector<std::string> construct_board_lines(
         to_highlight2 = move.value().target();
     }
 
-    lines.push_back((flip)
-        ? "    h   g   f   e   d   c   b   a    "
-        : "    a   b   c   d   e   f   g   h    ");
+    lines.push_back((orientation == BoardOrientation::White)
+        ? "    a   b   c   d   e   f   g   h    "
+        : "    h   g   f   e   d   c   b   a    ");
 
     lines.push_back("  +---+---+---+---+---+---+---+---+  ");
 
     for (int rank = 7; rank >= 0; --rank) {
-        int display_rank = flip ? 7 - rank : rank;
+        int display_rank = orientation == BoardOrientation::White ? rank : 7 - rank;
         std::string board_line;
 
         board_line += std::to_string(display_rank + 1);
         board_line += " | ";
 
         for (int file = 0; file <= 7; file++) {
-            int display_file = flip ? 7 - file : file;
+            int display_file = orientation == BoardOrientation::White ? file : 7 - file;
             Square square(display_rank * 8 + display_file);
 
             if (square == king_in_check) {
@@ -88,9 +89,9 @@ std::vector<std::string> construct_board_lines(
         lines.push_back("  +---+---+---+---+---+---+---+---+  ");
     }
     
-    lines.push_back((flip)
-        ? "    h   g   f   e   d   c   b   a    "
-        : "    a   b   c   d   e   f   g   h    ");
+    lines.push_back((orientation == BoardOrientation::White)
+        ? "    a   b   c   d   e   f   g   h    "
+        : "    h   g   f   e   d   c   b   a    ");
 
     return lines;
 }
@@ -187,11 +188,14 @@ std::vector<std::string> construct_game_lines(
     std::optional<std::string> error,
     std::optional<GameResult> result_message,
     const GameMetadata& metadata,
-    bool flip_board
+    BoardOrientation board_orientation
 ) {
     std::vector<std::string> lines;
 
-    for (const std::string& line : construct_board_lines(snapshot.position(), flip_board, snapshot.last_move())) {
+    for (
+        const std::string& line :
+        construct_board_lines(snapshot.position(), board_orientation, snapshot.last_move())
+    ) {
         lines.push_back(line);
     }
 
@@ -215,4 +219,16 @@ std::vector<std::string> construct_game_lines(
     }
 
     return lines;
+}
+
+std::vector<std::string> construct_config_show_lines(const ConfigData& config) {
+    return {
+        "Player 1               " + config.white_name,
+        "Player 2               " + config.black_name,
+        "Event                  " + config.event,
+        "Site                   " + config.site,
+        "Export clocks          " + (config.pgn_save_clock ? std::string("true") : std::string("false")),
+        "Move input type        " + (config.move_input == MoveInput::Uci ? std::string("uci") : std::string("san")),
+        "Board orientation      " + (config.board_orientation == BoardOrientation::White ? std::string("white") : std::string("black"))
+    };
 }

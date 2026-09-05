@@ -12,16 +12,16 @@
 
 namespace fs = std::filesystem;
 
-inline const std::filesystem::path pgn_dir{"data/pgn/"};
-inline const std::filesystem::path fen_dir{"data/fen/"};
-inline const std::filesystem::path report_dir{"data/reports/"};
+inline const fs::path pgn_dir{"data/pgn/"};
+inline const fs::path fen_dir{"data/fen/"};
+inline const fs::path report_dir{"data/reports/"};
 
 void initialize_directories() try {
     fs::create_directories(pgn_dir);
     fs::create_directories(fen_dir);
     fs::create_directories(report_dir);
 } catch (const fs::filesystem_error& e) {
-    throw StorageError("Filesystem error: " + std::string{e.what()});
+    throw StorageIoError("Filesystem error: " + std::string{e.what()});
 }
 
 namespace {

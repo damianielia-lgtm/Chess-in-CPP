@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <windows.h>
 #include <string>
 
@@ -22,7 +23,7 @@ struct StockfishProcess {
     void close() noexcept;
 };
 
-StockfishProcess startStockfish(const std::wstring& stockfishPath);
+StockfishProcess startStockfish(const std::filesystem::path& stockfishPath);
 
 void sendCommand(StockfishProcess& sf, const std::string& command);
 

@@ -111,16 +111,14 @@ TimeControl parse_time(const std::string_view time) {
 Command parse_game(const std::vector<std::string>& tokens) {
     std::string game_command = require_token(tokens, 1);
     if (game_command == "local") {
-        if (tokens.size() == 2) {
-            return PlayCommand{};
-        }
-
         std::string local_command = require_token(tokens, 2);
-
         if (local_command == "--time-control") {
             check_token_count(tokens, 4);
             std::string time_command = require_token(tokens, 3);
             return PlayCommand{parse_time(time_command)};
+        } if (local_command == "--untimed") {
+            check_token_count(tokens, 3);
+            return PlayCommand{};
         } else {
             throw CommandError("Unrecognized play local command.");
         }
@@ -245,6 +243,55 @@ Command parse_report(const std::vector<std::string>& tokens) {
     }
 }
 
+Command parse_config(const std::vector<std::string>& tokens) {
+    std::string config_command = require_token(tokens, 1);
+    if (config_command == "show") {
+        check_token_count(tokens, 2);
+        return ConfigShowCommand{};
+    } else if (config_command == "set") {
+        std::string set_filed = require_token(tokens, 2);
+        std::string set_value = require_token(tokens, 3);
+        check_token_count(tokens, 4);
+        if (set_filed == "player-1") {
+            return ConfigSetPlayer1Command{set_value};
+        } else if (set_filed == "player-2") {
+            return ConfigSetPlayer2Command{set_value};
+        } else if (set_filed == "event") {
+            return ConfigSetEventCommand{set_value};
+        } else if (set_filed == "site") {
+            return ConfigSetSiteCommand{set_value};
+        } else if (set_filed == "export-clocks") {
+            if (set_value == "true") {
+                return ConfigSetExportClocksCommand{true};
+            } else if (set_value == "false") {
+                return ConfigSetExportClocksCommand{false};
+            } else {
+                throw CommandError("Unrecognized export-clocks value.");
+            }
+        } else if (set_filed == "move-input") {
+            if (set_value == "uci") {
+                return ConfigSetMoveInputCommand{MoveInput::Uci};
+            } else if (set_value == "san") {
+                return ConfigSetMoveInputCommand{MoveInput::San};
+            } else {
+                throw CommandError("Unrecognized move-input value.");
+            }
+        } else if (set_filed == "board-orientation") {
+            if (set_value == "white") {
+                return ConfigSetBoardOrientationCommand{BoardOrientation::White};
+            } else if (set_value == "black") {
+                return ConfigSetBoardOrientationCommand{BoardOrientation::Black};
+            } else {
+                throw CommandError("Unrecognized board-orientation value.");
+            }
+        } else {
+            throw CommandError("Unrecognized set field.");
+        }
+    } else {
+        throw CommandError("Unrecognized config command.");
+    }
+}
+
 }
 
 Command parse(std::string line) {
@@ -277,6 +324,8 @@ Command parse(std::string line) {
     } else if (base_command == "help") {
         check_token_count(tokens, 1);
         return HelpCommand{};
+    }  else if (base_command == "config") {
+        return parse_config(tokens);
     } else {
         throw CommandError("Unrecognized command.");
     }

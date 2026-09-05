@@ -6,17 +6,19 @@
 #include "../core/position.h"
 #include "../interface/display.h"
 #include "../notation/uci.h"
+#include "../notation/san.h"
 #include "../errors.h"
+#include "../config.h"
 #include "game.h"
 
-std::optional<Game> play_local(std::optional<TimeControl> time_control) {
+std::optional<Game> play_local(std::optional<TimeControl> time_control, ConfigData& config) {
     using namespace std::chrono;
 
     std::size_t cursor = 0;
-    Game game("White", "Black", time_control);
+    Game game(config.white_name, config.black_name, config.event, config.site, time_control);
     GameDisplay display(game.metadata());
 
-    display.render(game.snapshot_at(cursor));
+    display.render(game.snapshot_at(cursor), config.board_orientation);
     
     while (true) {
         display.clear_error();
@@ -34,7 +36,9 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control) {
         }
         
         if (user_input == "flip") {
-            display.flip_board();
+            config.board_orientation == BoardOrientation::White
+                ? config.board_orientation = BoardOrientation::Black
+                : config.board_orientation = BoardOrientation::White;
         }
 
         else if (user_input == "next") {
@@ -57,7 +61,9 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control) {
             } else {
                 try {
                     game.play_move(
-                        resolve_uci(game.live_position(), user_input)
+                        config.move_input == MoveInput::Uci
+                            ? resolve_uci(game.live_position(), user_input)
+                            : resolve_san(game.live_position(), user_input)
                     );
                     game.check_game_end();
                     cursor++;
@@ -69,25 +75,26 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control) {
             if (game.has_ended()) { break; }
         }
 
-        if (cursor == game.snapshot_count() - 1) {
-            display.update(game.live_snapshot());
-        } else {
-            display.update(game.snapshot_at(cursor));
-        }
+        display.update(
+            cursor == game.snapshot_count() - 1
+                ? game.live_snapshot()
+                : game.snapshot_at(cursor),
+            config.board_orientation
+        );
     }
 
     display.set_result(game.result());
-    display.update(game.live_snapshot());
+    display.update(game.live_snapshot(), config.board_orientation);
 
     return game;
 }
 
-std::optional<Game> analyze(const Position& position, bool clear_output_at_end) {
+std::optional<Game> analyze(const Position& position, ConfigData& config, bool clear_output_at_end) {
     std::size_t cursor = 0;
-    Game game("White", "Black", std::nullopt, position);
+    Game game("White", "Black", config.event, config.site, std::nullopt, position);
     GameDisplay display(game.metadata());
 
-    display.render(game.snapshot_at(cursor));
+    display.render(game.snapshot_at(cursor), config.board_orientation);
     
     while (true) {
         display.clear_error();
@@ -101,7 +108,9 @@ std::optional<Game> analyze(const Position& position, bool clear_output_at_end) 
         }
 
         if (user_input == "flip") {
-            display.flip_board();
+            config.board_orientation == BoardOrientation::White
+                ? config.board_orientation = BoardOrientation::Black
+                : config.board_orientation = BoardOrientation::White;
         }
 
         else if (user_input == "next") {
@@ -126,7 +135,9 @@ std::optional<Game> analyze(const Position& position, bool clear_output_at_end) 
             } else {
                 try {
                     game.play_move(
-                        resolve_uci(game.live_position(), user_input)
+                        config.move_input == MoveInput::Uci
+                            ? resolve_uci(game.live_position(), user_input)
+                            : resolve_san(game.live_position(), user_input)
                     );
                     game.check_game_end();
                     cursor++;
@@ -138,11 +149,12 @@ std::optional<Game> analyze(const Position& position, bool clear_output_at_end) 
             if (game.has_ended()) { display.set_result(game.result());; }
         }
 
-        if (cursor == game.snapshot_count() - 1) {
-            display.update(game.live_snapshot());
-        } else {
-            display.update(game.snapshot_at(cursor));
-        }
+        display.update(
+            cursor == game.snapshot_count() - 1
+                ? game.live_snapshot()
+                : game.snapshot_at(cursor),
+            config.board_orientation
+        );
     }
 
     if (clear_output_at_end) {
@@ -152,12 +164,12 @@ std::optional<Game> analyze(const Position& position, bool clear_output_at_end) 
     return game;
 }
 
-void replay(const Game& game) {
+void replay(const Game& game, ConfigData& config) {
     std::size_t cursor = 0;
 
     GameDisplay display(game.metadata());
     if (cursor == game.snapshot_count() - 1) { display.set_result(game.result()); }
-    display.render(game.snapshot_at(cursor));
+    display.render(game.snapshot_at(cursor), config.board_orientation);
 
     while (true) {
         display.clear_error();
@@ -167,12 +179,14 @@ void replay(const Game& game) {
         if(!std::getline(std::cin, user_input)) { return; }
 
         if (user_input == "flip") {
-            display.flip_board();
+            config.board_orientation == BoardOrientation::White
+                ? config.board_orientation = BoardOrientation::Black
+                : config.board_orientation = BoardOrientation::White;
         }
 
         else if (user_input == "analyze") {
             display.clear_rendered_area();
-            analyze(game.snapshot_at(cursor).position(), true);
+            analyze(game.snapshot_at(cursor).position(), config, true);
         }
 
         else if (user_input == "next") {
@@ -190,6 +204,6 @@ void replay(const Game& game) {
         }
 
         if (cursor == game.snapshot_count() - 1) { display.set_result(game.result()); }
-        display.update(game.snapshot_at(cursor));
+        display.update(game.snapshot_at(cursor), config.board_orientation);
     }
 }

@@ -21,6 +21,8 @@ Game reconstruct_game(const ParsedPGN& pgn_data) {
     Game game(
         pgn_data.white_name,
         pgn_data.black_name,
+        pgn_data.event,
+        pgn_data.site,
         keep_clocks ? pgn_data.time_control : std::nullopt,
         pgn_data.starting_position
     );

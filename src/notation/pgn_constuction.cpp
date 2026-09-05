@@ -11,17 +11,18 @@
 #include "../core/piece.h"
 #include "../core/position.h"
 #include "../interface/output_construction.h"
+#include "../config.h"
 #include "san.h"
 
 using namespace std::chrono;
 
-std::vector<std::string> construct_pgn_lines(const Game& game) {
+std::vector<std::string> construct_pgn_lines(const Game& game, bool save_clock_info) {
     assert(game.has_ended());
 
     std::vector<std::string> lines;
 
-    lines.push_back("[Event \"Chess game\"]");
-    lines.push_back("[Site \"Elia.chess\"]");
+    lines.push_back("[Event \"" + game.metadata().event + "\"]");
+    lines.push_back("[Site \"" + game.metadata().site + "\"]");
 
     auto date = std::format("{:%Y.%m.%d}", system_clock::now());
     lines.push_back("[Date \"" + date + "\"]");
@@ -109,7 +110,7 @@ std::vector<std::string> construct_pgn_lines(const Game& game) {
             move_clock++;
         }
 
-        if (game.is_timed_game()) {
+        if (game.is_timed_game() && save_clock_info) {
             milliseconds clock = game.all_snapshots()[index].clock(position.turn());
             moves_line += "{[%clk " + format_time(clock) + "]} ";
             added_comment = true;
