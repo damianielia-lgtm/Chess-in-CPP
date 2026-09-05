@@ -55,21 +55,21 @@ std::vector<std::string> list_files(fs::path dir, const std::string& extension) 
 
 }
 
-fs::path make_pgn_path(const std::string_view name) {
+fs::path make_pgn_path(std::string_view name) {
     validate_name(name);
     fs::path dir = pgn_dir / name;
     dir.replace_extension(".pgn");    
     return dir;
 }
 
-fs::path make_fen_path(const std::string_view name) {
+fs::path make_fen_path(std::string_view name) {
     validate_name(name);
     fs::path dir = fen_dir / name;
     dir.replace_extension(".fen");    
     return dir;
 }
 
-fs::path make_report_path(const std::string_view name) {
+fs::path make_report_path(std::string_view name) {
     validate_name(name);
     fs::path dir = report_dir / name;
     dir.replace_extension(".txt");    
@@ -109,6 +109,10 @@ void write_file(const fs::path& path, const std::vector<std::string>& contents) 
 }
 
 std::vector<std::string> read_file(const fs::path& path) try {
+    if (!fs::is_regular_file(path)) {
+        throw StorageError("Invalid path: " + path.string());
+    }
+
     if (!fs::exists(path)) {
         throw StorageError(path.string() + " not found.");
     }

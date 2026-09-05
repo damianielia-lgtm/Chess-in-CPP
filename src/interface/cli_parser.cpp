@@ -200,6 +200,12 @@ Command parse_pgn(const std::vector<std::string>& tokens) {
     } else if (pgn_command == "list") {
         check_token_count(tokens, 2);
         return PgnListCommand{};
+    } else if (pgn_command == "import") {
+        check_token_count(tokens, 3);
+        return PgnImportCommand{tokens[2]};
+    } else if (pgn_command == "export") {
+        check_token_count(tokens, 4);
+        return PgnExportCommand{tokens[2], tokens[3]};
     } else {
         throw CommandError("Unrecognized pgn command.");
     }
@@ -219,6 +225,12 @@ Command parse_fen(const std::vector<std::string>& tokens) {
     } else if (fen_command == "list") {
         check_token_count(tokens, 2);
         return FenListCommand{};
+    } else if (fen_command == "import") {
+        check_token_count(tokens, 3);
+        return FenImportCommand{tokens[2]};
+    } else if (fen_command == "export") {
+        check_token_count(tokens, 4);
+        return FenExportCommand{tokens[2], tokens[3]};
     } else {
         throw CommandError("Unrecognized fen command.");
     }

@@ -3,6 +3,7 @@
 #include <variant>
 #include <string>
 #include <optional>
+#include <filesystem>
 
 #include "../storage/presets.h"
 #include "../game/game.h"
@@ -30,11 +31,15 @@ struct PgnDeleteCommand { std::string name; };
 struct PgnSaveCommand { std::string name; };
 struct PgnShowCommand { std::string name; };
 struct PgnListCommand {};
+struct PgnImportCommand { std::filesystem::path path; };
+struct PgnExportCommand { std::string name; std::filesystem::path directory; };
 
 struct FenDeleteCommand { std::string name; };
 struct FenSaveCommand { std::string name; };
 struct FenShowCommand { std::string name; };
 struct FenListCommand {};
+struct FenImportCommand { std::filesystem::path path; };
+struct FenExportCommand { std::string name; std::filesystem::path directory; };
 
 struct ReportDeleteCommand { std::string name; };
 struct ReportSaveCommand { std::string name; };
@@ -73,11 +78,15 @@ using Command = std::variant<
     PgnSaveCommand,
     PgnShowCommand,
     PgnListCommand,
+    PgnImportCommand,
+    PgnExportCommand,
 
     FenDeleteCommand,
     FenSaveCommand,
     FenShowCommand,
     FenListCommand,
+    FenImportCommand,
+    FenExportCommand,
     
     ReportDeleteCommand,
     ReportSaveCommand,

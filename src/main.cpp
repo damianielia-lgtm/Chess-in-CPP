@@ -57,7 +57,7 @@ int main() {
             std::cerr << "\033[31m" << e.what() << "\033[0m\n";
             continue;
         } catch (const OperationalError& e) {
-            std::cerr << "\033[31mOperational error: " << e.what() << '\n';
+            std::cerr << "\033[31mOperational error: " << e.what() << "\033[0m\n";
             continue;
         } catch (const std::exception& e) {
             std::cerr << "\033[31mUnexpected behavior: " << e.what() << '\n';

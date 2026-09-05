@@ -3,6 +3,7 @@
 #include <variant>
 #include <optional>
 #include <string_view>
+#include <filesystem>
 
 #include "../core/position.h"
 #include "../diagnostics/perft.h"
@@ -19,6 +20,8 @@
 #include "display.h"
 #include "session.h"
 
+namespace fs = std::filesystem;
+
 namespace {
 
 void execute_impl(const HelpCommand&, Session&, ConfigData&) { print_help(); }
@@ -28,7 +31,7 @@ void execute_impl(const PlayCommand& cmd, Session& session, ConfigData& config) 
     if (game.has_value()) { session.store_last_game(std::move(*game)); }
 }
 void execute_impl(const ReplayCommand& cmd, Session&, ConfigData& config) {
-    std::filesystem::path dir = make_pgn_path(cmd.name);
+    fs::path dir = make_pgn_path(cmd.name);
     std::vector<std::string> pgn_lines = read_file(dir);
     ParsedPGN parsed = parse_pgn_document(pgn_lines);
     Game game = reconstruct_game(parsed);
@@ -46,7 +49,7 @@ void execute_impl(const PositionShowCommand&, Session& session, ConfigData& conf
 void execute_impl(const PositionStartposCommand&, Session& session, ConfigData&) { session.reset_pos(); }
 void execute_impl(const PositionFenCommand& cmd, Session& session, ConfigData&) { session.set_pos(cmd.fen); }
 void execute_impl(const PositionSavedFenCommand& cmd, Session& session, ConfigData&) {
-    std::filesystem::path dir = make_fen_path(cmd.name);
+    fs::path dir = make_fen_path(cmd.name);
     std::vector<std::string> lines = read_file(dir);
     if (lines.size() != 1) { throw FenError("Saved fen must be one line."); }
     session.set_pos(lines[0]);
@@ -82,52 +85,79 @@ void execute_impl(const DebugCommand& cmd, Session& session, ConfigData&) {
 }
 
 void execute_impl(const PgnDeleteCommand& cmd, Session&, ConfigData&) {
-    std::filesystem::path dir = make_pgn_path(cmd.name);
+    fs::path dir = make_pgn_path(cmd.name);
     delete_file(dir);
 }
 void execute_impl(const PgnSaveCommand& cmd, Session& session, ConfigData& config) {
-    std::filesystem::path dir = make_pgn_path(cmd.name);
+    fs::path dir = make_pgn_path(cmd.name);
     std::vector<std::string> pgn_lines = construct_pgn_lines(session.last_game(), config.pgn_save_clock);
     write_file(dir, pgn_lines);
 }
 void execute_impl(const PgnShowCommand& cmd, Session& session, ConfigData&) {
-    std::filesystem::path dir = make_pgn_path(cmd.name);
+    fs::path dir = make_pgn_path(cmd.name);
     print_lines(read_file(dir));
 }
 void execute_impl(const PgnListCommand&, Session&, ConfigData&) {
     std::vector<std::string> files_list = pgn_list();
     print_lines(files_list.empty() ? std::vector<std::string>{"No saved PGN's yet."} : files_list);
 }
+void execute_impl(const PgnImportCommand& cmd, Session&, ConfigData&) {    
+    std::vector<std::string> external_lines = read_file(cmd.path);
+    reconstruct_game(parse_pgn_document(external_lines));
+
+    fs::path local_dir = make_pgn_path(cmd.path.stem().string());
+    write_file(local_dir, external_lines);
+}
+void execute_impl(const PgnExportCommand& cmd, Session&, ConfigData&) {    
+    fs::path local_path = make_pgn_path(cmd.name);
+    std::vector<std::string> lines = read_file(local_path);
+    fs::path external_path = cmd.directory / local_path.filename();
+    write_file(external_path, lines);
+}
 
 void execute_impl(const FenDeleteCommand& cmd, Session&, ConfigData&) {
-    std::filesystem::path dir = make_fen_path(cmd.name);
+    fs::path dir = make_fen_path(cmd.name);
     delete_file(dir);
 }
 void execute_impl(const FenSaveCommand& cmd, Session& session, ConfigData&) {
-    std::filesystem::path dir = make_fen_path(cmd.name);
+    fs::path dir = make_fen_path(cmd.name);
     std::string fen_line = session.current_position().to_fen();
     write_file(dir, {fen_line});
 }
 void execute_impl(const FenShowCommand& cmd, Session& session, ConfigData&) {
-    std::filesystem::path dir = make_fen_path(cmd.name);
+    fs::path dir = make_fen_path(cmd.name);
     print_lines(read_file(dir));
 }
 void execute_impl(const FenListCommand&, Session&, ConfigData&) {
     std::vector<std::string> files_list = fen_list();
     print_lines(files_list.empty() ? std::vector<std::string>{"No saved FEN's yet."} : files_list);
 }
+void execute_impl(const FenImportCommand& cmd, Session&, ConfigData&) {
+    std::vector<std::string> external_lines = read_file(cmd.path);
+    if (external_lines.size() != 1) { throw FenError("Saved fen must be one line."); }
+    Position(external_lines[0]);
+
+    fs::path local_dir = make_fen_path(cmd.path.stem().string());
+    write_file(local_dir, external_lines);
+}
+void execute_impl(const FenExportCommand& cmd, Session&, ConfigData&) {
+    fs::path local_path = make_fen_path(cmd.name);
+    std::vector<std::string> lines = read_file(local_path);
+    fs::path external_path = cmd.directory / local_path.filename();
+    write_file(external_path, lines);
+}
 
 void execute_impl(const ReportDeleteCommand& cmd, Session&, ConfigData&) {
-    std::filesystem::path dir = make_report_path(cmd.name);
+    fs::path dir = make_report_path(cmd.name);
     delete_file(dir);
 }
 void execute_impl(const ReportSaveCommand& cmd, Session& session, ConfigData&) {
-    std::filesystem::path dir = make_report_path(cmd.name);
+    fs::path dir = make_report_path(cmd.name);
     std::vector<std::string> report_lines = session.last_report();
     write_file(dir, report_lines);
 }
 void execute_impl(const ReportShowCommand& cmd, Session& session, ConfigData&) {
-    std::filesystem::path dir = make_report_path(cmd.name);
+    fs::path dir = make_report_path(cmd.name);
     print_lines(read_file(dir));
 }
 void execute_impl(const ReportListCommand&, Session&, ConfigData&) {
