@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <cassert>
 #include <string_view>
 #include <cstdint>
@@ -24,10 +23,6 @@ enum class PieceType : std::uint8_t {
     Rook = 4,
     Queen = 5,
     King = 6
-};
-
-inline constexpr std::array<PieceType, 4> PromotionPieces = {
-    PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen
 };
 
 class Piece {

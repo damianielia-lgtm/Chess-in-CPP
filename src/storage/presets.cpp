@@ -1,14 +1,12 @@
 #include "presets.h"
 
 #include <string>
-#include <fstream>
 #include <vector>
 #include <sstream>
 #include <map>
 #include <cstdint>
+#include <cstddef>
 
-#include "../core/position.h"
-#include "../errors.h"
 #include "file_manager.h"
 
 namespace {

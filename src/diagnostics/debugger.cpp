@@ -5,6 +5,9 @@
 #include <sstream>
 #include <map>
 #include <expected>
+#include <cstddef>
+#include <utility>
+#include <cstdint>
 
 #include "../core/position.h"
 #include "../core/move.h"

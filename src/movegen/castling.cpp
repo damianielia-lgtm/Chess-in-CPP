@@ -1,5 +1,7 @@
 #include "castling.h"
 
+#include <array>
+
 #include "../core/position.h"
 #include "../core/castling_rights.h"
 #include "../core/square.h"

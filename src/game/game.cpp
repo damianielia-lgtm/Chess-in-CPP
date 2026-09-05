@@ -1,9 +1,9 @@
 #include "game.h"
 
-#include <string>
 #include <chrono>
 #include <optional>
 #include <cassert>
+#include <algorithm>
 
 #include "../core/position.h"
 #include "../core/move.h"

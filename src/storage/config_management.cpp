@@ -4,6 +4,8 @@
 #include <string>
 #include <filesystem>
 #include <fstream>
+#include <cctype>
+#include <cstddef>
 
 #include "../config.h"
 #include "../errors.h"

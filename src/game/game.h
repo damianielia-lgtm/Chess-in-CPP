@@ -5,8 +5,8 @@
 #include <optional>
 #include <chrono>
 #include <cassert>
-#include <algorithm>
 #include <utility>
+#include <cstddef>
 
 #include "../core/position.h"
 #include "../core/piece.h"
@@ -200,7 +200,7 @@ public:
         return snapshots_[index];
     }
     void pop_state() noexcept {
-        assert(!snapshots_.empty());
+        assert(snapshots_.size() > 1);
         snapshots_.pop_back();
         live_state_ = LiveGameState(
             snapshots_.back().position(),

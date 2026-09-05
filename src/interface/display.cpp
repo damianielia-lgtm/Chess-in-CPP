@@ -16,7 +16,7 @@ constexpr std::string_view help_content =
     "   position show                                                                 print current position\n"
     "   position --startpos                                                           set starting position\n"
     "   position --fen \"<fen string>\"                                                 load in specific fen\n"
-    "   position --saved-fen \"<saved fen name>\"                                       load in saved fen\n"
+    "   position --saved-fen <saved fen name>                                         load in saved fen\n"
     "   move <move>                                                                   apply move to current position\n\n"
 
     "Game features\n"
@@ -45,14 +45,14 @@ constexpr std::string_view help_content =
 
     "Perft testing\n"
     "   perft --preset <instant|fast|moderate|extended>                               test engine corectness through the database\n"
-    "   perft --depth <n> [--output <file>]                                           test corectness on a current position.\n"
-    "   debug --depth <n> [--output <file>]                                           recusively go through a position and compare with stockfish.\n\n"
+    "   perft --depth <n>                                                             test corectness on a current position.\n"
+    "   debug --depth <n>                                                             recusively go through a position and compare with stockfish.\n\n"
 
     "Benchmarking\n"
     "   benchmark perft --preset <instant|fast|moderate|extended>                     test movegen speed through the database\n"
-    "   benchmark perft --depth <n> [--output <file>]                                 test movegen speed on current position\n"
+    "   benchmark perft --depth <n>                                                   test movegen speed on current position\n"
     "   benchmark engine --preset <instant|fast|moderate|extended>                    test engine speed through the database\n"
-    "   benchmark engine --depth <n> [--output <file>]                                test engine speed on current position\n\n"
+    "   benchmark engine --depth <n>                                                  test engine speed on current position\n\n"
 
     "Report management\n"
     "   report list                                                                   list saved reports\n"

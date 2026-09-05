@@ -4,6 +4,7 @@
 #include <optional>
 #include <string_view>
 #include <filesystem>
+#include <utility>
 
 #include "../core/position.h"
 #include "../diagnostics/perft.h"
@@ -135,7 +136,7 @@ void execute_impl(const FenListCommand&, Session&, ConfigData&) {
 void execute_impl(const FenImportCommand& cmd, Session&, ConfigData&) {
     std::vector<std::string> external_lines = read_file(cmd.path);
     if (external_lines.size() != 1) { throw FenError("Saved fen must be one line."); }
-    Position(external_lines[0]);
+    Position{external_lines[0]};
 
     fs::path local_dir = make_fen_path(cmd.path.stem().string());
     write_file(local_dir, external_lines);

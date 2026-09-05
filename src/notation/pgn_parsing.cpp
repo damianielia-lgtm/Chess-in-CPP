@@ -8,6 +8,8 @@
 #include <optional>
 #include <chrono>
 #include <regex>
+#include <cstddef>
+#include <utility>
 
 #include "../game/game.h"
 #include "../errors.h"
@@ -419,9 +421,9 @@ std::optional<milliseconds> parse_clock_comment(const std::string& comment) {
 
     std::string clock_string;
     while (character() != ']') {
-        if (at_end()) { throw PgnError("Malformed clock annotation."); }
         clock_string += character();
         pos++;
+        if (at_end()) { throw PgnError("Malformed clock annotation."); }
     }
 
     milliseconds clock_value = parse_hms(trim(clock_string));

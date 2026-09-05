@@ -2,6 +2,7 @@
 #include <iostream>
 #include <chrono>
 #include <optional>
+#include <cstddef>
 
 #include "../core/position.h"
 #include "../interface/display.h"

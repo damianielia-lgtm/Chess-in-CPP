@@ -5,6 +5,7 @@
 #include <cctype>
 #include <vector>
 #include <chrono>
+#include <cstddef>
 
 #include "commands.h"
 #include "../game/game.h"

@@ -6,6 +6,7 @@
 #include <vector>
 #include <optional>
 #include <cstdint>
+#include <cstddef>
 
 #include "../core/position.h"
 #include "../game/game.h"

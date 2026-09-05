@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cassert>
+#include <cstddef>
 
 #include "../core/piece.h"
 #include "../core/square.h"
