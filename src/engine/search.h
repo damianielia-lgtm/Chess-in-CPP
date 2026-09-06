@@ -9,7 +9,10 @@
 
 std::int16_t minimax(Position& position, std::uint8_t depth);
 
-struct SearchStats { std::uint64_t nodes = 0; };
+struct SearchStats {
+    std::uint64_t nodes = 0;
+    std::uint64_t leaf_nodes = 0;
+};
 struct SearchResult {
     std::optional<Move> best_move;
     std::int16_t eval;

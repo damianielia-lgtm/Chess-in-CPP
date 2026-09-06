@@ -51,6 +51,7 @@ std::vector<std::string> benchmark_engine_preset(Preset preset, MoveNotation not
     lines.push_back("");
     double total_dur = 0.0;
     std::uint64_t total_nodes = 0;
+    std::uint64_t total_leaf_nodes = 0;
     for (ExpectedPerft test_state : test_info.positions) {
         lines.push_back("");
         lines.push_back("--- Running " + test_state.id + " - Fen: '" + test_state.fen + "' ---");
@@ -83,6 +84,7 @@ std::vector<std::string> benchmark_engine_preset(Preset preset, MoveNotation not
 
             total_dur += dur.count();
             total_nodes += search_result.stats.nodes;
+            total_leaf_nodes += search_result.stats.leaf_nodes;
 
             progress.advance(expected);
         }
@@ -94,7 +96,11 @@ std::vector<std::string> benchmark_engine_preset(Preset preset, MoveNotation not
     lines.push_back("Full tree node count: " + std::to_string(test_info.total_nodes));
     lines.push_back("Searched: " + std::to_string(total_nodes) + " nodes");
     lines.push_back("Raw Minimax Speed: " + std::format("{:.2f}", total_nodes / total_dur) + " nodes/s");
-    lines.push_back("Pruning ratio: " + std::format("{:.2f}", 100.0 - (static_cast<double>(total_nodes) / test_info.total_nodes * 100.0)) + " %");
+    lines.push_back(
+        "Pruning ratio: " + std::format(
+            "{:.2f}", 100.0 - (static_cast<double>(total_leaf_nodes) / test_info.total_nodes * 100.0)
+        ) + " %"
+    );
     lines.push_back("Perft-equivalent pruned Speed: " + std::format("{:.2f}", test_info.total_nodes / total_dur) + " nodes/s");
 
     return lines;
