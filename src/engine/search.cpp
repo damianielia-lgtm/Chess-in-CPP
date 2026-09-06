@@ -21,8 +21,11 @@ std::int16_t minimax_impl(
     std::uint8_t ply,
     MoveListStack& move_lists,
     std::int16_t alpha,
-    std::int16_t beta
+    std::int16_t beta,
+    std::uint64_t& nodes
 ) {
+    ++nodes;
+
     if (depth == 0) {
         return static_eval(position);
     }
@@ -48,7 +51,7 @@ std::int16_t minimax_impl(
 
     for (const Move move : legal_moves) {
         UndoState move_state = position.apply_move(move);
-        std::int16_t score = minimax_impl(position, depth - 1, ply + 1, move_lists, alpha, beta);
+        std::int16_t score = minimax_impl(position, depth - 1, ply + 1, move_lists, alpha, beta, nodes);
         position.revert_move(move, move_state);
 
         if (maximizing) {
@@ -69,7 +72,8 @@ std::int16_t minimax_impl(
 
 std::int16_t minimax(Position& position, std::uint8_t depth) {
     MoveListStack move_lists;
-    std::int16_t eval = minimax_impl(position, depth, 0, move_lists, -INF, INF) * 100;
+    std::uint64_t nodes;
+    std::int16_t eval = minimax_impl(position, depth, 0, move_lists, -INF, INF, nodes);
     return normalize_centipawn(eval);
 }
 
@@ -80,12 +84,13 @@ std::vector<RankedMove> rank_moves(Position& position, std::uint8_t depth) {
     MovesList& legal_moves = move_lists[0];
     generate_all_moves(legal_moves, position, MoveGeneration::All);
 
+    std::uint64_t nodes;
     std::vector<RankedMove> ranked_moves;
     ranked_moves.reserve(legal_moves.size());
 
     for (const Move move : legal_moves) {
         UndoState move_state = position.apply_move(move);
-        std::int16_t score = minimax_impl(position, depth - 1, 1, move_lists, -INF, INF);
+        std::int16_t score = minimax_impl(position, depth - 1, 1, move_lists, -INF, INF, nodes);
         position.revert_move(move, move_state);
 
         ranked_moves.push_back({move, score});
@@ -99,40 +104,50 @@ std::vector<RankedMove> rank_moves(Position& position, std::uint8_t depth) {
     return ranked_moves;
 }
 
-std::optional<Move> pick_best_move(Position& position, std::uint8_t depth) {
+SearchResult pick_best_move(Position& position, std::uint8_t depth) {
     assert(depth > 0);
+
+    bool maximizing = position.turn() == Color::White;
+    SearchResult search_result{std::nullopt, maximizing ? -INF : INF, SearchStats{}};
 
     MoveListStack move_lists;
     MovesList& legal_moves = move_lists[0];
     generate_all_moves(legal_moves, position, MoveGeneration::All);
     
-    if (legal_moves.empty()) { return std::nullopt; }
+    if (legal_moves.empty()) { return search_result; }
 
-    bool maximizing = position.turn() == Color::White;
     std::int16_t alpha = -INF;
     std::int16_t beta = INF;
-    std::int16_t best_eval = maximizing ? -INF : INF;
-    Move best_move;
 
-    for (bool first = true; const Move move : legal_moves) {
+    for (const Move move : legal_moves) {
         UndoState move_state = position.apply_move(move);
-        std::int16_t score = minimax_impl(position, depth - 1, 1, move_lists, alpha, beta);
+
+        std::int16_t score = minimax_impl(
+            position,
+            depth - 1,
+            1,
+            move_lists,
+            alpha,
+            beta,
+            search_result.stats.nodes
+        );
+
         position.revert_move(move, move_state);
 
-        if (first) { best_move = move; }
+        if (!search_result.best_move) { search_result.best_move = move; }
 
         if (maximizing) {
-            if (score > best_eval) { best_move = move; }
-            best_eval = std::max(best_eval, score);
-            alpha = std::max(alpha, best_eval);
+            if (score > search_result.eval) { search_result.best_move = move; }
+            search_result.eval = std::max(search_result.eval, score);
+            alpha = std::max(alpha, search_result.eval);
         } else {
-            if (score < best_eval) { best_move = move; }
-            best_eval = std::min(best_eval, score);
-            beta = std::min(beta, best_eval);
+            if (score < search_result.eval) { search_result.best_move = move; }
+            search_result.eval = std::min(search_result.eval, score);
+            beta = std::min(beta, search_result.eval);
         }
-
-        first = false;
     }
 
-    return best_move;
+    search_result.eval = normalize_centipawn(search_result.eval);
+
+    return search_result;
 }

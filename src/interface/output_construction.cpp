@@ -12,6 +12,7 @@
 #include "../core/piece.h"
 #include "../game/game.h"
 #include "../movegen/attacks.h"
+#include "../engine/search.h"
 #include "../config.h"
 
 std::string format_time(std::chrono::milliseconds duration) {
@@ -223,12 +224,13 @@ std::vector<std::string> construct_game_lines(
 
 std::vector<std::string> construct_config_show_lines(const ConfigData& config) {
     return {
-        "Player 1               " + config.white_name,
-        "Player 2               " + config.black_name,
+        "Player 1               " + config.player1_name,
+        "Player 2               " + config.player2_name,
         "Event                  " + config.event,
         "Site                   " + config.site,
         "Export clocks          " + (config.pgn_save_clock ? std::string("true") : std::string("false")),
-        "Move input type        " + (config.move_input == MoveInput::Uci ? std::string("uci") : std::string("san")),
-        "Board orientation      " + (config.board_orientation == BoardOrientation::White ? std::string("white") : std::string("black"))
+        "Move input type        " + (config.move_notation == MoveNotation::Uci ? std::string("uci") : std::string("san")),
+        "Board orientation      " + (config.board_orientation == BoardOrientation::White ? std::string("white") : std::string("black")),
+        "Engine depth           " + std::to_string(config.engine_depth)
     };
 }

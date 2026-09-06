@@ -17,13 +17,14 @@ inline const fs::path config_dir{"data/config.cfg"};
 
 std::vector<std::string> construct_config_save_lines(const ConfigData& config) {
     return {
-        "player_1=" + config.white_name,
-        "player_2=" + config.black_name,
+        "player_1=" + config.player1_name,
+        "player_2=" + config.player2_name,
         "event=" + config.event,
         "site=" + config.site,
         "export_clocks=" + (config.pgn_save_clock ? std::string("true") : std::string("false")),
-        "move_input=" + (config.move_input == MoveInput::Uci ? std::string("uci") : std::string("san")),
-        "board_orientation=" + (config.board_orientation == BoardOrientation::White ? std::string("white") : std::string("black"))
+        "move_notation=" + (config.move_notation == MoveNotation::Uci ? std::string("uci") : std::string("san")),
+        "board_orientation=" + (config.board_orientation == BoardOrientation::White ? std::string("white") : std::string("black")),
+        "engine_depth=" + std::to_string(config.engine_depth)
     };
 }
 
@@ -61,8 +62,9 @@ ConfigData load_saved_config() {
     bool found_event = false;
     bool found_site = false;
     bool found_export_clocks = false;
-    bool found_move_input = false;
+    bool found_move_notation = false;
     bool found_board_orientation = false;
+    bool found_engine_depth = false;
 
     for (const std::string& line : read_file(config_dir)) {
         if (line.empty()) { continue; }
@@ -81,14 +83,14 @@ ConfigData load_saved_config() {
                 throw ConfigError("Repeated player_1 configuration.");
             } else {
                 found_player_1 = true;
-                data.white_name = value;
+                data.player1_name = value;
             }
         } else if (field == "player_2") {
             if (found_player_2) {
                 throw ConfigError("Repeated player_2 configuration.");
             } else {
                 found_player_2 = true;
-                data.black_name = value;
+                data.player2_name = value;
             }
         } else if (field == "event") {
             if (found_event) {
@@ -117,17 +119,17 @@ ConfigData load_saved_config() {
                     throw ConfigError("Unrecognized export_clocks config value.");
                 }
             }
-        } else if (field == "move_input") {
-            if (found_move_input) {
-                throw ConfigError("Repeated move_input configuration.");
+        } else if (field == "move_notation") {
+            if (found_move_notation) {
+                throw ConfigError("Repeated move_notation configuration.");
             } else {
-                found_move_input = true;
+                found_move_notation = true;
                 if (value == "uci") {
-                    data.move_input = MoveInput::Uci;
+                    data.move_notation = MoveNotation::Uci;
                 } else if (value == "san") {
-                    data.move_input = MoveInput::San;
+                    data.move_notation = MoveNotation::San;
                 } else {
-                    throw ConfigError("Unrecognized move_input config value.");
+                    throw ConfigError("Unrecognized move_notation config value.");
                 }
             }
         } else if (field == "board_orientation") {
@@ -142,6 +144,22 @@ ConfigData load_saved_config() {
                 } else {
                     throw ConfigError("Unrecognized board_orientation config value.");
                 }
+            }
+        } else if (field == "engine_depth") {
+            if (found_engine_depth) {
+                throw ConfigError("Repeated engine_depth configuration.");
+            } else {
+                found_engine_depth = true;
+
+                if (value.empty() || value.length() > 2) { throw ConfigError("Invalid engine depth."); }
+                for (unsigned char c : value) {
+                    if (!std::isdigit(c)) { throw ConfigError("Invalid engine depth."); }
+                }
+
+                std::uint8_t depth = std::stoi(value);
+                if (depth > 16) { throw ConfigError("Invalid engine depth."); }
+
+                data.engine_depth = depth;
             }
         } else {
             throw ConfigError("Unrecognized configuration field.");

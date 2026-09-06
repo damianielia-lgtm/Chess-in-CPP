@@ -8,6 +8,7 @@
 #include "../interface/display.h"
 #include "../notation/uci.h"
 #include "../notation/san.h"
+#include "../engine/search.h"
 #include "../errors.h"
 #include "../config.h"
 #include "game.h"
@@ -16,7 +17,7 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control, ConfigDa
     using namespace std::chrono;
 
     std::size_t cursor = 0;
-    Game game(config.white_name, config.black_name, config.event, config.site, time_control);
+    Game game(config.player1_name, config.player2_name, config.event, config.site, time_control);
     GameDisplay display(game.metadata());
 
     display.render(game.snapshot_at(cursor), config.board_orientation);
@@ -62,7 +63,7 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control, ConfigDa
             } else {
                 try {
                     game.play_move(
-                        config.move_input == MoveInput::Uci
+                        config.move_notation == MoveNotation::Uci
                             ? resolve_uci(game.live_position(), user_input)
                             : resolve_san(game.live_position(), user_input)
                     );
@@ -74,6 +75,97 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control, ConfigDa
             }
 
             if (game.has_ended()) { break; }
+        }
+
+        display.update(
+            cursor == game.snapshot_count() - 1
+                ? game.live_snapshot()
+                : game.snapshot_at(cursor),
+            config.board_orientation
+        );
+    }
+
+    display.set_result(game.result());
+    display.update(game.live_snapshot(), config.board_orientation);
+
+    return game;
+}
+
+enum class EngineGameTurn { Player, Engine };
+std::optional<Game> play_engine(Color player_color, ConfigData& config) {
+    using namespace std::chrono;
+
+    std::size_t cursor = 0;
+    Game game(
+        player_color == Color::White ? config.player1_name : "Engine",
+        player_color == Color::White ? "Engine" : config.player1_name,
+        config.event,
+        config.site
+    );
+    GameDisplay display(game.metadata());
+
+    EngineGameTurn game_turn = player_color == Color::White
+        ? EngineGameTurn::Player
+        : EngineGameTurn::Engine;
+
+    display.render(game.snapshot_at(cursor), config.board_orientation);
+    
+    while (true) {
+        display.clear_error();
+
+        if (game_turn == EngineGameTurn::Engine) {
+            Position current_position = game.live_position();
+            game.play_move(*pick_best_move(current_position, config.engine_depth).best_move);
+            game.check_game_end();
+            cursor++;
+
+            if (game.has_ended()) { break; }
+
+            game_turn = EngineGameTurn::Player;
+        } else {
+            std::string user_input;
+            if(!std::getline(std::cin, user_input)) { return std::nullopt; }
+            
+            if (user_input == "flip") {
+                config.board_orientation == BoardOrientation::White
+                    ? config.board_orientation = BoardOrientation::Black
+                    : config.board_orientation = BoardOrientation::White;
+            }
+
+            else if (user_input == "next") {
+                if (cursor < game.snapshot_count() - 1) { cursor++; }
+            } else if (user_input == "previous") {
+                if (cursor > 0) { cursor--; }
+            } else if (user_input == "first") {
+                cursor = 0;
+            } else if (user_input == "last") {
+                cursor = game.snapshot_count() - 1;
+            } else if (cursor != game.snapshot_count() - 1) {
+                display.set_error("Go to the most recent position to play moves.");
+            }
+            
+            else {
+                if (user_input == "resign") {
+                    game.resign();
+                } else if (user_input == "draw") {
+                    game.agree_draw();
+                } else {
+                    try {
+                        game.play_move(
+                            config.move_notation == MoveNotation::Uci
+                                ? resolve_uci(game.live_position(), user_input)
+                                : resolve_san(game.live_position(), user_input)
+                        );
+                        game.check_game_end();
+                        cursor++;
+                        game_turn = EngineGameTurn::Engine;
+                    } catch (const IllegalMoveError& e) {
+                        display.set_error(e.what());
+                    }
+                }
+
+                if (game.has_ended()) { break; }
+            }
         }
 
         display.update(
@@ -136,7 +228,7 @@ std::optional<Game> analyze(const Position& position, ConfigData& config, bool c
             } else {
                 try {
                     game.play_move(
-                        config.move_input == MoveInput::Uci
+                        config.move_notation == MoveNotation::Uci
                             ? resolve_uci(game.live_position(), user_input)
                             : resolve_san(game.live_position(), user_input)
                     );

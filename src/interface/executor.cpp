@@ -9,12 +9,15 @@
 #include "../core/position.h"
 #include "../diagnostics/perft.h"
 #include "../diagnostics/debugger.h"
+#include "../diagnostics/engine_benchmarking.h"
 #include "../game/game_loop.h"
 #include "../game/game.h"
 #include "../storage/file_manager.h"
 #include "../notation/pgn.h"
 #include "../notation/uci.h"
 #include "../notation/san.h"
+#include "../engine/evaluation.h"
+#include "../engine/search.h"
 #include "../config.h"
 #include "../errors.h"
 #include "commands.h"
@@ -27,8 +30,12 @@ namespace {
 
 void execute_impl(const HelpCommand&, Session&, ConfigData&) { print_help(); }
 
-void execute_impl(const PlayCommand& cmd, Session& session, ConfigData& config) {
+void execute_impl(const PlayLocalCommand& cmd, Session& session, ConfigData& config) {
     std::optional<Game> game = play_local(cmd.time, config);
+    if (game.has_value()) { session.store_last_game(std::move(*game)); }
+}
+void execute_impl(const PlayEngineCommand& cmd, Session& session, ConfigData& config) {
+    std::optional<Game> game = play_engine(cmd.player_color, config);
     if (game.has_value()) { session.store_last_game(std::move(*game)); }
 }
 void execute_impl(const ReplayCommand& cmd, Session&, ConfigData& config) {
@@ -57,7 +64,7 @@ void execute_impl(const PositionSavedFenCommand& cmd, Session& session, ConfigDa
 }
 void execute_impl(const MoveCommand& cmd, Session& session, ConfigData& config) {
     session.apply_move(
-        config.move_input == MoveInput::Uci
+        config.move_notation == MoveNotation::Uci
             ? resolve_uci(session.current_position(), cmd.move_string)
             : resolve_san(session.current_position(), cmd.move_string)
     );
@@ -73,6 +80,11 @@ void execute_impl(const BenchmarkPerftPresetCommand& cmd, Session& session, Conf
     print_lines(lines);
     session.store_last_report(lines);
 }
+void execute_impl(const BenchmarkEnginePresetCommand& cmd, Session& session, ConfigData&) {
+    std::vector<std::string> lines = benchmark_engine_preset(cmd.preset);
+    print_lines(lines);
+    session.store_last_report(lines);
+}
 void execute_impl(const PerftCommand& cmd, Session& session, ConfigData&) {
     Position position = session.current_position();
     print_lines(run_test(position, cmd.depth));
@@ -80,6 +92,10 @@ void execute_impl(const PerftCommand& cmd, Session& session, ConfigData&) {
 void execute_impl(const BenchmarkPerftCommand& cmd, Session& session, ConfigData&) {
     Position position = session.current_position();
     print_lines(run_benchmark(position, cmd.depth));
+}
+void execute_impl(const BenchmarkEngineCommand& cmd, Session& session, ConfigData&) {
+    Position position = session.current_position();
+    print_lines(run_benchmark_engine(position, cmd.depth));
 }
 void execute_impl(const DebugCommand& cmd, Session& session, ConfigData&) {
     print_lines(debug_pos(session.current_position().to_fen(), cmd.depth));
@@ -170,13 +186,56 @@ void execute_impl(const ConfigShowCommand&, Session&, ConfigData& config) {
     std::vector<std::string> config_lines = construct_config_show_lines(config);
     print_lines(config_lines);
 }
-void execute_impl(const ConfigSetPlayer1Command& cmd, Session&, ConfigData& config) { config.white_name = cmd.name; }
-void execute_impl(const ConfigSetPlayer2Command& cmd, Session&, ConfigData& config) { config.black_name = cmd.name; }
+void execute_impl(const ConfigSetPlayer1Command& cmd, Session&, ConfigData& config) { config.player1_name = cmd.name; }
+void execute_impl(const ConfigSetPlayer2Command& cmd, Session&, ConfigData& config) { config.player2_name = cmd.name; }
 void execute_impl(const ConfigSetEventCommand& cmd, Session&, ConfigData& config) { config.event = cmd.event; }
 void execute_impl(const ConfigSetSiteCommand cmd, Session&, ConfigData& config) { config.site = cmd.site; }
-void execute_impl(const ConfigSetExportClocksCommand& cmd, Session&, ConfigData& config) { config.pgn_save_clock = cmd.export_cloks; }
-void execute_impl(const ConfigSetMoveInputCommand& cmd, Session&, ConfigData& config) { config.move_input = cmd.input; }
+void execute_impl(const ConfigSetExportClocksCommand& cmd, Session&, ConfigData& config) { config.pgn_save_clock = cmd.export_clocks; }
+void execute_impl(const ConfigSetMoveNotationCommand& cmd, Session&, ConfigData& config) { config.move_notation = cmd.input; }
 void execute_impl(const ConfigSetBoardOrientationCommand& cmd, Session&, ConfigData& config) { config.board_orientation = cmd.orientation; }
+void execute_impl(const ConfigSetEngineDepthCommand& cmd, Session&, ConfigData& config) { config.engine_depth = cmd.depth; }
+
+void execute_impl(const EngineStaticCommand&, Session& session, ConfigData&) {
+    print_lines({"Static eval : " + std::to_string(static_eval(session.current_position()))});
+}
+void execute_impl(const EngineDynamicCommand&, Session& session, ConfigData& config) {
+    Position position = session.current_position();
+    print_lines({"Minimax eval : " + std::to_string(minimax(position, config.engine_depth))});
+}
+void execute_impl(const EngineBestmoveCommand&, Session& session, ConfigData& config) {
+    Position position = session.current_position();
+    std::optional<Move> bestmove = pick_best_move(position, config.engine_depth).best_move;
+    print_lines(
+        {
+            bestmove
+                ? "Best move : " + (
+                    config.move_notation == MoveNotation::Uci
+                        ? bestmove.value().to_uci()
+                        : to_san(position, *bestmove)
+                    )
+                : "No moves available."
+        }
+    );
+}
+void execute_impl(const EngineRankMovesCommand&, Session& session, ConfigData& config) {
+    std::vector<std::string> lines;
+    Position position = session.current_position();
+    std::vector<RankedMove> moves = rank_moves(position, config.engine_depth);
+
+    for (const RankedMove& move : moves) {
+        lines.push_back(
+            (
+                config.move_notation == MoveNotation::Uci
+                    ? move.move.to_uci()
+                    : to_san(position, move.move)
+            ) +
+            ": " +
+            std::to_string(move.eval)
+        );
+    }
+
+    print_lines(lines);
+}
 
 }
 

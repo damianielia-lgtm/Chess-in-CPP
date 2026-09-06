@@ -13,7 +13,6 @@ struct ExpectedPerft {
 
 struct PresetInfo {
     uint64_t total_nodes = 0;
-    uint64_t engine_nodes = 0;
     std::vector<ExpectedPerft> positions{};
 };
 
@@ -25,3 +24,5 @@ enum class Preset {
 };
 
 PresetInfo make_preset(Preset preset);
+
+std::string preset_name(Preset preset);

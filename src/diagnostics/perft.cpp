@@ -16,6 +16,8 @@
 #include "../interface/display.h"
 #include "../storage/presets.h"
 
+using namespace std::chrono;
+
 namespace {
 
 std::uint64_t perft_impl(
@@ -76,8 +78,6 @@ std::vector<std::string> run_test(Position& position, int depth) {
 }
 
 std::vector<std::string> run_benchmark(Position& position, int depth) {
-    using namespace std::chrono;
-
     auto start = steady_clock::now();
     std::uint64_t nodes = perft(position, depth);
     auto end = steady_clock::now();    
@@ -92,23 +92,12 @@ std::vector<std::string> run_benchmark(Position& position, int depth) {
 
 namespace {
 
-std::chrono::milliseconds estimate_time(std::uint64_t total_nodes) {
-    using namespace std::chrono;
-
+milliseconds estimate_time(std::uint64_t total_nodes) {
     Position test_pos("startpos");
     auto start = steady_clock::now();
     perft(test_pos, 5);
     auto end = steady_clock::now();
     return duration_cast<milliseconds>((end - start) * total_nodes / 4865609);
-}
-
-std::string preset_name(Preset preset) {
-    switch (preset) {
-        case Preset::Instant: return "Instant";
-        case Preset::Fast: return "Fast";
-        case Preset::Moderate: return "Moderate";
-        case Preset::Extended: return "Extended";
-    }
 }
 
 }
@@ -148,8 +137,6 @@ std::vector<std::string> run_test_preset(Preset preset) {
 }
 
 std::vector<std::string> run_benchmark_preset(Preset preset) {
-    using namespace std::chrono;
-
     PresetInfo test_info;
     test_info = make_preset(preset);
 

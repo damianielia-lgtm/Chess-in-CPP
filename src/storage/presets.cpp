@@ -50,23 +50,16 @@ std::vector<ExpectedPerft> epd_parser() {
     return pos_list;
 }
 
-const std::map<std::string, std::uint64_t> preset_max_nodes = {
-    {"instant", 300000},
-    {"fast", 1000000},
-    {"moderate", 5000000},
-    {"extended", 20000000}
-};
-
 }
 
 PresetInfo make_preset(Preset preset) {
     PresetInfo info;
     std::uint64_t max_nodes;
     switch (preset) {
-        case Preset::Instant: max_nodes = preset_max_nodes.at("instant"); break;
-        case Preset::Fast: max_nodes = preset_max_nodes.at("fast"); break;
-        case Preset::Moderate: max_nodes = preset_max_nodes.at("moderate"); break;
-        case Preset::Extended: max_nodes = preset_max_nodes.at("extended"); break;
+        case Preset::Instant: max_nodes = 300000; break;
+        case Preset::Fast: max_nodes = 1000000; break;
+        case Preset::Moderate: max_nodes = 5000000; break;
+        case Preset::Extended: max_nodes = 20000000; break;
     }
 
     for (ExpectedPerft pos : epd_parser()) {
@@ -76,8 +69,6 @@ PresetInfo make_preset(Preset preset) {
             if ((expected <= max_nodes) && (depth > 0)) {
                 per_depth_values[depth] = expected;
                 info.total_nodes += expected;
-
-                if (expected >= 5000) { info.engine_nodes += expected; }
             }
         }
 
@@ -87,4 +78,13 @@ PresetInfo make_preset(Preset preset) {
     }
 
     return info;
+}
+
+std::string preset_name(Preset preset) {
+    switch (preset) {
+        case Preset::Instant: return "Instant";
+        case Preset::Fast: return "Fast";
+        case Preset::Moderate: return "Moderate";
+        case Preset::Extended: return "Extended";
+    }
 }

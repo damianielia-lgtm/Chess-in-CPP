@@ -1,18 +1,21 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
 
 enum class BoardOrientation { White, Black };
-enum class MoveInput { Uci, San };
+enum class MoveNotation { Uci, San };
 
 struct ConfigData {
-    std::string white_name = "White";
-    std::string black_name = "Black";
+    std::string player1_name = "White";
+    std::string player2_name = "Black";
 
     std::string event = "?";
     std::string site = "Elia.chess";
     bool pgn_save_clock = true;
 
-    MoveInput move_input = MoveInput::Uci;
+    MoveNotation move_notation = MoveNotation::Uci;
     BoardOrientation board_orientation = BoardOrientation::White;
+
+    std::uint8_t engine_depth = 5;
 };

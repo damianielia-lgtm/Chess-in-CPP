@@ -23,9 +23,15 @@ constexpr std::string_view help_content =
     "   play local --untimed                                                          start a local untimed game\n"
     "   play local --time-control <initial+increment>                                 start a local timed game\n"
     "   play online                                                                   start an online game\n"
-    "   play engine --player-color {white|black} --depth <n>                          play against the engine\n"
+    "   play engine --player-color {white|black}                                      play against the engine\n"
     "   replay <saved pgn name>                                                       replay a saved game\n"
     "   analyze                                                                       analyze current position\n\n"
+
+    "Engine\n"
+    "   engine static-eval                                                            print static evaluation of current position\n"
+    "   engine dynamic-eval                                                           print minimax evaluation of current position\n"
+    "   engine bestmove                                                                print best move for current position\n"
+    "   engine rank                                                                   print all legal moves ranked by evaluation\n\n"
 
     "PGN management\n"
     "   pgn list                                                                      list saved PGNs\n"

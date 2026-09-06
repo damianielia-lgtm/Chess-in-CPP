@@ -4,6 +4,7 @@
 #include <string>
 #include <optional>
 #include <filesystem>
+#include <cstdint>
 
 #include "../storage/presets.h"
 #include "../game/game.h"
@@ -11,7 +12,8 @@
 
 struct HelpCommand {};
 
-struct PlayCommand { std::optional<TimeControl> time; };
+struct PlayLocalCommand { std::optional<TimeControl> time; };
+struct PlayEngineCommand { Color player_color; };
 struct ReplayCommand { std::string name; };
 struct AnalyzeCommand {};
 
@@ -23,8 +25,10 @@ struct MoveCommand { std::string move_string; };
 
 struct PerftPresetCommand { Preset preset; };
 struct BenchmarkPerftPresetCommand { Preset preset; };
+struct BenchmarkEnginePresetCommand { Preset preset; };
 struct PerftCommand { int depth; };
 struct BenchmarkPerftCommand { int depth; };
+struct BenchmarkEngineCommand { int depth; };
 struct DebugCommand { int depth; };
 
 struct PgnDeleteCommand { std::string name; };
@@ -51,14 +55,21 @@ struct ConfigSetPlayer1Command { std::string name; };
 struct ConfigSetPlayer2Command { std::string name; };
 struct ConfigSetEventCommand { std::string event; };
 struct ConfigSetSiteCommand { std::string site; };
-struct ConfigSetExportClocksCommand { bool export_cloks; };
-struct ConfigSetMoveInputCommand { MoveInput input; };
+struct ConfigSetExportClocksCommand { bool export_clocks; };
+struct ConfigSetMoveNotationCommand { MoveNotation input; };
 struct ConfigSetBoardOrientationCommand { BoardOrientation orientation; };
+struct ConfigSetEngineDepthCommand { int depth; };
+
+struct EngineStaticCommand {};
+struct EngineDynamicCommand {};
+struct EngineBestmoveCommand {};
+struct EngineRankMovesCommand {};
 
 using Command = std::variant<
     HelpCommand,
 
-    PlayCommand,
+    PlayLocalCommand,
+    PlayEngineCommand,
     ReplayCommand,
     AnalyzeCommand,
 
@@ -70,8 +81,10 @@ using Command = std::variant<
     
     PerftPresetCommand,
     BenchmarkPerftPresetCommand,
+    BenchmarkEnginePresetCommand,
     PerftCommand,
     BenchmarkPerftCommand,
+    BenchmarkEngineCommand,
     DebugCommand,
 
     PgnDeleteCommand,
@@ -99,6 +112,12 @@ using Command = std::variant<
     ConfigSetEventCommand,
     ConfigSetSiteCommand,
     ConfigSetExportClocksCommand,
-    ConfigSetMoveInputCommand,
-    ConfigSetBoardOrientationCommand
+    ConfigSetMoveNotationCommand,
+    ConfigSetBoardOrientationCommand,
+    ConfigSetEngineDepthCommand,
+
+    EngineStaticCommand,
+    EngineDynamicCommand,
+    EngineBestmoveCommand,
+    EngineRankMovesCommand
 >;

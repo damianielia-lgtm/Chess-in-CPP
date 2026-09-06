@@ -6,6 +6,7 @@
 #include <vector>
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 
 #include "commands.h"
 #include "../game/game.h"
@@ -115,13 +116,28 @@ Command parse_game(const std::vector<std::string>& tokens) {
         std::string local_command = require_token(tokens, 2);
         if (local_command == "--time-control") {
             check_token_count(tokens, 4);
-            std::string time_command = require_token(tokens, 3);
-            return PlayCommand{parse_time(time_command)};
+            std::string time_command = tokens[3];
+            return PlayLocalCommand{parse_time(time_command)};
         } if (local_command == "--untimed") {
             check_token_count(tokens, 3);
-            return PlayCommand{};
+            return PlayLocalCommand{};
         } else {
             throw CommandError("Unrecognized play local command.");
+        }
+    } else if (game_command == "engine") {
+        std::string engine_command = require_token(tokens, 2);
+        if (engine_command == "--player-color") {
+            check_token_count(tokens, 4);
+            std::string player_color = tokens[3];
+            if (player_color == "white") {
+                return PlayEngineCommand{Color::White};
+            } else if (player_color == "black") {
+                return PlayEngineCommand{Color::Black};
+            } else {
+                throw CommandError("Invalid player color.");
+            }
+        } else {
+            throw CommandError("Unrecognized play engine command.");
         }
     } else {
         throw CommandError("Unrecognized play command.");
@@ -171,6 +187,15 @@ Command parse_benchmark(const std::vector<std::string>& tokens) {
             return BenchmarkPerftCommand{parse_depth(tokens[3])};
         } else {
             throw CommandError("Unrecognized benchmark perft command.");
+        }
+    } else if (benchmark_command == "engine") {
+        std::string perft_engine_command = tokens[2];
+        if (perft_engine_command == "--preset") {
+            return BenchmarkEnginePresetCommand{parse_preset(tokens[3])};
+        } else if (perft_engine_command == "--depth") {
+            return BenchmarkEngineCommand{parse_depth(tokens[3])};
+        } else {
+            throw CommandError("Unrecognized benchmark engine command.");
         }
     } else {
         throw CommandError("Unrecognized benchmark command.");
@@ -262,18 +287,18 @@ Command parse_config(const std::vector<std::string>& tokens) {
         check_token_count(tokens, 2);
         return ConfigShowCommand{};
     } else if (config_command == "set") {
-        std::string set_filed = require_token(tokens, 2);
+        std::string set_field = require_token(tokens, 2);
         std::string set_value = require_token(tokens, 3);
         check_token_count(tokens, 4);
-        if (set_filed == "player-1") {
+        if (set_field == "player-1") {
             return ConfigSetPlayer1Command{set_value};
-        } else if (set_filed == "player-2") {
+        } else if (set_field == "player-2") {
             return ConfigSetPlayer2Command{set_value};
-        } else if (set_filed == "event") {
+        } else if (set_field == "event") {
             return ConfigSetEventCommand{set_value};
-        } else if (set_filed == "site") {
+        } else if (set_field == "site") {
             return ConfigSetSiteCommand{set_value};
-        } else if (set_filed == "export-clocks") {
+        } else if (set_field == "export-clocks") {
             if (set_value == "true") {
                 return ConfigSetExportClocksCommand{true};
             } else if (set_value == "false") {
@@ -281,15 +306,15 @@ Command parse_config(const std::vector<std::string>& tokens) {
             } else {
                 throw CommandError("Unrecognized export-clocks value.");
             }
-        } else if (set_filed == "move-input") {
+        } else if (set_field == "move-input") {
             if (set_value == "uci") {
-                return ConfigSetMoveInputCommand{MoveInput::Uci};
+                return ConfigSetMoveNotationCommand{MoveNotation::Uci};
             } else if (set_value == "san") {
-                return ConfigSetMoveInputCommand{MoveInput::San};
+                return ConfigSetMoveNotationCommand{MoveNotation::San};
             } else {
                 throw CommandError("Unrecognized move-input value.");
             }
-        } else if (set_filed == "board-orientation") {
+        } else if (set_field == "board-orientation") {
             if (set_value == "white") {
                 return ConfigSetBoardOrientationCommand{BoardOrientation::White};
             } else if (set_value == "black") {
@@ -297,11 +322,29 @@ Command parse_config(const std::vector<std::string>& tokens) {
             } else {
                 throw CommandError("Unrecognized board-orientation value.");
             }
+        } else if (set_field == "engine-depth") {
+            return ConfigSetEngineDepthCommand{static_cast<std::uint8_t>(parse_depth(set_value))};
         } else {
             throw CommandError("Unrecognized set field.");
         }
     } else {
         throw CommandError("Unrecognized config command.");
+    }
+}
+
+Command parse_engine(const std::vector<std::string>& tokens) {
+    check_token_count(tokens, 2);
+    std::string engine_command = tokens[1];
+    if (engine_command == "static-eval") {
+        return EngineStaticCommand{};
+    } else if (engine_command == "dynamic-eval") {
+        return EngineDynamicCommand{};
+    } else if (engine_command == "bestmove") {
+        return EngineBestmoveCommand{};
+    } else if (engine_command == "rank") {
+        return EngineRankMovesCommand{};
+    } else {
+        throw CommandError("Unrecognized engine command.");
     }
 }
 
@@ -339,6 +382,8 @@ Command parse(std::string line) {
         return HelpCommand{};
     }  else if (base_command == "config") {
         return parse_config(tokens);
+    } else if (base_command == "engine") {
+        return parse_engine(tokens);
     } else {
         throw CommandError("Unrecognized command.");
     }
