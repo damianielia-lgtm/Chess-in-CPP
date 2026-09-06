@@ -3,8 +3,9 @@
 #include <string>
 #include <cstdint>
 
+#include "notation/move_notation.h"
+
 enum class BoardOrientation { White, Black };
-enum class MoveNotation { Uci, San };
 
 struct ConfigData {
     std::string player1_name = "White";

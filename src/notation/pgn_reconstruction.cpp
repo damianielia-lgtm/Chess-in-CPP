@@ -6,7 +6,7 @@
 
 #include "../game/game.h"
 #include "../errors.h"
-#include "san.h"
+#include "move_notation.h"
 
 using namespace std::chrono;
 
@@ -41,7 +41,7 @@ Game reconstruct_game(const ParsedPGN& pgn_data) {
         std::string san_move = ply.san_move;
 
         try {
-            Move move = resolve_san(game.live_position(), san_move);
+            Move move = resolve_move(san_move, game.live_position(), MoveNotation::San);
             game.play_move(move);
         } catch (const IllegalMoveError& e) {
             throw PgnError("Move " + san_move + " at movenumber " + std::to_string(movenumber) + " isn't legal.");

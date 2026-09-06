@@ -15,6 +15,7 @@
 #include "../core/move_list.h"
 #include "../interface/display.h"
 #include "../storage/presets.h"
+#include "../notation/move_notation.h"
 
 using namespace std::chrono;
 
@@ -45,13 +46,14 @@ std::uint64_t perft_impl(
     return count;
 }
 
-std::map<std::string, uint64_t> perft_div(Position& position, int depth) {
+std::map<std::string, uint64_t> perft_div(Position& position, int depth, MoveNotation notation) {
     std::map<std::string, uint64_t> divide;
     MoveListStack move_lists;
 
     for (const Move move : all_moves(position, MoveGeneration::All)) {
+        std::string move_string = move_notation(move, position, notation);
         UndoState move_state = position.apply_move(move);
-        divide[move.to_uci()] = perft_impl(position, depth - 1, 0, move_lists);
+        divide[move_string] = perft_impl(position, depth - 1, 0, move_lists);
         position.revert_move(move, move_state);
     }
 
@@ -65,10 +67,10 @@ std::uint64_t perft(Position& position, int depth) {
     return perft_impl(position, depth, 0, move_lists);
 }
 
-std::vector<std::string> run_test(Position& position, int depth) {
+std::vector<std::string> run_test(Position& position, int depth, MoveNotation notation) {
     std::vector<std::string> lines;
     std::uint64_t total_nodes = 0;
-    for (const auto [move, nodes] : perft_div(position, depth)) {
+    for (const auto [move, nodes] : perft_div(position, depth, notation)) {
         lines.push_back(move + ": " + std::to_string(nodes));
         total_nodes += nodes;
     }

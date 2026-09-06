@@ -9,7 +9,7 @@
 #include "../engine/search.h"
 #include "../storage/presets.h"
 #include "../interface/display.h"
-#include "../notation/san.h"
+#include "../notation/move_notation.h"
 #include "../config.h"
 
 using namespace std::chrono;
@@ -22,7 +22,7 @@ std::chrono::milliseconds estimate_time(std::uint64_t total_nodes) {
     return duration_cast<milliseconds>((end - start) * total_nodes / 4865609);
 }
 
-std::vector<std::string> run_benchmark_engine(Position position, std::uint8_t depth) {
+std::vector<std::string> run_benchmark_engine(Position position, std::uint8_t depth, MoveNotation notation) {
     auto start = steady_clock::now();
     SearchResult search_result = pick_best_move(position, depth);
     auto end = steady_clock::now();    
@@ -32,7 +32,7 @@ std::vector<std::string> run_benchmark_engine(Position position, std::uint8_t de
     if (!search_result.best_move) { return {"No legal moves."}; }
 
     std::vector<std::string> lines;
-    lines.push_back("Best move: " + search_result.best_move.value().to_uci());
+    lines.push_back("Best move: " + move_notation(*search_result.best_move, position, notation));
     lines.push_back("Evaluation: " + std::to_string(search_result.eval) + " cp");
     lines.push_back("Nodes searched: " + std::to_string(search_result.stats.nodes));
     lines.push_back("Time: " + std::format("{:.2f}", dur.count()) + " s");
@@ -40,7 +40,7 @@ std::vector<std::string> run_benchmark_engine(Position position, std::uint8_t de
     return lines;
 }
 
-std::vector<std::string> benchmark_engine_preset(Preset preset) {
+std::vector<std::string> benchmark_engine_preset(Preset preset, MoveNotation notation) {
     PresetInfo test_info;
     test_info = make_preset(preset);
 
@@ -74,7 +74,7 @@ std::vector<std::string> benchmark_engine_preset(Preset preset) {
 
             std::string line;
             line += "Depth " + std::to_string(depth) + ": ";
-            line += search_result.best_move.value().to_uci() + " | ";
+            line += move_notation(*search_result.best_move, pos, notation) + " | ";
             line += std::to_string(search_result.eval) + " cp | ";
             line += std::to_string(search_result.stats.nodes) + " nodes | ";
             line += std::format("{:.2f}", dur.count()) + "s | ";

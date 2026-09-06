@@ -12,7 +12,7 @@
 #include "../core/position.h"
 #include "../interface/output_construction.h"
 #include "../config.h"
-#include "san.h"
+#include "move_notation.h"
 
 using namespace std::chrono;
 
@@ -104,7 +104,7 @@ std::vector<std::string> construct_pgn_lines(const Game& game, bool save_clock_i
             moves_line += "... ";
         }
 
-        moves_line += to_san(position, *move) + ' ';
+        moves_line += move_notation(*move, position, MoveNotation::San) + ' ';
         
         if (position.turn() == Color::Black) {
             move_clock++;

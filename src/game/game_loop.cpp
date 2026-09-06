@@ -6,8 +6,7 @@
 
 #include "../core/position.h"
 #include "../interface/display.h"
-#include "../notation/uci.h"
-#include "../notation/san.h"
+#include "../notation/move_notation.h"
 #include "../engine/search.h"
 #include "../errors.h"
 #include "../config.h"
@@ -62,11 +61,7 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control, ConfigDa
                 game.agree_draw();
             } else {
                 try {
-                    game.play_move(
-                        config.move_notation == MoveNotation::Uci
-                            ? resolve_uci(game.live_position(), user_input)
-                            : resolve_san(game.live_position(), user_input)
-                    );
+                    game.play_move(resolve_move(user_input, game.live_position(), config.move_notation));
                     game.check_game_end();
                     cursor++;
                 } catch (const IllegalMoveError& e) {
@@ -151,11 +146,7 @@ std::optional<Game> play_engine(Color player_color, ConfigData& config) {
                     game.agree_draw();
                 } else {
                     try {
-                        game.play_move(
-                            config.move_notation == MoveNotation::Uci
-                                ? resolve_uci(game.live_position(), user_input)
-                                : resolve_san(game.live_position(), user_input)
-                        );
+                        game.play_move(resolve_move(user_input, game.live_position(), config.move_notation));
                         game.check_game_end();
                         cursor++;
                         game_turn = EngineGameTurn::Engine;
@@ -227,11 +218,7 @@ std::optional<Game> analyze(const Position& position, ConfigData& config, bool c
                 game.agree_draw();
             } else {
                 try {
-                    game.play_move(
-                        config.move_notation == MoveNotation::Uci
-                            ? resolve_uci(game.live_position(), user_input)
-                            : resolve_san(game.live_position(), user_input)
-                    );
+                    game.play_move(resolve_move(user_input, game.live_position(), config.move_notation));
                     game.check_game_end();
                     cursor++;
                 } catch (const IllegalMoveError& e) {

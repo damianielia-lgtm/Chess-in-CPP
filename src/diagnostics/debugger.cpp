@@ -12,7 +12,7 @@
 #include "../core/position.h"
 #include "../core/move.h"
 #include "../movegen/legal_moves.h"
-#include "../notation/uci.h"
+#include "../notation/move_notation.h"
 #include "../errors.h"
 #include "stockfish_bridge.h"
 #include "perft.h"
@@ -51,12 +51,12 @@ std::expected<std::map<std::string, uint64_t>, std::string> debug_perft(std::str
 
     for (const Move move : all_moves(position, MoveGeneration::All)) {
         UndoState move_state = position.apply_move(move);
-        divide[move.to_uci()] = perft(position, depth - 1);
+        divide[move_notation(move, position, MoveNotation::Uci)] = perft(position, depth - 1);
         position.revert_move(move, move_state);
 
         if (position != original_pos) {
             return std::unexpected(
-                "undo move bug: applying and reverting move '" + move.to_uci()
+                "undo move bug: applying and reverting move '" + move_notation(move, position, MoveNotation::Uci)
                 + "' from fen '" + fen_string + "', got '" + position.to_fen() + "'.\n"
             );
         }
@@ -117,7 +117,7 @@ std::string debugger(StockfishProcess& sf, std::string fen, int depth) {
         if (stockfish[uci_move] != nodes) {
             Position pos(fen);
             Position before_simulation = pos;
-            Move move = resolve_uci(pos, uci_move);
+            Move move = resolve_move(uci_move, pos, MoveNotation::Uci);
 
             UndoState move_state = pos.apply_move(move);
             std::string child_fen = pos.to_fen();

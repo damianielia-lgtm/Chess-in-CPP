@@ -43,8 +43,6 @@ public:
         encoding_ |= static_cast<std::uint8_t>(flags) << 12;
     }
 
-    std::string to_uci() const;
-
     Square origin() const noexcept { return Square(encoding_ & 63); }
     Square target() const noexcept { return Square((encoding_ >> 6) & 63); }
     Square en_passant_capture() const noexcept { return Square(((encoding_ >> 6) & 7) | (encoding_ & 56)); }

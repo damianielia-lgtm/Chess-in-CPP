@@ -14,8 +14,7 @@
 #include "../game/game.h"
 #include "../storage/file_manager.h"
 #include "../notation/pgn.h"
-#include "../notation/uci.h"
-#include "../notation/san.h"
+#include "../notation/move_notation.h"
 #include "../engine/evaluation.h"
 #include "../engine/search.h"
 #include "../config.h"
@@ -63,11 +62,7 @@ void execute_impl(const PositionSavedFenCommand& cmd, Session& session, ConfigDa
     session.set_pos(lines[0]);
 }
 void execute_impl(const MoveCommand& cmd, Session& session, ConfigData& config) {
-    session.apply_move(
-        config.move_notation == MoveNotation::Uci
-            ? resolve_uci(session.current_position(), cmd.move_string)
-            : resolve_san(session.current_position(), cmd.move_string)
-    );
+    session.apply_move(resolve_move(cmd.move_string, session.current_position(), config.move_notation));
 }
 
 void execute_impl(const PerftPresetCommand& cmd, Session& session, ConfigData&) {
@@ -80,22 +75,22 @@ void execute_impl(const BenchmarkPerftPresetCommand& cmd, Session& session, Conf
     print_lines(lines);
     session.store_last_report(lines);
 }
-void execute_impl(const BenchmarkEnginePresetCommand& cmd, Session& session, ConfigData&) {
-    std::vector<std::string> lines = benchmark_engine_preset(cmd.preset);
+void execute_impl(const BenchmarkEnginePresetCommand& cmd, Session& session, ConfigData& config) {
+    std::vector<std::string> lines = benchmark_engine_preset(cmd.preset, config.move_notation);
     print_lines(lines);
     session.store_last_report(lines);
 }
-void execute_impl(const PerftCommand& cmd, Session& session, ConfigData&) {
+void execute_impl(const PerftCommand& cmd, Session& session, ConfigData& config) {
     Position position = session.current_position();
-    print_lines(run_test(position, cmd.depth));
+    print_lines(run_test(position, cmd.depth, config.move_notation));
 }
 void execute_impl(const BenchmarkPerftCommand& cmd, Session& session, ConfigData&) {
     Position position = session.current_position();
     print_lines(run_benchmark(position, cmd.depth));
 }
-void execute_impl(const BenchmarkEngineCommand& cmd, Session& session, ConfigData&) {
+void execute_impl(const BenchmarkEngineCommand& cmd, Session& session, ConfigData& config) {
     Position position = session.current_position();
-    print_lines(run_benchmark_engine(position, cmd.depth));
+    print_lines(run_benchmark_engine(position, cmd.depth, config.move_notation));
 }
 void execute_impl(const DebugCommand& cmd, Session& session, ConfigData&) {
     print_lines(debug_pos(session.current_position().to_fen(), cmd.depth));
@@ -208,11 +203,7 @@ void execute_impl(const EngineBestmoveCommand&, Session& session, ConfigData& co
     print_lines(
         {
             bestmove
-                ? "Best move : " + (
-                    config.move_notation == MoveNotation::Uci
-                        ? bestmove.value().to_uci()
-                        : to_san(position, *bestmove)
-                    )
+                ? "Best move : " + move_notation(*bestmove, position, config.move_notation)
                 : "No moves available."
         }
     );
@@ -224,13 +215,8 @@ void execute_impl(const EngineRankMovesCommand&, Session& session, ConfigData& c
 
     for (const RankedMove& move : moves) {
         lines.push_back(
-            (
-                config.move_notation == MoveNotation::Uci
-                    ? move.move.to_uci()
-                    : to_san(position, move.move)
-            ) +
-            ": " +
-            std::to_string(move.eval)
+            move_notation(move.move, position, config.move_notation) +
+            ": " + std::to_string(move.eval)
         );
     }
 

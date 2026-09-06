@@ -306,7 +306,7 @@ Command parse_config(const std::vector<std::string>& tokens) {
             } else {
                 throw CommandError("Unrecognized export-clocks value.");
             }
-        } else if (set_field == "move-input") {
+        } else if (set_field == "move-notation") {
             if (set_value == "uci") {
                 return ConfigSetMoveNotationCommand{MoveNotation::Uci};
             } else if (set_value == "san") {

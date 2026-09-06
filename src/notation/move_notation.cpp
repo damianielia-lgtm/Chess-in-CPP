@@ -1,4 +1,4 @@
-#include "san.h"
+#include "move_notation.h"
 
 #include <string>
 #include <string_view>
@@ -13,7 +13,9 @@
 #include "../movegen/attacks.h"
 #include "../errors.h"
 
-std::string to_san(const Position& position, const Move move) {
+namespace {
+
+std::string to_san(Move move, const Position& position) {
     Position modifiable_copy = position;
 
     Square target = move.target();
@@ -115,13 +117,43 @@ std::string to_san(const Position& position, const Move move) {
     return san;
 }
 
-Move resolve_san(const Position& position, const std::string_view san) {
+std::string to_uci(Move move) {
+    std::string uci;
+
+    uci += move.origin().uci_file();
+    uci += move.origin().uci_rank();
+    uci += move.target().uci_file();
+    uci += move.target().uci_rank();
+
+    if (move.is_promotion()) {
+        uci += Piece(Color::Black, move.promotion_type()).symbol();
+    }
+    
+    return uci;
+}
+
+}
+
+std::string move_notation(Move move, const Position& position, MoveNotation notation) {
+    return (
+        notation == MoveNotation::Uci
+            ? to_uci(move)
+            : to_san(move, position)
+    );
+}
+
+Move resolve_move(std::string_view move, const Position& position, MoveNotation notation) {
     Position modifiable_copy = position;
-    for (const Move move : all_moves(modifiable_copy, MoveGeneration::All)) {
-        if (to_san(position, move) == san) {
-            return move;
+
+    for (const Move encoded_move : all_moves(modifiable_copy, MoveGeneration::All)) {
+        if (
+            notation == MoveNotation::Uci
+                ? to_uci(encoded_move) == move
+                : to_san(encoded_move, position) == move
+        ) {
+            return encoded_move;
         }
     }
 
-    throw IllegalMoveError(std::string(san) + " is not a legal move on the current position.");
+    throw IllegalMoveError(std::string(move) + " is not a legal move on the current position.");
 }
