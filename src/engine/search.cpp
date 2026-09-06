@@ -84,7 +84,7 @@ std::vector<RankedMove> rank_moves(Position& position, std::uint8_t depth) {
     MovesList& legal_moves = move_lists[0];
     generate_all_moves(legal_moves, position, MoveGeneration::All);
 
-    std::uint64_t nodes;
+    std::uint64_t nodes = 0;
     std::vector<RankedMove> ranked_moves;
     ranked_moves.reserve(legal_moves.size());
 
@@ -93,13 +93,17 @@ std::vector<RankedMove> rank_moves(Position& position, std::uint8_t depth) {
         std::int16_t score = minimax_impl(position, depth - 1, 1, move_lists, -INF, INF, nodes);
         position.revert_move(move, move_state);
 
-        ranked_moves.push_back({move, score});
+        ranked_moves.push_back({0, move, score});
     }
 
     bool maximizing = position.turn() == Color::White;
     std::sort(ranked_moves.begin(), ranked_moves.end(), [maximizing](const RankedMove& a, const RankedMove& b) {
         return maximizing ? a.eval > b.eval : a.eval < b.eval;
     });
+
+    for (std::size_t i = 0; i < ranked_moves.size(); ++i) {
+        ranked_moves[i].rank = static_cast<std::uint8_t>(i + 1);
+    }
 
     return ranked_moves;
 }

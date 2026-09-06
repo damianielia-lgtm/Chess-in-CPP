@@ -17,5 +17,9 @@ struct SearchResult {
 };
 SearchResult pick_best_move(Position& position, std::uint8_t depth);
 
-struct RankedMove { Move move; std::int16_t eval; };
+struct RankedMove {
+    std::uint8_t rank;
+    Move move;
+    std::int16_t eval;
+};
 std::vector<RankedMove> rank_moves(Position& position, std::uint8_t depth);

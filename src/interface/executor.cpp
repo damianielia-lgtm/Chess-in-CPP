@@ -215,6 +215,7 @@ void execute_impl(const EngineRankMovesCommand&, Session& session, ConfigData& c
 
     for (const RankedMove& move : moves) {
         lines.push_back(
+            std::to_string(move.rank) + ". " +
             move_notation(move.move, position, config.move_notation) +
             ": " + std::to_string(move.eval)
         );
