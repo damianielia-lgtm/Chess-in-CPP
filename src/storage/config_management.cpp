@@ -24,7 +24,8 @@ std::vector<std::string> construct_config_save_lines(const ConfigData& config) {
         "export_clocks=" + (config.pgn_save_clock ? std::string("true") : std::string("false")),
         "move_notation=" + (config.move_notation == MoveNotation::Uci ? std::string("uci") : std::string("san")),
         "board_orientation=" + (config.board_orientation == BoardOrientation::White ? std::string("white") : std::string("black")),
-        "engine_depth=" + std::to_string(config.engine_depth)
+        "engine_depth=" + std::to_string(config.engine_depth),
+        "benchmark_track_stats=" + (config.track_stats ? std::string("true") : std::string("false"))
     };
 }
 
@@ -65,6 +66,7 @@ ConfigData load_saved_config() {
     bool found_move_notation = false;
     bool found_board_orientation = false;
     bool found_engine_depth = false;
+    bool found_benchmark_track_stats = false;
 
     for (const std::string& line : read_file(config_dir)) {
         if (line.empty()) { continue; }
@@ -160,6 +162,19 @@ ConfigData load_saved_config() {
                 if (depth > 16) { throw ConfigError("Invalid engine depth."); }
 
                 data.engine_depth = depth;
+            }
+        } else if (field == "benchmark_track_stats") {
+            if (found_benchmark_track_stats) {
+                throw ConfigError("Repeated benchmark_track_stats configuration.");
+            } else {
+                found_benchmark_track_stats = true;
+                if (value == "true") {
+                    data.track_stats = true;
+                } else if (value == "false") {
+                    data.track_stats = false;
+                } else {
+                    throw ConfigError("Unrecognized benchmark_track_stats config value.");
+                }
             }
         } else {
             throw ConfigError("Unrecognized configuration field.");

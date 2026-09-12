@@ -231,6 +231,7 @@ std::vector<std::string> construct_config_show_lines(const ConfigData& config) {
         "Export clocks          " + (config.pgn_save_clock ? std::string("true") : std::string("false")),
         "Move input type        " + (config.move_notation == MoveNotation::Uci ? std::string("uci") : std::string("san")),
         "Board orientation      " + (config.board_orientation == BoardOrientation::White ? std::string("white") : std::string("black")),
-        "Engine depth           " + std::to_string(config.engine_depth)
+        "Engine depth           " + std::to_string(config.engine_depth),
+        "Track stats            " + (config.track_stats ? std::string("true") : std::string("false"))
     };
 }

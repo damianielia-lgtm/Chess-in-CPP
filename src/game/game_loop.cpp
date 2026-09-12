@@ -134,7 +134,7 @@ std::optional<Game> play_engine(Color player_color, ConfigData& config) {
 
         if (game.live_position().turn() != player_color) {
             Position current_position = game.live_position();
-            game.play_move(*pick_best_move(current_position, config.engine_depth).best_move);
+            game.play_move(*pick_best_move<false>(current_position, config.engine_depth).best_move);
 
             game.check_game_end();
             if (game.has_ended()) { break; }

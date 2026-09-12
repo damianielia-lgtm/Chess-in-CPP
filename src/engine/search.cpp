@@ -10,11 +10,15 @@
 #include "../core/move.h"
 #include "../movegen/legal_moves.h"
 #include "../movegen/attacks.h"
+#include "../diagnostics/search_observers.h"
 #include "evaluation.h"
+
+namespace {
 
 constexpr std::int16_t INF = 32767;
 constexpr std::int16_t MATE = 32766;
 
+template <typename Observer>
 std::int16_t minimax_impl(
     Position& position,
     std::uint8_t depth,
@@ -22,13 +26,12 @@ std::int16_t minimax_impl(
     MoveListStack& move_lists,
     std::int16_t alpha,
     std::int16_t beta,
-    std::uint64_t& nodes,
-    std::uint64_t& leaf_nodes
+    Observer& observer
 ) {
-    ++nodes;
+    observer.on_node();
 
     if (depth == 0) {
-        ++leaf_nodes;
+        observer.on_leaf();
         return static_eval(position);
     }
 
@@ -38,7 +41,7 @@ std::int16_t minimax_impl(
     bool maximizing = position.turn() == Color::White;
 
     if (legal_moves.empty()) {
-        ++leaf_nodes;
+        observer.on_leaf();
         return (
             maximizing
                 ? is_attacked_square(position, position.king_square(Color::White), Color::Black)
@@ -54,7 +57,7 @@ std::int16_t minimax_impl(
 
     for (const Move move : legal_moves) {
         UndoState move_state = position.apply_move(move);
-        std::int16_t score = minimax_impl(position, depth - 1, ply + 1, move_lists, alpha, beta, nodes, leaf_nodes);
+        std::int16_t score = minimax_impl(position, depth - 1, ply + 1, move_lists, alpha, beta, observer);
         position.revert_move(move, move_state);
 
         if (maximizing) {
@@ -73,11 +76,13 @@ std::int16_t minimax_impl(
     return best_eval;
 }
 
+}
+
 std::int16_t minimax(Position& position, std::uint8_t depth) {
     MoveListStack move_lists;
-    std::uint64_t nodes;
-    std::uint64_t leaf_nodes;
-    std::int16_t eval = minimax_impl(position, depth, 0, move_lists, -INF, INF, nodes, leaf_nodes);
+    NullObserver observer;
+    std::int16_t eval =
+        minimax_impl(position, depth, 0, move_lists, -INF, INF, observer);
     return normalize_centipawn(eval);
 }
 
@@ -88,14 +93,14 @@ std::vector<RankedMove> rank_moves(Position& position, std::uint8_t depth) {
     MovesList& legal_moves = move_lists[0];
     generate_all_moves(legal_moves, position, MoveGeneration::All);
 
-    std::uint64_t nodes = 0;
-    std::uint64_t leaf_nodes = 0;
+    NullObserver observer;
     std::vector<RankedMove> ranked_moves;
     ranked_moves.reserve(legal_moves.size());
 
     for (const Move move : legal_moves) {
         UndoState move_state = position.apply_move(move);
-        std::int16_t score = minimax_impl(position, depth - 1, 1, move_lists, -INF, INF, nodes, leaf_nodes);
+        std::int16_t score =
+            minimax_impl(position, depth - 1, 1, move_lists, -INF, INF, observer);
         position.revert_move(move, move_state);
 
         ranked_moves.push_back({0, move, score});
@@ -113,6 +118,7 @@ std::vector<RankedMove> rank_moves(Position& position, std::uint8_t depth) {
     return ranked_moves;
 }
 
+template <bool track_stats>
 SearchResult pick_best_move(Position& position, std::uint8_t depth) {
     assert(depth > 0);
 
@@ -127,7 +133,14 @@ SearchResult pick_best_move(Position& position, std::uint8_t depth) {
 
     std::int16_t alpha = -INF;
     std::int16_t beta = INF;
-    std::uint64_t leaf_nodes = 0;
+
+    auto observer = [&search_result] {
+        if constexpr (track_stats) {
+            return BaisicStatsObserver{search_result.stats};
+        } else {
+            return NullObserver{};
+        }
+    }();
 
     for (const Move move : legal_moves) {
         UndoState move_state = position.apply_move(move);
@@ -139,8 +152,7 @@ SearchResult pick_best_move(Position& position, std::uint8_t depth) {
             move_lists,
             alpha,
             beta,
-            search_result.stats.nodes,
-            search_result.stats.leaf_nodes
+            observer
         );
 
         position.revert_move(move, move_state);
@@ -162,3 +174,6 @@ SearchResult pick_best_move(Position& position, std::uint8_t depth) {
 
     return search_result;
 }
+
+template SearchResult pick_best_move<true>(Position& position, std::uint8_t depth);
+template SearchResult pick_best_move<false>(Position& position, std::uint8_t depth);

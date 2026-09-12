@@ -13,11 +13,14 @@ struct SearchStats {
     std::uint64_t nodes = 0;
     std::uint64_t leaf_nodes = 0;
 };
+
 struct SearchResult {
     std::optional<Move> best_move;
     std::int16_t eval;
-    SearchStats stats;
+    SearchStats stats{};
 };
+
+template <bool track_stats>
 SearchResult pick_best_move(Position& position, std::uint8_t depth);
 
 struct RankedMove {
@@ -25,4 +28,5 @@ struct RankedMove {
     Move move;
     std::int16_t eval;
 };
+
 std::vector<RankedMove> rank_moves(Position& position, std::uint8_t depth);

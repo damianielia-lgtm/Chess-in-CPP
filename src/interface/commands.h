@@ -59,6 +59,7 @@ struct ConfigSetExportClocksCommand { bool export_clocks; };
 struct ConfigSetMoveNotationCommand { MoveNotation input; };
 struct ConfigSetBoardOrientationCommand { BoardOrientation orientation; };
 struct ConfigSetEngineDepthCommand { int depth; };
+struct ConfigSetBenchmarkStatsTrackingCommand { bool track_stats; };
 
 struct EngineStaticCommand {};
 struct EngineDynamicCommand {};
@@ -115,6 +116,7 @@ using Command = std::variant<
     ConfigSetMoveNotationCommand,
     ConfigSetBoardOrientationCommand,
     ConfigSetEngineDepthCommand,
+    ConfigSetBenchmarkStatsTrackingCommand,
 
     EngineStaticCommand,
     EngineDynamicCommand,

@@ -19,4 +19,6 @@ struct ConfigData {
     BoardOrientation board_orientation = BoardOrientation::White;
 
     std::uint8_t engine_depth = 5;
+
+    bool track_stats = true;
 };
