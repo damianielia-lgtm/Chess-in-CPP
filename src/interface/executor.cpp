@@ -76,7 +76,7 @@ void execute_impl(const BenchmarkPerftPresetCommand& cmd, Session& session, Conf
     session.store_last_report(lines);
 }
 void execute_impl(const BenchmarkEnginePresetCommand& cmd, Session& session, ConfigData& config) {
-    std::vector<std::string> lines = benchmark_engine_preset(cmd.preset, config.move_notation);
+    std::vector<std::string> lines = benchmark_engine_preset(cmd.preset, config);
     print_lines(lines);
     session.store_last_report(lines);
 }
@@ -90,7 +90,7 @@ void execute_impl(const BenchmarkPerftCommand& cmd, Session& session, ConfigData
 }
 void execute_impl(const BenchmarkEngineCommand& cmd, Session& session, ConfigData& config) {
     Position position = session.current_position();
-    print_lines(run_benchmark_engine(position, cmd.depth, config.move_notation));
+    print_lines(run_benchmark_engine(position, cmd.depth, config));
 }
 void execute_impl(const DebugCommand& cmd, Session& session, ConfigData&) {
     print_lines(debug_pos(session.current_position().to_fen(), cmd.depth));
@@ -189,6 +189,7 @@ void execute_impl(const ConfigSetExportClocksCommand& cmd, Session&, ConfigData&
 void execute_impl(const ConfigSetMoveNotationCommand& cmd, Session&, ConfigData& config) { config.move_notation = cmd.input; }
 void execute_impl(const ConfigSetBoardOrientationCommand& cmd, Session&, ConfigData& config) { config.board_orientation = cmd.orientation; }
 void execute_impl(const ConfigSetEngineDepthCommand& cmd, Session&, ConfigData& config) { config.engine_depth = cmd.depth; }
+void execute_impl(const ConfigSetBenchmarkStatsTrackingCommand& cmd, Session&, ConfigData& config) { config.track_stats = cmd.track_stats; }
 
 void execute_impl(const EngineStaticCommand&, Session& session, ConfigData&) {
     print_lines({"Static eval : " + std::to_string(static_eval(session.current_position()))});
@@ -199,7 +200,7 @@ void execute_impl(const EngineDynamicCommand&, Session& session, ConfigData& con
 }
 void execute_impl(const EngineBestmoveCommand&, Session& session, ConfigData& config) {
     Position position = session.current_position();
-    std::optional<Move> bestmove = pick_best_move(position, config.engine_depth).best_move;
+    std::optional<Move> bestmove = pick_best_move<false>(position, config.engine_depth).best_move;
     print_lines(
         {
             bestmove

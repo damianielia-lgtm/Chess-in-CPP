@@ -17,30 +17,36 @@ using namespace std::chrono;
 std::chrono::milliseconds estimate_time(std::uint64_t total_nodes) {
     Position test_pos("startpos");
     auto start = steady_clock::now();
-    pick_best_move(test_pos, 5);
+    pick_best_move<false>(test_pos, 5);
     auto end = steady_clock::now();
     return duration_cast<milliseconds>((end - start) * total_nodes / 4865609);
 }
 
-std::vector<std::string> run_benchmark_engine(Position position, std::uint8_t depth, MoveNotation notation) {
+std::vector<std::string> run_benchmark_engine(Position position, std::uint8_t depth, const ConfigData& config) {
     auto start = steady_clock::now();
-    SearchResult search_result = pick_best_move(position, depth);
+    SearchResult search_result = config.track_stats
+        ? pick_best_move<true>(position, depth)
+        : pick_best_move<false>(position, depth);
     auto end = steady_clock::now();    
     duration<double> dur = end - start; 
-    double speed = std::round(search_result.stats.nodes / dur.count() * 100.0) / 100.0;
 
     if (!search_result.best_move) { return {"No legal moves."}; }
 
     std::vector<std::string> lines;
-    lines.push_back("Best move: " + move_notation(*search_result.best_move, position, notation));
+    lines.push_back("Best move: " + move_notation(*search_result.best_move, position, config.move_notation));
     lines.push_back("Evaluation: " + std::to_string(search_result.eval) + " cp");
-    lines.push_back("Nodes searched: " + std::to_string(search_result.stats.nodes));
     lines.push_back("Time: " + std::format("{:.2f}", dur.count()) + " s");
-    lines.push_back("Raw Minimax speed: " + std::format("{}", speed) + " nodes/s");
+
+    if (config.track_stats) {
+        lines.push_back("Nodes searched: " + std::to_string(search_result.stats.nodes));
+        double speed = std::round(search_result.stats.nodes / dur.count() * 100.0) / 100.0;
+        lines.push_back("Raw Minimax speed: " + std::format("{}", speed) + " nodes/s");
+    }
+
     return lines;
 }
 
-std::vector<std::string> benchmark_engine_preset(Preset preset, MoveNotation notation) {
+std::vector<std::string> benchmark_engine_preset(Preset preset, const ConfigData& config) {
     PresetInfo test_info;
     test_info = make_preset(preset);
 
@@ -49,14 +55,16 @@ std::vector<std::string> benchmark_engine_preset(Preset preset, MoveNotation not
     std::vector<std::string> lines;
     lines.push_back("----- Engine Benchmark -- Preset " + preset_name(preset) + " -----");
     lines.push_back("");
+
     double total_dur = 0.0;
     std::uint64_t total_nodes = 0;
     std::uint64_t total_leaf_nodes = 0;
+
     for (ExpectedPerft test_state : test_info.positions) {
         lines.push_back("");
         lines.push_back("--- Running " + test_state.id + " - Fen: '" + test_state.fen + "' ---");
         lines.push_back("");
-        Position pos(test_state.fen);
+        Position position(test_state.fen);
         
         for (const auto [depth, expected] : test_state.depths) {
             if (expected <= 5000) {
@@ -66,20 +74,28 @@ std::vector<std::string> benchmark_engine_preset(Preset preset, MoveNotation not
             }
 
             auto start = steady_clock::now();
-            SearchResult search_result = pick_best_move(pos, depth);
+            SearchResult search_result = config.track_stats
+                ? pick_best_move<true>(position, depth)
+                : pick_best_move<false>(position, depth);
             auto end = steady_clock::now();
             duration<double> dur = end - start; 
-            double speed = std::round(search_result.stats.nodes / dur.count() * 100.0) / 100.0;
 
             if (!search_result.best_move) { continue; }
 
             std::string line;
+
             line += "Depth " + std::to_string(depth) + ": ";
-            line += move_notation(*search_result.best_move, pos, notation) + " | ";
+            line += move_notation(*search_result.best_move, position, config.move_notation) + " | ";
             line += std::to_string(search_result.eval) + " cp | ";
-            line += std::to_string(search_result.stats.nodes) + " nodes | ";
-            line += std::format("{:.2f}", dur.count()) + "s | ";
-            line += std::format("{}", speed) + " nodes/sec";
+            line += std::format("{:.2f}", dur.count()) + "s";
+
+            if (config.track_stats) {
+                line += " | ";
+                line += std::to_string(search_result.stats.nodes) + " nodes | ";
+                double speed = std::round(search_result.stats.nodes / dur.count() * 100.0) / 100.0;
+                line += std::format("{}", speed) + " nodes/sec";
+            }
+
             lines.push_back(line);
 
             total_dur += dur.count();
@@ -92,16 +108,19 @@ std::vector<std::string> benchmark_engine_preset(Preset preset, MoveNotation not
 
     lines.push_back("");
     lines.push_back("Total:");
+
     lines.push_back("Time: " + std::format("{:.2f}", total_dur) + 's');
     lines.push_back("Full tree node count: " + std::to_string(test_info.total_nodes));
-    lines.push_back("Searched: " + std::to_string(total_nodes) + " nodes");
-    lines.push_back("Raw Minimax Speed: " + std::format("{:.2f}", total_nodes / total_dur) + " nodes/s");
-    lines.push_back(
-        "Pruning ratio: " + std::format(
-            "{:.2f}", 100.0 - (static_cast<double>(total_leaf_nodes) / test_info.total_nodes * 100.0)
-        ) + " %"
-    );
     lines.push_back("Perft-equivalent pruned Speed: " + std::format("{:.2f}", test_info.total_nodes / total_dur) + " nodes/s");
+    if (config.track_stats) {
+        lines.push_back("Searched: " + std::to_string(total_nodes) + " nodes");
+        lines.push_back("Raw Minimax Speed: " + std::format("{:.2f}", total_nodes / total_dur) + " nodes/s");
+        lines.push_back(
+            "Pruning ratio: " + std::format(
+                "{:.2f}", 100.0 - (static_cast<double>(total_leaf_nodes) / test_info.total_nodes * 100.0)
+            ) + " %"
+        );
+    }
 
     return lines;
 }

@@ -324,6 +324,14 @@ Command parse_config(const std::vector<std::string>& tokens) {
             }
         } else if (set_field == "engine-depth") {
             return ConfigSetEngineDepthCommand{static_cast<std::uint8_t>(parse_depth(set_value))};
+        } else if (set_field == "track-stats") {
+            if (set_value == "true") {
+                return ConfigSetBenchmarkStatsTrackingCommand{true};
+            } else if (set_value == "false") {
+                return ConfigSetBenchmarkStatsTrackingCommand{false};
+            } else {
+                throw CommandError("Unrecognized track-stats value.");
+            }
         } else {
             throw CommandError("Unrecognized set field.");
         }
