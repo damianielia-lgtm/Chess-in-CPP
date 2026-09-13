@@ -1,4 +1,4 @@
-#include "perft.h"
+#include "diagnostics.h"
 
 #include <string>
 #include <map>
@@ -12,7 +12,6 @@
 #include "../movegen/legal_moves.h"
 #include "../core/position.h"
 #include "../core/move.h"
-#include "../core/move_list.h"
 #include "../interface/display.h"
 #include "../storage/presets.h"
 #include "../notation/move_notation.h"
@@ -108,7 +107,7 @@ std::vector<std::string> run_test_preset(Preset preset) {
     PresetInfo test_info;
     test_info = make_preset(preset);
 
-    PerftProgress progress(test_info.total_nodes, estimate_time(test_info.total_nodes));
+    ProgressDisplay progress(test_info.total_nodes, estimate_time(test_info.total_nodes));
 
     std::vector<std::string> lines;
     lines.push_back("----- Perft Test -- Preset " + preset_name(preset) + " -----");
@@ -142,7 +141,7 @@ std::vector<std::string> run_benchmark_preset(Preset preset) {
     PresetInfo test_info;
     test_info = make_preset(preset);
 
-    PerftProgress progress(test_info.total_nodes, estimate_time(test_info.total_nodes));
+    ProgressDisplay progress(test_info.total_nodes, estimate_time(test_info.total_nodes));
 
     std::vector<std::string> lines;
     lines.push_back("----- Perft Benchmark -- Preset " + preset_name(preset) + " -----");

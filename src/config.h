@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <string>
 #include <cstdint>
 
@@ -22,3 +23,8 @@ struct ConfigData {
 
     bool track_stats = true;
 };
+
+std::vector<std::string> construct_config_show_lines(const ConfigData& config);
+void initialize_config();
+void update_saved_config(const ConfigData& config);
+ConfigData load_saved_config();

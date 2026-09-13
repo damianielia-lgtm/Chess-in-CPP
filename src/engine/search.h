@@ -9,24 +9,30 @@
 
 std::int16_t minimax(Position& position, std::uint8_t depth);
 
-struct SearchStats {
+struct SearchedMove {
+    std::optional<Move> move;
+    std::int16_t eval;
+};
+
+struct NullObserver {
+    static constexpr bool track_stats = false;
+
+    void on_node() noexcept {}
+    void on_leaf() noexcept {}
+};
+
+struct BasicStatsObserver {
+    static constexpr bool track_stats = true;
+
     std::uint64_t nodes = 0;
     std::uint64_t leaf_nodes = 0;
+
+    void on_node() noexcept { nodes++; }
+    void on_leaf() noexcept { leaf_nodes++; }
 };
 
-struct SearchResult {
-    std::optional<Move> best_move;
-    std::int16_t eval;
-    SearchStats stats{};
-};
+template <typename Observer>
+SearchedMove pick_best_move(Position& position, std::uint8_t depth, Observer& observer);
 
-template <bool track_stats>
-SearchResult pick_best_move(Position& position, std::uint8_t depth);
-
-struct RankedMove {
-    std::uint8_t rank;
-    Move move;
-    std::int16_t eval;
-};
-
-std::vector<RankedMove> rank_moves(Position& position, std::uint8_t depth);
+SearchedMove pick_best_move(Position& position, std::uint8_t depth);
+std::vector<SearchedMove> rank_moves(Position& position, std::uint8_t depth);

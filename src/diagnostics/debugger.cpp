@@ -1,4 +1,4 @@
-#include "debugger.h"
+#include "diagnostics.h"
 
 #include <vector>
 #include <string>
@@ -15,7 +15,6 @@
 #include "../notation/move_notation.h"
 #include "../errors.h"
 #include "stockfish_bridge.h"
-#include "perft.h"
 
 namespace {
 

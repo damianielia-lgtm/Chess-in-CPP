@@ -11,49 +11,28 @@
 #include "../core/position.h"
 #include "../game/game.h"
 #include "../config.h"
-#include "output_construction.h"
 
-class PerftProgress {
+void print_lines(const std::vector<std::string>& lines);
+
+std::vector<std::string> help_lines();
+
+std::vector<std::string> construct_board_lines(
+    const Position& position,
+    BoardOrientation board_orientation,
+    std::optional<Move> move = std::nullopt
+);
+
+class ProgressDisplay {
 public:
-    PerftProgress(std::uint64_t total_nodes, std::chrono::milliseconds expected_duration)
-        : total_nodes_(total_nodes)
-    {
-        make_header(expected_duration);
-        std::cerr << header_ << '\n';
-        print(0);
-    }
+    ProgressDisplay(std::uint64_t total_nodes, std::chrono::milliseconds expected_duration);
+    ~ProgressDisplay();
 
-    ~PerftProgress() {
-        std::string clear_bar(35, ' ');
-        std::string clear_header(header_.length(), ' ');
-        std::cerr << "\r" << clear_bar;
-        std::cerr << "\033[A\r" << clear_header << "\r" << std::flush;
-    }
-
-    void advance(std::uint64_t nodes) {
-        completed_nodes_ += nodes;
-        print(completed_nodes_);
-    }
+    void advance(std::uint64_t nodes);
 
 private:
-    void print(std::uint64_t completed) {
-        int percentage = static_cast<int>(completed * 100 / total_nodes_);
-        int bar_len = percentage / 5;
+    void print(std::uint64_t completed);
 
-        std::cerr << "\r[";
-        for (int i = 0; i < 20; i++) {
-            if (i < bar_len) { std::cerr << "="; }
-            else if (i == bar_len) { std::cerr << ">"; }
-            else { std::cerr << " "; }
-        }
-        std::cerr << "] " << percentage << "%" << std::flush;
-    }
-
-    void make_header(std::chrono::milliseconds duration) {
-        header_ =
-            "Calculating " + std::to_string(total_nodes_)
-            + " nodes, expected duration " + format_time(duration);
-    }
+    void make_header(std::chrono::milliseconds duration);
 
     std::uint64_t total_nodes_;
     std::uint64_t completed_nodes_ = 0;
@@ -68,30 +47,7 @@ public:
         result_(std::nullopt),
         metatdata_(std::move(metadata)) {}
 
-    void update(const GameSnapshot& game, BoardOrientation board_orientation) {
-        for (int i = 0; i < rendered_line_count_; i++) { // Clear line by line, going up
-            std::cout << "\r"; // Go to the start of line
-            std::cout << "\033[2K"; // Clear line
-            std::cout << "\033[A"; // Go up one line
-        }
-
-        std::vector<std::string> lines = construct_game_lines(
-            game,
-            error_message_,
-            result_,
-            metatdata_,
-            board_orientation
-        );
-        rendered_line_count_ = lines.size();
-
-        std::string prompt_line = lines.back();
-        lines.pop_back();
-        for (const std::string& line : lines) {
-            std::cout << line << '\n';
-        }
-
-        std::cout << prompt_line;
-    }
+    void update(const GameSnapshot& game, BoardOrientation board_orientation);
 
     void set_error(std::string message) { error_message_ = message; }
     void clear_error() { error_message_ = std::nullopt; }
@@ -99,15 +55,7 @@ public:
     void set_result(GameResult result) { result_ = result; }
     void clear_result() { result_ = std::nullopt; }
 
-    void clear_rendered_area() {
-        for (int i = 0; i < rendered_line_count_; i++) {
-            std::cout << "\r";
-            std::cout << "\033[2K";
-            std::cout << "\033[A";
-        }
-
-        rendered_line_count_ = 0;
-    }
+    void clear_rendered_area();
 
 private:
     std::size_t rendered_line_count_ = 0;
@@ -115,7 +63,3 @@ private:
     std::optional<GameResult> result_;
     GameMetadata metatdata_;
 };
-
-void print_help();
-
-void print_lines(const std::vector<std::string>& lines);

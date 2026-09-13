@@ -1,9 +1,10 @@
-#include "engine_benchmarking.h"
+#include "diagnostics.h"
 
 #include <vector>
 #include <string>
 #include <cstdint>
 #include <chrono>
+#include <cmath>
 
 #include "../core/position.h"
 #include "../engine/search.h"
@@ -12,45 +13,58 @@
 #include "../notation/move_notation.h"
 #include "../config.h"
 
+namespace {
+
 using namespace std::chrono;
 
 std::chrono::milliseconds estimate_time(std::uint64_t total_nodes) {
     Position test_pos("startpos");
+
     auto start = steady_clock::now();
-    pick_best_move<false>(test_pos, 5);
+    pick_best_move(test_pos, 5);
     auto end = steady_clock::now();
+
     return duration_cast<milliseconds>((end - start) * total_nodes / 4865609);
 }
 
-std::vector<std::string> run_benchmark_engine(Position position, std::uint8_t depth, const ConfigData& config) {
+template <typename Observer>
+std::vector<std::string> run_benchmark_engine_impl(
+    Position position,
+    std::uint8_t depth,
+    const ConfigData& config
+) {
+    Observer observer{};
+
     auto start = steady_clock::now();
-    SearchResult search_result = config.track_stats
-        ? pick_best_move<true>(position, depth)
-        : pick_best_move<false>(position, depth);
+    SearchedMove search_result = pick_best_move(position, depth, observer);
     auto end = steady_clock::now();    
     duration<double> dur = end - start; 
 
-    if (!search_result.best_move) { return {"No legal moves."}; }
+    if (!search_result.move) {
+        return std::vector<std::string>{"No legal moves."};
+    }
 
     std::vector<std::string> lines;
-    lines.push_back("Best move: " + move_notation(*search_result.best_move, position, config.move_notation));
+
+    lines.push_back("Best move: " + move_notation(*search_result.move, position, config.move_notation));
     lines.push_back("Evaluation: " + std::to_string(search_result.eval) + " cp");
     lines.push_back("Time: " + std::format("{:.2f}", dur.count()) + " s");
 
-    if (config.track_stats) {
-        lines.push_back("Nodes searched: " + std::to_string(search_result.stats.nodes));
-        double speed = std::round(search_result.stats.nodes / dur.count() * 100.0) / 100.0;
+    if constexpr (Observer::track_stats) {
+        lines.push_back("Nodes searched: " + std::to_string(observer.nodes));
+        double speed = std::round(observer.nodes / dur.count() * 100.0) / 100.0;
         lines.push_back("Raw Minimax speed: " + std::format("{}", speed) + " nodes/s");
     }
 
     return lines;
 }
 
-std::vector<std::string> benchmark_engine_preset(Preset preset, const ConfigData& config) {
+template <typename Observer>
+std::vector<std::string> benchmark_engine_preset_impl(Preset preset, const ConfigData& config) {
     PresetInfo test_info;
     test_info = make_preset(preset);
 
-    PerftProgress progress(test_info.total_nodes, estimate_time(test_info.total_nodes));
+    ProgressDisplay progress(test_info.total_nodes, estimate_time(test_info.total_nodes));
 
     std::vector<std::string> lines;
     lines.push_back("----- Engine Benchmark -- Preset " + preset_name(preset) + " -----");
@@ -73,34 +87,39 @@ std::vector<std::string> benchmark_engine_preset(Preset preset, const ConfigData
                 continue;
             }
 
+            Observer observer{};
+
             auto start = steady_clock::now();
-            SearchResult search_result = config.track_stats
-                ? pick_best_move<true>(position, depth)
-                : pick_best_move<false>(position, depth);
+            SearchedMove search_result = pick_best_move(position, depth, observer);
             auto end = steady_clock::now();
             duration<double> dur = end - start; 
 
-            if (!search_result.best_move) { continue; }
+            if (!search_result.move) {
+                progress.advance(expected);
+                continue;
+            }
 
             std::string line;
 
             line += "Depth " + std::to_string(depth) + ": ";
-            line += move_notation(*search_result.best_move, position, config.move_notation) + " | ";
+            line += move_notation(*search_result.move, position, config.move_notation) + " | ";
             line += std::to_string(search_result.eval) + " cp | ";
             line += std::format("{:.2f}", dur.count()) + "s";
 
-            if (config.track_stats) {
+            if constexpr (Observer::track_stats) {
                 line += " | ";
-                line += std::to_string(search_result.stats.nodes) + " nodes | ";
-                double speed = std::round(search_result.stats.nodes / dur.count() * 100.0) / 100.0;
+                line += std::to_string(observer.nodes) + " nodes | ";
+
+                double speed = std::round(observer.nodes / dur.count() * 100.0) / 100.0;
                 line += std::format("{}", speed) + " nodes/sec";
+
+                total_nodes += observer.nodes;
+                total_leaf_nodes += observer.leaf_nodes;
             }
 
             lines.push_back(line);
 
             total_dur += dur.count();
-            total_nodes += search_result.stats.nodes;
-            total_leaf_nodes += search_result.stats.leaf_nodes;
 
             progress.advance(expected);
         }
@@ -112,7 +131,8 @@ std::vector<std::string> benchmark_engine_preset(Preset preset, const ConfigData
     lines.push_back("Time: " + std::format("{:.2f}", total_dur) + 's');
     lines.push_back("Full tree node count: " + std::to_string(test_info.total_nodes));
     lines.push_back("Perft-equivalent pruned Speed: " + std::format("{:.2f}", test_info.total_nodes / total_dur) + " nodes/s");
-    if (config.track_stats) {
+
+    if constexpr (Observer::track_stats) {
         lines.push_back("Searched: " + std::to_string(total_nodes) + " nodes");
         lines.push_back("Raw Minimax Speed: " + std::format("{:.2f}", total_nodes / total_dur) + " nodes/s");
         lines.push_back(
@@ -123,4 +143,22 @@ std::vector<std::string> benchmark_engine_preset(Preset preset, const ConfigData
     }
 
     return lines;
+}
+
+};
+
+std::vector<std::string> run_benchmark_engine(
+    Position position,
+    std::uint8_t depth,
+    const ConfigData& config
+) {
+    return config.track_stats
+        ? run_benchmark_engine_impl<BasicStatsObserver>(position, depth, config)
+        : run_benchmark_engine_impl<NullObserver>(position, depth, config);
+}
+
+std::vector<std::string> benchmark_engine_preset(Preset preset, const ConfigData& config) {
+    return config.track_stats
+        ? benchmark_engine_preset_impl<BasicStatsObserver>(preset, config)
+        : benchmark_engine_preset_impl<NullObserver>(preset, config);
 }

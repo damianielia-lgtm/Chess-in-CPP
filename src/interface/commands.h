@@ -61,8 +61,8 @@ struct ConfigSetBoardOrientationCommand { BoardOrientation orientation; };
 struct ConfigSetEngineDepthCommand { int depth; };
 struct ConfigSetBenchmarkStatsTrackingCommand { bool track_stats; };
 
-struct EngineStaticCommand {};
-struct EngineDynamicCommand {};
+struct EngineStaticEvalCommand {};
+struct EngineDynamicEvalCommand {};
 struct EngineBestmoveCommand {};
 struct EngineRankMovesCommand {};
 
@@ -118,8 +118,8 @@ using Command = std::variant<
     ConfigSetEngineDepthCommand,
     ConfigSetBenchmarkStatsTrackingCommand,
 
-    EngineStaticCommand,
-    EngineDynamicCommand,
+    EngineStaticEvalCommand,
+    EngineDynamicEvalCommand,
     EngineBestmoveCommand,
     EngineRankMovesCommand
 >;

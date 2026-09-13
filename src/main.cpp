@@ -4,11 +4,9 @@
 #include <thread>
 #include <chrono>
 
-#include "interface/cli_parser.h"
-#include "interface/executor.h"
+#include "interface/handle_cli.h"
 #include "interface/session.h"
 #include "storage/file_manager.h"
-#include "storage/config_management.h"
 #include "config.h"
 #include "errors.h"
 
@@ -42,7 +40,7 @@ int main() {
     }
 
     while (true) {
-        std::cout << "chess> ";
+        std::cout << "\033[32mchess> \033[0m";
         std::string line;
         
         if (!std::getline(std::cin, line)) { break; }

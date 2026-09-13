@@ -10,7 +10,6 @@
 #include "../core/move.h"
 #include "../core/piece.h"
 #include "../core/position.h"
-#include "../interface/output_construction.h"
 #include "../config.h"
 #include "move_notation.h"
 
@@ -112,7 +111,14 @@ std::vector<std::string> construct_pgn_lines(const Game& game, bool save_clock_i
 
         if (game.is_timed_game() && save_clock_info) {
             milliseconds clock = game.all_snapshots()[index].clock(position.turn());
-            moves_line += "{[%clk " + format_time(clock) + "]} ";
+            auto hms = hh_mm_ss{clock};
+            std::string formatted_time = std::format("{}:{:02}:{:02}.{}", 
+                hms.hours().count(), 
+                hms.minutes().count(), 
+                hms.seconds().count(), 
+                hms.subseconds().count() / 100 // adjust for 1 digit millisecond/fraction
+            );
+            moves_line += "{[%clk " + formatted_time + "]} ";
             added_comment = true;
         } else {
             added_comment = false;

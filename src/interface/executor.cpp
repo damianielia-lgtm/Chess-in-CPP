@@ -1,4 +1,4 @@
-#include "executor.h"
+#include "handle_cli.h"
 
 #include <variant>
 #include <optional>
@@ -7,9 +7,7 @@
 #include <utility>
 
 #include "../core/position.h"
-#include "../diagnostics/perft.h"
-#include "../diagnostics/debugger.h"
-#include "../diagnostics/engine_benchmarking.h"
+#include "../diagnostics/diagnostics.h"
 #include "../game/game_loop.h"
 #include "../game/game.h"
 #include "../storage/file_manager.h"
@@ -27,7 +25,7 @@ namespace fs = std::filesystem;
 
 namespace {
 
-void execute_impl(const HelpCommand&, Session&, ConfigData&) { print_help(); }
+void execute_impl(const HelpCommand&, Session&, ConfigData&) { print_lines(help_lines()); }
 
 void execute_impl(const PlayLocalCommand& cmd, Session& session, ConfigData& config) {
     std::optional<Game> game = play_local(cmd.time, config);
@@ -68,17 +66,17 @@ void execute_impl(const MoveCommand& cmd, Session& session, ConfigData& config) 
 void execute_impl(const PerftPresetCommand& cmd, Session& session, ConfigData&) {
     std::vector<std::string> lines = run_test_preset(cmd.preset);
     print_lines(lines);
-    session.store_last_report(lines);
+    session.store_last_report(std::move(lines));
 }
 void execute_impl(const BenchmarkPerftPresetCommand& cmd, Session& session, ConfigData&) {
     std::vector<std::string> lines = run_benchmark_preset(cmd.preset);
     print_lines(lines);
-    session.store_last_report(lines);
+    session.store_last_report(std::move(lines));
 }
 void execute_impl(const BenchmarkEnginePresetCommand& cmd, Session& session, ConfigData& config) {
     std::vector<std::string> lines = benchmark_engine_preset(cmd.preset, config);
     print_lines(lines);
-    session.store_last_report(lines);
+    session.store_last_report(std::move(lines));
 }
 void execute_impl(const PerftCommand& cmd, Session& session, ConfigData& config) {
     Position position = session.current_position();
@@ -165,8 +163,7 @@ void execute_impl(const ReportDeleteCommand& cmd, Session&, ConfigData&) {
 }
 void execute_impl(const ReportSaveCommand& cmd, Session& session, ConfigData&) {
     fs::path dir = make_report_path(cmd.name);
-    std::vector<std::string> report_lines = session.last_report();
-    write_file(dir, report_lines);
+    write_file(dir, session.last_report());
 }
 void execute_impl(const ReportShowCommand& cmd, Session& session, ConfigData&) {
     fs::path dir = make_report_path(cmd.name);
@@ -178,8 +175,7 @@ void execute_impl(const ReportListCommand&, Session&, ConfigData&) {
 }
 
 void execute_impl(const ConfigShowCommand&, Session&, ConfigData& config) {
-    std::vector<std::string> config_lines = construct_config_show_lines(config);
-    print_lines(config_lines);
+    print_lines(construct_config_show_lines(config));
 }
 void execute_impl(const ConfigSetPlayer1Command& cmd, Session&, ConfigData& config) { config.player1_name = cmd.name; }
 void execute_impl(const ConfigSetPlayer2Command& cmd, Session&, ConfigData& config) { config.player2_name = cmd.name; }
@@ -191,16 +187,18 @@ void execute_impl(const ConfigSetBoardOrientationCommand& cmd, Session&, ConfigD
 void execute_impl(const ConfigSetEngineDepthCommand& cmd, Session&, ConfigData& config) { config.engine_depth = cmd.depth; }
 void execute_impl(const ConfigSetBenchmarkStatsTrackingCommand& cmd, Session&, ConfigData& config) { config.track_stats = cmd.track_stats; }
 
-void execute_impl(const EngineStaticCommand&, Session& session, ConfigData&) {
-    print_lines({"Static eval : " + std::to_string(static_eval(session.current_position()))});
+void execute_impl(const EngineStaticEvalCommand&, Session& session, ConfigData&) {
+    std::int16_t eval = normalize_centipawn(static_eval(session.current_position()));
+    print_lines({"Static eval : " + std::to_string(eval)});
 }
-void execute_impl(const EngineDynamicCommand&, Session& session, ConfigData& config) {
+void execute_impl(const EngineDynamicEvalCommand&, Session& session, ConfigData& config) {
     Position position = session.current_position();
-    print_lines({"Minimax eval : " + std::to_string(minimax(position, config.engine_depth))});
+    std::int16_t eval = normalize_centipawn(minimax(position, config.engine_depth));
+    print_lines({"Minimax eval : " + std::to_string(eval)});
 }
 void execute_impl(const EngineBestmoveCommand&, Session& session, ConfigData& config) {
     Position position = session.current_position();
-    std::optional<Move> bestmove = pick_best_move<false>(position, config.engine_depth).best_move;
+    std::optional<Move> bestmove = pick_best_move(position, config.engine_depth).move;
     print_lines(
         {
             bestmove
@@ -212,14 +210,18 @@ void execute_impl(const EngineBestmoveCommand&, Session& session, ConfigData& co
 void execute_impl(const EngineRankMovesCommand&, Session& session, ConfigData& config) {
     std::vector<std::string> lines;
     Position position = session.current_position();
-    std::vector<RankedMove> moves = rank_moves(position, config.engine_depth);
 
-    for (const RankedMove& move : moves) {
+    std::vector<SearchedMove> moves = rank_moves(position, config.engine_depth);
+    int rank = 1;
+
+    for (const SearchedMove& move : moves) {
         lines.push_back(
-            std::to_string(move.rank) + ". " +
-            move_notation(move.move, position, config.move_notation) +
-            ": " + std::to_string(move.eval)
+            std::to_string(rank) + ". " +
+            move_notation(*move.move, position, config.move_notation) +
+            ": " + std::to_string(normalize_centipawn(move.eval))
         );
+
+        rank++;
     }
 
     print_lines(lines);

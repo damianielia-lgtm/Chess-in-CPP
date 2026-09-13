@@ -1,4 +1,4 @@
-#include "cli_parser.h"
+#include "handle_cli.h"
 
 #include <string>
 #include <string_view>
@@ -344,9 +344,9 @@ Command parse_engine(const std::vector<std::string>& tokens) {
     check_token_count(tokens, 2);
     std::string engine_command = tokens[1];
     if (engine_command == "static-eval") {
-        return EngineStaticCommand{};
+        return EngineStaticEvalCommand{};
     } else if (engine_command == "dynamic-eval") {
-        return EngineDynamicCommand{};
+        return EngineDynamicEvalCommand{};
     } else if (engine_command == "bestmove") {
         return EngineBestmoveCommand{};
     } else if (engine_command == "rank") {
