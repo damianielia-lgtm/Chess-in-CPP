@@ -63,32 +63,32 @@ void execute_impl(const MoveCommand& cmd, Session& session, ConfigData& config) 
     session.apply_move(resolve_move(cmd.move_string, session.current_position(), config.move_notation));
 }
 
-void execute_impl(const PerftPresetCommand& cmd, Session& session, ConfigData&) {
-    std::vector<std::string> lines = run_test_preset(cmd.preset);
+void execute_impl(const PerftTestCommand& cmd, Session& session, ConfigData& config) {
+    Position position = session.current_position();
+    print_lines(perft_test(position, cmd.depth, config.move_notation));
+}
+void execute_impl(const PerftTestPresetCommand& cmd, Session& session, ConfigData&) {
+    std::vector<std::string> lines = perft_test_preset(cmd.preset);
     print_lines(lines);
     session.store_last_report(std::move(lines));
 }
-void execute_impl(const BenchmarkPerftPresetCommand& cmd, Session& session, ConfigData&) {
-    std::vector<std::string> lines = run_benchmark_preset(cmd.preset);
+void execute_impl(const PerftBenchmarkCommand& cmd, Session& session, ConfigData&) {
+    Position position = session.current_position();
+    print_lines(perft_benchmark(position, cmd.depth));
+}
+void execute_impl(const PerftBenchmarkPresetCommand& cmd, Session& session, ConfigData&) {
+    std::vector<std::string> lines = perft_benchmark_preset(cmd.preset);
     print_lines(lines);
     session.store_last_report(std::move(lines));
 }
-void execute_impl(const BenchmarkEnginePresetCommand& cmd, Session& session, ConfigData& config) {
+void execute_impl(const EngineBenchmarkCommand& cmd, Session& session, ConfigData& config) {
+    Position position = session.current_position();
+    print_lines(benchmark_engine(position, cmd.depth, config));
+}
+void execute_impl(const EngineBenchmarkPresetCommand& cmd, Session& session, ConfigData& config) {
     std::vector<std::string> lines = benchmark_engine_preset(cmd.preset, config);
     print_lines(lines);
     session.store_last_report(std::move(lines));
-}
-void execute_impl(const PerftCommand& cmd, Session& session, ConfigData& config) {
-    Position position = session.current_position();
-    print_lines(run_test(position, cmd.depth, config.move_notation));
-}
-void execute_impl(const BenchmarkPerftCommand& cmd, Session& session, ConfigData&) {
-    Position position = session.current_position();
-    print_lines(run_benchmark(position, cmd.depth));
-}
-void execute_impl(const BenchmarkEngineCommand& cmd, Session& session, ConfigData& config) {
-    Position position = session.current_position();
-    print_lines(run_benchmark_engine(position, cmd.depth, config));
 }
 void execute_impl(const DebugCommand& cmd, Session& session, ConfigData&) {
     print_lines(debug_pos(session.current_position().to_fen(), cmd.depth));

@@ -13,6 +13,7 @@ struct SessionError : UserError { using UserError::UserError; };
 struct PgnError : UserError { using UserError::UserError; };
 struct GameError : UserError { using UserError::UserError; };
 struct ConfigError : UserError { using UserError::UserError; };
+struct EpdError : UserError { using UserError::UserError; };
 
 struct OperationalError : AppError { using AppError::AppError; };
 struct StorageIoError : OperationalError { using OperationalError::OperationalError; };

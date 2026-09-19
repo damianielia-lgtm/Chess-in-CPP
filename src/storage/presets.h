@@ -5,24 +5,26 @@
 #include <cstdint>
 #include <vector>
 
-struct ExpectedPerft {
-    std::string fen;
+#include "../core/position.h"
+
+struct TestCase {
+    Position position;
     std::string id;
-    std::map<int, uint64_t> depths;
+    std::uint8_t depth;
+    std::uint64_t expected;
 };
 
-struct PresetInfo {
+struct PresetData {
     uint64_t total_nodes = 0;
-    std::vector<ExpectedPerft> positions{};
+    int positions_count = 0;
+    std::vector<TestCase> suites;
 };
 
 enum class Preset {
-    Instant,
     Fast,
     Moderate,
     Extended
 };
 
-PresetInfo make_preset(Preset preset);
-
+PresetData make_preset(Preset preset);
 std::string preset_name(Preset preset);

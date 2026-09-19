@@ -47,7 +47,7 @@ constexpr std::string_view help_content =
     "Engine\n"
     "   engine static-eval                                                            print static evaluation of current position\n"
     "   engine dynamic-eval                                                           print minimax evaluation of current position\n"
-    "   engine bestmove                                                                print best move for current position\n"
+    "   engine bestmove                                                               print best move for current position\n"
     "   engine rank                                                                   print all legal moves ranked by evaluation\n\n"
 
     "PGN management\n"
@@ -66,23 +66,20 @@ constexpr std::string_view help_content =
     "   fen import <file>                                                             load a fen to game directory\n"
     "   fen export <name> <directory>                                                 export a saved fen from game directory\n\n"
 
-    "Perft testing\n"
-    "   perft --preset <instant|fast|moderate|extended>                               test engine corectness through the database\n"
-    "   perft --depth <n>                                                             test corectness on a current position.\n"
-    "   debug --depth <n>                                                             recusively go through a position and compare with stockfish.\n\n"
-
-    "Benchmarking\n"
-    "   benchmark perft --preset <instant|fast|moderate|extended>                     test movegen speed through the database\n"
-    "   benchmark perft --depth <n>                                                   test movegen speed on current position\n"
-    "   benchmark engine --preset <instant|fast|moderate|extended>                    test engine speed through the database\n"
-    "   benchmark engine --depth <n>                                                  test engine speed on current position\n\n"
-
     "Report management\n"
     "   report list                                                                   list saved reports\n"
     "   report save <name>                                                            save latest report under a name\n"
     "   report show <name>                                                            print a saved reports\n"
-    "   report delete <name>                                                          delete a saved report\n";
+    "   report delete <name>                                                          delete a saved report\n\n"
 
+    "Dev Commands\n"
+    "   perft test --preset <fast|moderate|extended>                                  test engine corectness through the database\n"
+    "   perft test --depth <n>                                                        test corectness on a current position.\n"
+    "   perft benchmark --preset <fast|moderate|extended>                             test movegen speed through the database\n"
+    "   perft benchmark --depth <n>                                                   test movegen speed on current position\n"
+    "   engine benchmark --preset <fast|moderate|extended>                            test engine speed through the database\n"
+    "   engine benchmark --depth <n>                                                  test engine speed on current position\n"
+    "   debug --depth <n>                                                             recusively go through a position and compare with stockfish.\n";
 }
 
 std::vector<std::string> help_lines() { return {std::string(help_content)}; }
@@ -292,27 +289,22 @@ std::vector<std::string> construct_game_lines(
 
 }
 
-ProgressDisplay::ProgressDisplay(std::uint64_t total_nodes, std::chrono::milliseconds expected_duration)
+ProgressDisplay::ProgressDisplay(std::uint64_t total_nodes)
     : total_nodes_(total_nodes)
 {
-    make_header(expected_duration);
-    std::cerr << header_ << '\n';
-    print(0);
+    print_progress(0);
 }
 
 ProgressDisplay::~ProgressDisplay() {
-    std::string clear_bar(35, ' ');
-    std::string clear_header(header_.length(), ' ');
-    std::cerr << "\r" << clear_bar;
-    std::cerr << "\033[A\r" << clear_header << "\r" << std::flush;
+    std::cerr << "\r\033[2K" << std::flush;
 }
 
 void ProgressDisplay::advance(std::uint64_t nodes) {
     completed_nodes_ += nodes;
-    print(completed_nodes_);
+    print_progress(completed_nodes_);
 }
 
-void ProgressDisplay::print(std::uint64_t completed) {
+void ProgressDisplay::print_progress(std::uint64_t completed) {
     int percentage = static_cast<int>(completed * 100 / total_nodes_);
     int bar_len = percentage / 5;
 
@@ -325,19 +317,13 @@ void ProgressDisplay::print(std::uint64_t completed) {
     std::cerr << "] " << percentage << "%" << std::flush;
 }
 
-void ProgressDisplay::make_header(milliseconds duration) {
-    header_ =
-        "Calculating " + std::to_string(total_nodes_)
-        + " nodes, expected duration " + format_time(duration);
-}
-
 namespace {
 
-void clear_lines(int lines_number) {
-    for (int i = 0; i < lines_number; i++) { // Clear line by line, going up
-        std::cout << "\033[A"; // Go up one line
+void clear_lines(std::size_t lines_number) {
+    for (std::size_t i = 0; i < lines_number; i++) { // Clear line by line, going up
         std::cout << "\r"; // Go to the start of line
         std::cout << "\033[2K"; // Clear line
+        if (i + 1 < lines_number) { std::cout << "\033[A"; } // Go up if another line remains
     }
 }
 

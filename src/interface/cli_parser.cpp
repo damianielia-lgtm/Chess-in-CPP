@@ -145,9 +145,7 @@ Command parse_game(const std::vector<std::string>& tokens) {
 }
 
 Preset parse_preset(const std::string_view preset) {
-    if (preset == "instant") {
-        return Preset::Instant;
-    } else if (preset == "fast") {
+    if (preset == "fast") {
         return Preset::Fast;
     } else if (preset == "moderate") {
         return Preset::Moderate;
@@ -158,47 +156,34 @@ Preset parse_preset(const std::string_view preset) {
     }
 }
 
-int parse_depth(std::string depth_string) {
-    int depth = parse_number_string(depth_string);
+std::uint8_t parse_depth(std::string depth_string) {
+    std::uint8_t depth = parse_number_string(depth_string);
     if (depth == 0 || depth > 16) { throw CommandError("Depth must be between 1 and 16."); }
     return depth;
 }
 
 Command parse_perft(const std::vector<std::string>& tokens) {
-    check_token_count(tokens, 3);
-    std::string perft_command = tokens[1];
-    if (perft_command == "--preset") {
-        return PerftPresetCommand{parse_preset(tokens[2])};
-    } else if (perft_command == "--depth") {
-        return PerftCommand{parse_depth(tokens[2])};
-    } else {
-        throw CommandError("Unrecognized perft command.");
-    }
-}
-
-Command parse_benchmark(const std::vector<std::string>& tokens) {
     check_token_count(tokens, 4);
-    std::string benchmark_command = tokens[1];
-    if (benchmark_command == "perft") {
+    std::string perft_command = tokens[1];
+    if (perft_command == "test") {
+        if (perft_command == "--preset") {
+            return PerftTestPresetCommand{parse_preset(tokens[2])};
+        } else if (perft_command == "--depth") {
+            return PerftTestCommand{parse_depth(tokens[2])};
+        } else {
+            throw CommandError("Unrecognized perft test command.");
+        }
+    } else if (perft_command == "benchmark") {
         std::string perft_benchmark_command = tokens[2];
         if (perft_benchmark_command == "--preset") {
-            return BenchmarkPerftPresetCommand{parse_preset(tokens[3])};
+            return PerftBenchmarkPresetCommand{parse_preset(tokens[3])};
         } else if (perft_benchmark_command == "--depth") {
-            return BenchmarkPerftCommand{parse_depth(tokens[3])};
+            return PerftBenchmarkCommand{parse_depth(tokens[3])};
         } else {
-            throw CommandError("Unrecognized benchmark perft command.");
-        }
-    } else if (benchmark_command == "engine") {
-        std::string perft_engine_command = tokens[2];
-        if (perft_engine_command == "--preset") {
-            return BenchmarkEnginePresetCommand{parse_preset(tokens[3])};
-        } else if (perft_engine_command == "--depth") {
-            return BenchmarkEngineCommand{parse_depth(tokens[3])};
-        } else {
-            throw CommandError("Unrecognized benchmark engine command.");
+            throw CommandError("Unrecognized perft benchmark command.");
         }
     } else {
-        throw CommandError("Unrecognized benchmark command.");
+        throw CommandError("Unrecognized perft command.");
     }
 }
 
@@ -324,7 +309,7 @@ Command parse_config(const std::vector<std::string>& tokens) {
             }
         } else if (set_field == "engine-depth") {
             return ConfigSetEngineDepthCommand{static_cast<std::uint8_t>(parse_depth(set_value))};
-        } else if (set_field == "track-stats") {
+        } else if (set_field == "track-benchmark-stats") {
             if (set_value == "true") {
                 return ConfigSetBenchmarkStatsTrackingCommand{true};
             } else if (set_value == "false") {
@@ -341,16 +326,29 @@ Command parse_config(const std::vector<std::string>& tokens) {
 }
 
 Command parse_engine(const std::vector<std::string>& tokens) {
-    check_token_count(tokens, 2);
-    std::string engine_command = tokens[1];
+    std::string engine_command = require_token(tokens, 1);;
     if (engine_command == "static-eval") {
+        check_token_count(tokens, 2);
         return EngineStaticEvalCommand{};
     } else if (engine_command == "dynamic-eval") {
+        check_token_count(tokens, 2);
         return EngineDynamicEvalCommand{};
     } else if (engine_command == "bestmove") {
+        check_token_count(tokens, 2);
         return EngineBestmoveCommand{};
     } else if (engine_command == "rank") {
+        check_token_count(tokens, 2);
         return EngineRankMovesCommand{};
+    } else if (engine_command == "benchmark") {
+        check_token_count(tokens, 4);
+        std::string engine_benchmark_command = tokens[2];
+        if (engine_benchmark_command == "--preset") {
+            return EngineBenchmarkPresetCommand{parse_preset(tokens[3])};
+        } else if (engine_benchmark_command == "--depth") {
+            return EngineBenchmarkCommand{parse_depth(tokens[3])};
+        } else {
+            throw CommandError("Unrecognized engine benchmark command.");
+        }
     } else {
         throw CommandError("Unrecognized engine command.");
     }
@@ -369,8 +367,6 @@ Command parse(std::string line) {
         return parse_game(tokens);
     } else if (base_command == "perft") {
         return parse_perft(tokens);
-    } else if (base_command == "benchmark") {
-        return parse_benchmark(tokens);
     } else if (base_command == "debug") {
         return parse_debug(tokens);
     } else if (base_command == "pgn") {

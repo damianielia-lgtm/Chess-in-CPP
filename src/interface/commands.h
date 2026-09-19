@@ -23,13 +23,13 @@ struct PositionFenCommand { std::string fen; };
 struct PositionSavedFenCommand { std::string name; };
 struct MoveCommand { std::string move_string; };
 
-struct PerftPresetCommand { Preset preset; };
-struct BenchmarkPerftPresetCommand { Preset preset; };
-struct BenchmarkEnginePresetCommand { Preset preset; };
-struct PerftCommand { int depth; };
-struct BenchmarkPerftCommand { int depth; };
-struct BenchmarkEngineCommand { int depth; };
-struct DebugCommand { int depth; };
+struct PerftTestCommand { std::uint8_t depth; };
+struct PerftTestPresetCommand { Preset preset; };
+struct PerftBenchmarkCommand { std::uint8_t depth; };
+struct PerftBenchmarkPresetCommand { Preset preset; };
+struct EngineBenchmarkCommand { std::uint8_t depth; };
+struct EngineBenchmarkPresetCommand { Preset preset; };
+struct DebugCommand { std::uint8_t depth; };
 
 struct PgnDeleteCommand { std::string name; };
 struct PgnSaveCommand { std::string name; };
@@ -58,7 +58,7 @@ struct ConfigSetSiteCommand { std::string site; };
 struct ConfigSetExportClocksCommand { bool export_clocks; };
 struct ConfigSetMoveNotationCommand { MoveNotation input; };
 struct ConfigSetBoardOrientationCommand { BoardOrientation orientation; };
-struct ConfigSetEngineDepthCommand { int depth; };
+struct ConfigSetEngineDepthCommand { std::uint8_t depth; };
 struct ConfigSetBenchmarkStatsTrackingCommand { bool track_stats; };
 
 struct EngineStaticEvalCommand {};
@@ -79,13 +79,13 @@ using Command = std::variant<
     PositionFenCommand,
     PositionSavedFenCommand,
     MoveCommand,
-    
-    PerftPresetCommand,
-    BenchmarkPerftPresetCommand,
-    BenchmarkEnginePresetCommand,
-    PerftCommand,
-    BenchmarkPerftCommand,
-    BenchmarkEngineCommand,
+
+    PerftTestCommand,
+    PerftTestPresetCommand,
+    PerftBenchmarkCommand,
+    PerftBenchmarkPresetCommand,
+    EngineBenchmarkCommand,
+    EngineBenchmarkPresetCommand,
     DebugCommand,
 
     PgnDeleteCommand,

@@ -24,19 +24,16 @@ std::vector<std::string> construct_board_lines(
 
 class ProgressDisplay {
 public:
-    ProgressDisplay(std::uint64_t total_nodes, std::chrono::milliseconds expected_duration);
+    ProgressDisplay(std::uint64_t total_nodes);
     ~ProgressDisplay();
 
     void advance(std::uint64_t nodes);
 
 private:
-    void print(std::uint64_t completed);
-
-    void make_header(std::chrono::milliseconds duration);
+    void print_progress(std::uint64_t completed);
 
     std::uint64_t total_nodes_;
     std::uint64_t completed_nodes_ = 0;
-    std::string header_;
 };
 
 class GameDisplay {
