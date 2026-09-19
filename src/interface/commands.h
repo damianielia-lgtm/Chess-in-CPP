@@ -26,10 +26,10 @@ struct MoveCommand { std::string move_string; };
 struct PerftPresetCommand { Preset preset; };
 struct BenchmarkPerftPresetCommand { Preset preset; };
 struct BenchmarkEnginePresetCommand { Preset preset; };
-struct PerftCommand { int depth; };
-struct BenchmarkPerftCommand { int depth; };
-struct BenchmarkEngineCommand { int depth; };
-struct DebugCommand { int depth; };
+struct PerftCommand { std::uint8_t depth; };
+struct BenchmarkPerftCommand { std::uint8_t depth; };
+struct BenchmarkEngineCommand { std::uint8_t depth; };
+struct DebugCommand { std::uint8_t depth; };
 
 struct PgnDeleteCommand { std::string name; };
 struct PgnSaveCommand { std::string name; };
@@ -58,7 +58,7 @@ struct ConfigSetSiteCommand { std::string site; };
 struct ConfigSetExportClocksCommand { bool export_clocks; };
 struct ConfigSetMoveNotationCommand { MoveNotation input; };
 struct ConfigSetBoardOrientationCommand { BoardOrientation orientation; };
-struct ConfigSetEngineDepthCommand { int depth; };
+struct ConfigSetEngineDepthCommand { std::uint8_t depth; };
 struct ConfigSetBenchmarkStatsTrackingCommand { bool track_stats; };
 
 struct EngineStaticEvalCommand {};
