@@ -46,6 +46,8 @@ public:
 
     void update(const GameSnapshot& game, BoardOrientation board_orientation);
 
+    void add_newline_offset() { rendered_line_count_++; }
+
     void set_error(std::string message) { error_message_ = message; }
     void clear_error() { error_message_ = std::nullopt; }
 

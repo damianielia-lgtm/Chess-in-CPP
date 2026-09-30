@@ -78,6 +78,8 @@ TurnOutcome handle_move_input(
     ConfigData& config,
     std::size_t& cursor
 ) {
+    display.add_newline_offset();
+    
     if (user_input == "flip") { flip_orientation(config); return TurnOutcome::Continue; }
     if (handle_navigation(user_input, cursor, game.snapshot_count())) { return TurnOutcome::Continue; }
 
@@ -174,6 +176,7 @@ std::optional<Game> analyze(const Position& position, ConfigData& config, bool c
 
         std::string user_input;
         if (!std::getline(std::cin, user_input)) { return std::nullopt; }
+        display.add_newline_offset();
 
         if (user_input == "exit") {
             if (!game.has_ended()) { game.finish_without_result(); }
@@ -215,6 +218,7 @@ void replay(const Game& game, ConfigData& config) {
 
         std::string user_input;
         if (!std::getline(std::cin, user_input)) { return; }
+        display.add_newline_offset();
 
         if (user_input == "flip") { flip_orientation(config); continue; }
 
