@@ -45,7 +45,6 @@ void parse_epd_line(const std::string& line, PresetData& data) {
 
     try {
         position = Position(tokens[0]);
-        tokens.pop_back();
     } catch (const FenError&) {
         throw EpdError("Invalid fen \"" + position.to_fen() + '\"');
     }
@@ -66,7 +65,6 @@ void parse_epd_line(const std::string& line, PresetData& data) {
         }
 
         id = quoted_id.substr(1, quoted_id.size() - 2);
-        tokens.pop_back();
     }
 
     bool consumed_position = false;
