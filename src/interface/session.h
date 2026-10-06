@@ -8,6 +8,7 @@
 
 #include "../core/position.h"
 #include "../core/move.h"
+#include "../diagnostics/diagnostics.h"
 #include "../game/game.h"
 #include "../errors.h"
 
@@ -30,8 +31,8 @@ public:
         return *last_game_;
     }
     
-    void store_last_report(std::vector<std::string> lines) { last_report_ = std::move(lines); }
-    const std::vector<std::string>& last_report() const {
+    void store_last_report(ReportContents report) { last_report_ = std::move(report); }
+    const ReportContents& last_report() const {
         if (!last_report_) {
             throw SessionError("No last report exists");
         }
@@ -42,5 +43,5 @@ public:
 private:
     Position current_position_;
     std::optional<Game> last_game_;
-    std::optional<std::vector<std::string>> last_report_;
+    std::optional<ReportContents> last_report_;
 };

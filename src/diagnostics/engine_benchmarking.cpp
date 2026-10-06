@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <chrono>
 #include <cmath>
+#include <format>
+#include <optional>
 
 #include "../core/position.h"
 #include "../engine/search.h"
@@ -44,6 +46,9 @@ std::vector<std::string> benchmark_engine_impl(
 
     std::vector<std::string> lines;
 
+    lines.push_back("----- Engine Benchmark -----");
+    lines.push_back("");
+
     lines.push_back("Suite: \"" + position.to_fen() + "\" at depth " + std::to_string(depth));
     lines.push_back("Best move: " + move_notation(*search_result.move, position, config.move_notation));
     lines.push_back("Evaluation: " + std::to_string(search_result.eval) + " cp");
@@ -67,7 +72,7 @@ std::vector<std::string> benchmark_engine_preset_impl(Preset preset, const Confi
     ProgressDisplay progress(test_info.total_nodes);
 
     std::vector<std::string> lines;
-    lines.push_back("----- Engine Benchmark -- Preset " + preset_name(preset) + " -----");
+    lines.push_back("----- Engine Benchmark -----");
     lines.push_back("");
 
     double total_dur = 0.0;
@@ -118,6 +123,7 @@ std::vector<std::string> benchmark_engine_preset_impl(Preset preset, const Confi
     lines.push_back("--------------------------------");
     lines.push_back("");
 
+    lines.push_back("Suite: " + preset_name(preset) + " preset");
     lines.push_back("Positions: " + std::to_string(test_info.positions_count));
     lines.push_back("Searches: " + std::to_string(test_info.suites.size()));
     lines.push_back("Time: " + std::format("{:.2f} s", total_dur));
@@ -144,18 +150,18 @@ std::vector<std::string> benchmark_engine_preset_impl(Preset preset, const Confi
 
 };
 
-std::vector<std::string> benchmark_engine(
+ReportContents benchmark_engine(
     Position position,
     std::uint8_t depth,
     const ConfigData& config
 ) {
     return config.track_stats
-        ? benchmark_engine_impl<BasicStatsObserver>(position, depth, config)
-        : benchmark_engine_impl<NullObserver>(position, depth, config);
+        ? ReportContents{benchmark_engine_impl<BasicStatsObserver>(position, depth, config), std::nullopt}
+        : ReportContents{benchmark_engine_impl<NullObserver>(position, depth, config), std::nullopt};
 }
 
-std::vector<std::string> benchmark_engine_preset(Preset preset, const ConfigData& config) {
+ReportContents benchmark_engine_preset(Preset preset, const ConfigData& config) {
     return config.track_stats
-        ? benchmark_engine_preset_impl<BasicStatsObserver>(preset, config)
-        : benchmark_engine_preset_impl<NullObserver>(preset, config);
+        ? ReportContents{benchmark_engine_preset_impl<BasicStatsObserver>(preset, config), std::nullopt}
+        : ReportContents{benchmark_engine_preset_impl<NullObserver>(preset, config), std::nullopt};
 }

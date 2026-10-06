@@ -29,6 +29,8 @@ struct PerftBenchmarkCommand { std::uint8_t depth; };
 struct PerftBenchmarkPresetCommand { Preset preset; };
 struct EngineBenchmarkCommand { std::uint8_t depth; };
 struct EngineBenchmarkPresetCommand { Preset preset; };
+struct EngineProfilePruningCommand { std::uint8_t depth; };
+struct EngineProfilePruningPresetCommand { Preset preset; };
 struct DebugCommand { std::uint8_t depth; };
 
 struct PgnDeleteCommand { std::string name; };
@@ -86,6 +88,8 @@ using Command = std::variant<
     PerftBenchmarkPresetCommand,
     EngineBenchmarkCommand,
     EngineBenchmarkPresetCommand,
+    EngineProfilePruningCommand,
+    EngineProfilePruningPresetCommand,
     DebugCommand,
 
     PgnDeleteCommand,

@@ -63,35 +63,41 @@ void execute_impl(const MoveCommand& cmd, Session& session, ConfigData& config) 
     session.apply_move(resolve_move(cmd.move_string, session.current_position(), config.move_notation));
 }
 
+void print_and_save(ReportContents report, Session& session) {
+    print_lines(report.text_lines);
+    session.store_last_report(std::move(report));
+}
+
 void execute_impl(const PerftTestCommand& cmd, Session& session, ConfigData& config) {
     Position position = session.current_position();
-    print_lines(perft_test(position, cmd.depth, config.move_notation));
+    print_and_save(perft_test(position, cmd.depth, config.move_notation), session);
 }
 void execute_impl(const PerftTestPresetCommand& cmd, Session& session, ConfigData&) {
-    std::vector<std::string> lines = perft_test_preset(cmd.preset);
-    print_lines(lines);
-    session.store_last_report(std::move(lines));
+    print_and_save(perft_test_preset(cmd.preset), session);
 }
 void execute_impl(const PerftBenchmarkCommand& cmd, Session& session, ConfigData&) {
     Position position = session.current_position();
-    print_lines(perft_benchmark(position, cmd.depth));
+    print_and_save(perft_benchmark(position, cmd.depth), session);
 }
 void execute_impl(const PerftBenchmarkPresetCommand& cmd, Session& session, ConfigData&) {
-    std::vector<std::string> lines = perft_benchmark_preset(cmd.preset);
-    print_lines(lines);
-    session.store_last_report(std::move(lines));
+    print_and_save(perft_benchmark_preset(cmd.preset), session);
 }
 void execute_impl(const EngineBenchmarkCommand& cmd, Session& session, ConfigData& config) {
     Position position = session.current_position();
-    print_lines(benchmark_engine(position, cmd.depth, config));
+    print_and_save(benchmark_engine(position, cmd.depth, config), session);
 }
 void execute_impl(const EngineBenchmarkPresetCommand& cmd, Session& session, ConfigData& config) {
-    std::vector<std::string> lines = benchmark_engine_preset(cmd.preset, config);
-    print_lines(lines);
-    session.store_last_report(std::move(lines));
+    print_and_save(benchmark_engine_preset(cmd.preset, config), session);
+}
+void execute_impl(const EngineProfilePruningCommand& cmd, Session& session, ConfigData&) {
+    Position position = session.current_position();
+    print_and_save(profile_pruning(position, cmd.depth), session);
+}
+void execute_impl(const EngineProfilePruningPresetCommand& cmd, Session& session, ConfigData&) {
+    print_and_save(profile_pruning_preset(cmd.preset), session);
 }
 void execute_impl(const DebugCommand& cmd, Session& session, ConfigData&) {
-    print_lines(debug_pos(session.current_position().to_fen(), cmd.depth));
+    print_and_save(debug_pos(session.current_position().to_fen(), cmd.depth), session);
 }
 
 void execute_impl(const PgnDeleteCommand& cmd, Session&, ConfigData&) {
@@ -158,12 +164,21 @@ void execute_impl(const FenExportCommand& cmd, Session&, ConfigData&) {
 }
 
 void execute_impl(const ReportDeleteCommand& cmd, Session&, ConfigData&) {
-    fs::path dir = make_report_path(cmd.name);
-    delete_file(dir);
+    delete_file(make_report_path(cmd.name));
+    try {
+        delete_file(make_csv_path(cmd.name));
+    } catch (StorageError&) {}
 }
 void execute_impl(const ReportSaveCommand& cmd, Session& session, ConfigData&) {
+    const ReportContents& report = session.last_report();
+
     fs::path dir = make_report_path(cmd.name);
-    write_file(dir, session.last_report());
+    write_file(dir, report.text_lines);
+
+    if (report.csv_lines) {
+        fs::path dir = make_csv_path(cmd.name);
+        write_file(dir, *report.csv_lines);
+    }
 }
 void execute_impl(const ReportShowCommand& cmd, Session& session, ConfigData&) {
     fs::path dir = make_report_path(cmd.name);

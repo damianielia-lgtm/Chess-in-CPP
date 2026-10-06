@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <utility>
 #include <cstdint>
+#include <optional>
 
 #include "../core/position.h"
 #include "../core/move.h"
@@ -144,7 +145,7 @@ std::string debugger(StockfishProcess& sf, std::string fen, std::uint8_t depth) 
 
 }
 
-std::vector<std::string> debug_pos(std::string fen, std::uint8_t depth) {
+ReportContents debug_pos(std::string fen, std::uint8_t depth) {
     StockfishProcess sf = startStockfish("resources/stockfish.exe");
 
     sendCommand(sf, "uci");
@@ -153,10 +154,16 @@ std::vector<std::string> debug_pos(std::string fen, std::uint8_t depth) {
     readUntil(sf, "readyok");
 
     if (fen == "startpos") { fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"; }
-    std::vector<std::string> debug_line;
-    debug_line.push_back(debugger(sf, fen, depth));
+
+    std::vector<std::string> lines;
+
+    lines.push_back("----- Debugger -----");
+    lines.push_back("");
+
+    lines.push_back("Suite: \"" + fen + "\" at depth " + std::to_string(depth));
+    lines.push_back(debugger(sf, fen, depth));
 
     sf.requestQuit();
 
-    return debug_line;
+    return {lines, std::nullopt};
 }

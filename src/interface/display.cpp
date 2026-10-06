@@ -79,6 +79,8 @@ constexpr std::string_view help_content =
     "   perft benchmark --depth <n>                                                   test movegen speed on current position\n"
     "   engine benchmark --preset <fast|moderate|extended>                            test engine speed through the database\n"
     "   engine benchmark --depth <n>                                                  test engine speed on current position\n"
+    "   engine profile pruning --preset <fast|moderate|extended>                      test engine pruning through the database\n"
+    "   engine profile pruning --depth <n>                                            test engine pruning on current position\n"
     "   debug --depth <n>                                                             recusively go through a position and compare with stockfish.\n";
 }
 

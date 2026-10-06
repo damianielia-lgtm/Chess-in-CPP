@@ -166,10 +166,11 @@ Command parse_perft(const std::vector<std::string>& tokens) {
     check_token_count(tokens, 4);
     std::string perft_command = tokens[1];
     if (perft_command == "test") {
-        if (perft_command == "--preset") {
-            return PerftTestPresetCommand{parse_preset(tokens[2])};
-        } else if (perft_command == "--depth") {
-            return PerftTestCommand{parse_depth(tokens[2])};
+        std::string perft_test_command = tokens[2];
+        if (perft_test_command == "--preset") {
+            return PerftTestPresetCommand{parse_preset(tokens[3])};
+        } else if (perft_test_command == "--depth") {
+            return PerftTestCommand{parse_depth(tokens[3])};
         } else {
             throw CommandError("Unrecognized perft test command.");
         }
@@ -349,6 +350,21 @@ Command parse_engine(const std::vector<std::string>& tokens) {
         } else {
             throw CommandError("Unrecognized engine benchmark command.");
         }
+    } else if (engine_command == "profile") {
+        check_token_count(tokens, 5);
+        std::string engine_profile_command = tokens[2];
+        if (engine_profile_command == "pruning") {
+            std::string engine_profile_move_ordering_command = tokens[3];
+            if (engine_profile_move_ordering_command == "--preset") {
+                return EngineProfilePruningPresetCommand{parse_preset(tokens[4])};
+            } else if (engine_profile_move_ordering_command == "--depth") {
+                return EngineProfilePruningCommand{parse_depth(tokens[4])};
+            } else {
+                throw CommandError("Unrecognized engine profile pruning command.");
+            }
+        } else {
+            throw CommandError("Unrecognized engine profile command.");
+        }  
     } else {
         throw CommandError("Unrecognized engine command.");
     }

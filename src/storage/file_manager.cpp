@@ -53,28 +53,19 @@ std::vector<std::string> list_files(fs::path dir, const std::string& extension) 
     throw StorageIoError("Filesystem error: " + std::string{e.what()});
 }
 
-}
-
-fs::path make_pgn_path(std::string_view name) {
+fs::path make_path(std::string_view name, fs::path folder, std::string_view extension) {
     validate_name(name);
-    fs::path dir = pgn_dir / name;
-    dir.replace_extension(".pgn");    
+    fs::path dir = folder / name;
+    dir.replace_extension(extension);
     return dir;
 }
 
-fs::path make_fen_path(std::string_view name) {
-    validate_name(name);
-    fs::path dir = fen_dir / name;
-    dir.replace_extension(".fen");    
-    return dir;
 }
 
-fs::path make_report_path(std::string_view name) {
-    validate_name(name);
-    fs::path dir = report_dir / name;
-    dir.replace_extension(".txt");    
-    return dir;
-}
+fs::path make_pgn_path(std::string_view name) { return make_path(name, pgn_dir, ".pgn"); }
+fs::path make_fen_path(std::string_view name) { return make_path(name, fen_dir, ".fen"); }
+fs::path make_report_path(std::string_view name) { return make_path(name, report_dir, ".txt"); }
+fs::path make_csv_path(std::string_view name) { return make_path(name, report_dir, ".csv"); }
 
 void delete_file(const fs::path& path) try {
     if (!fs::exists(path)) {

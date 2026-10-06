@@ -62,11 +62,15 @@ std::int16_t minimax_impl(
 
     std::int16_t best_eval = maximizing ? -INF : INF;
 
+    auto probe = observer.start_move_loop(legal_moves.size());
+
     for (const Move move : legal_moves) {
         UndoState move_state = position.apply_move(move);
         std::int16_t score =
             minimax_impl(position, depth - 1, ply + 1, move_lists, alpha, beta, observer);
         position.revert_move(move, move_state);
+
+        probe.searched_move();
 
         if (maximizing) {
             best_eval = std::max(best_eval, score);
@@ -80,6 +84,8 @@ std::int16_t minimax_impl(
             break;
         }
     }
+
+    probe.finish();
 
     return best_eval;
 }
@@ -134,6 +140,8 @@ SearchedMove pick_best_move(
 ) {
     assert(depth > 0);
 
+    observer.on_node();
+
     bool maximizing = position.turn() == Color::White;
     SearchedMove search_result{std::nullopt, maximizing ? -INF : INF};
 
@@ -142,12 +150,15 @@ SearchedMove pick_best_move(
     generate_all_moves(legal_moves, position, MoveGeneration::All);
     
     if (legal_moves.empty()) {
+        observer.on_leaf();
         search_result.eval = terminal_eval(position);
         return search_result;
     }
 
     std::int16_t alpha = -INF;
     std::int16_t beta = INF;
+
+    auto probe = observer.start_move_loop(legal_moves.size());
 
     for (const Move move : legal_moves) {
         UndoState move_state = position.apply_move(move);
@@ -164,6 +175,8 @@ SearchedMove pick_best_move(
 
         position.revert_move(move, move_state);
 
+        probe.searched_move();
+
         if (
             !search_result.move ||
             (maximizing ? score > search_result.eval : score < search_result.eval)
@@ -179,11 +192,14 @@ SearchedMove pick_best_move(
         }
     }
 
+    probe.finish();
+
     return search_result;
 }
 
 template SearchedMove pick_best_move<NullObserver>(Position& position, std::uint8_t depth, NullObserver& observer);
 template SearchedMove pick_best_move<BasicStatsObserver>(Position& position, std::uint8_t depth, BasicStatsObserver& observer);
+template SearchedMove pick_best_move<PruningObserver>(Position& position, std::uint8_t depth, PruningObserver& observer);
 
 SearchedMove pick_best_move(Position& position, std::uint8_t depth) {
     NullObserver observer;
