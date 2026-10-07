@@ -28,63 +28,52 @@ namespace {
 
 constexpr std::string_view help_content =
     "Core\n"
-    "   config show                                                                   show current configuration\n"
-    "   config set <field> <value>                                                    set configurations\n"
-    "   position show                                                                 print current position\n"
-    "   position --startpos                                                           set starting position\n"
-    "   position --fen \"<fen string>\"                                                 load in specific fen\n"
-    "   position --saved-fen <saved fen name>                                         load in saved fen\n"
-    "   move <move>                                                                   apply move to current position\n\n"
+    " - config show\n"
+    " - config set <field> <value>\n"
+    " - position show\n"
+    " - position set { --startpos | --fen \"<fen string>\" | --saved-fen <saved fen name> }\n"
+    " - move <move>\n\n"
 
     "Game features\n"
-    "   play local --untimed                                                          start a local untimed game\n"
-    "   play local --time-control <initial+increment>                                 start a local timed game\n"
-    "   play online                                                                   start an online game\n"
-    "   play engine --player-color {white|black}                                      play against the engine\n"
-    "   replay <saved pgn name>                                                       replay a saved game\n"
-    "   analyze                                                                       analyze current position\n\n"
+    " - play local { --untimed | --time-control <initial+increment> }\n"
+    " - play engine --player-color {white|black}\n"
+    " - replay <saved pgn name>\n"
+    " - analyze\n\n"
 
     "Engine\n"
-    "   engine static-eval                                                            print static evaluation of current position\n"
-    "   engine dynamic-eval                                                           print minimax evaluation of current position\n"
-    "   engine bestmove                                                               print best move for current position\n"
-    "   engine rank                                                                   print all legal moves ranked by evaluation\n\n"
+    " - engine static-eval\n"
+    " - engine dynamic-eval --depth <n>\n"
+    " - engine bestmove --depth <n>\n"
+    " - engine rank --depth <n>\n\n"
 
     "PGN management\n"
-    "   pgn list                                                                      list saved PGNs\n"
-    "   pgn save <name>                                                               save last game as PGN\n"
-    "   pgn show <name>                                                               print a saved PGN\n"
-    "   pgn delete <name>                                                             delete a saved PGN\n"
-    "   pgn import <file>                                                             load a pgn to game directory\n"
-    "   pgn export <name> <directory>                                                 export a saved pgn from game directory\n\n"
+    " - pgn list\n"
+    " - pgn save <name>\n"
+    " - pgn show <name>\n"
+    " - pgn delete <name>\n"
+    " - pgn import <file>\n"
+    " - pgn export <name> <directory>\n\n"
 
     "FEN management\n"
-    "   fen list                                                                      list saved FENs\n"
-    "   fen save <name>                                                               save current position FEN string under a name\n"
-    "   fen show <name>                                                               print a saved FEN\n"
-    "   fen delete <name>                                                             delete a saved FEN\n"
-    "   fen import <file>                                                             load a fen to game directory\n"
-    "   fen export <name> <directory>                                                 export a saved fen from game directory\n\n"
+    " - fen list\n"
+    " - fen save <name>\n"
+    " - fen show <name>\n"
+    " - fen delete <name>\n"
+    " - fen import <file>\n"
+    " - fen export <name> <directory>\n\n"
 
     "Report management\n"
-    "   report list                                                                   list saved reports\n"
-    "   report save <name>                                                            save latest report under a name\n"
-    "   report show <name>                                                            print a saved reports\n"
-    "   report delete <name>                                                          delete a saved report\n\n"
+    " - report list\n"
+    " - report save <name>\n"
+    " - report show <name>\n"
+    " - report delete <name>\n\n"
 
     "Dev Commands\n"
-    "   perft test --preset <fast|moderate|extended>                                  test engine corectness through the database\n"
-    "   perft test --depth <n>                                                        test corectness on a current position.\n"
-    "   perft benchmark --preset <fast|moderate|extended>                             test movegen speed through the database\n"
-    "   perft benchmark --depth <n>                                                   test movegen speed on current position\n"
-    "   engine benchmark --preset <fast|moderate|extended>                            test engine speed through the database\n"
-    "   engine benchmark --depth <n>                                                  test engine speed on current position\n"
-    "   engine profile pruning --preset <fast|moderate|extended>                      test engine pruning through the database\n"
-    "   engine profile pruning --depth <n>                                            test engine pruning on current position\n"
-    "   debug --depth <n>                                                             recusively go through a position and compare with stockfish.\n";
-}
-
-std::vector<std::string> help_lines() { return {std::string(help_content)}; }
+    " - perft test { --preset <fast|moderate|extended> | --depth <n> }\n"
+    " - perft benchmark { --preset <fast|moderate|extended> | --depth <n> }\n"
+    " - engine benchmark { --preset <fast|moderate|extended> | --depth <n> }\n"
+    " - engine profile pruning { --preset <fast|moderate|extended> | --depth <n> }\n"
+    " - debug --depth <n>\n";
 
 std::vector<std::string> construct_board_lines(
     const Position& position,
@@ -152,8 +141,6 @@ std::vector<std::string> construct_board_lines(
 
     return lines;
 }
-
-namespace {
 
 std::string format_time(milliseconds duration) {
     auto hms = hh_mm_ss{duration};
@@ -352,4 +339,36 @@ void GameDisplay::update(const GameSnapshot& game, BoardOrientation board_orient
 void GameDisplay::clear_rendered_area() {
     clear_lines(rendered_line_count_);
     rendered_line_count_ = 0;
+}
+
+void print_help() { std::cout << help_content << '\n'; }
+
+void print_config_show(const ConfigData& config) {
+    std::cout << std::boolalpha
+        << "Player 1               " << config.player1_name << '\n'
+        << "Player 2               " << config.player2_name << '\n'
+        << "Event                  " << config.event << '\n'
+        << "Site                   " << config.site << '\n'
+        << "Export clocks          " << config.pgn_save_clock << '\n'
+        << "Move notation          " << (
+            config.move_notation == MoveNotation::Uci
+                ? std::string("uci")
+                : std::string("san")
+            ) << '\n'
+        << "Board orientation      " << (
+            config.board_orientation == BoardOrientation::White
+                ? std::string("white")
+                : std::string("black")
+            ) << '\n'
+        << "Engine depth           " << std::to_string(config.engine_depth) << '\n'
+        << "Track benchmark stats  " << config.track_stats << '\n'
+        << std::noboolalpha;
+}
+
+void print_board(
+    const Position& position,
+    BoardOrientation orientation,
+    std::optional<Move> move
+) {
+    print_lines(construct_board_lines(position, orientation, move));
 }

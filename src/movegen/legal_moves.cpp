@@ -53,7 +53,9 @@ void pseudo_pawn_moves(
         position.piece_at(double_pawn_push.intermediate).empty() &&
         position.piece_at(double_pawn_push.target).empty()
     ) {
-        if (loud == MoveGeneration::All) { emit(Move(origin, double_pawn_push.target, MoveKind::DoublePawn)); }
+        if (loud == MoveGeneration::All) {
+            emit(Move(origin, double_pawn_push.target, MoveKind::DoublePawn));
+        }
     }
 }
 

@@ -133,7 +133,9 @@ void Game::check_game_end() {
     else {
         int same_positions_count = 0;
         for (const GameSnapshot& snapshot : snapshots_) {
-            if (is_repeated_position(position, snapshot.position())) { same_positions_count++; }
+            if (is_repeated_position(position, snapshot.position())) {
+                same_positions_count++;
+            }
         }
         if (same_positions_count >= 3) {
             finish(GameResult::Draw_by_ThreefoldRepetition);

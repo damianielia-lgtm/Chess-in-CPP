@@ -1,4 +1,4 @@
-#include "handle_cli.h"
+#include "cli.h"
 
 #include <string>
 #include <string_view>
@@ -8,7 +8,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "commands.h"
 #include "../game/game.h"
 #include "../errors.h"
 
@@ -157,9 +156,9 @@ Preset parse_preset(const std::string_view preset) {
 }
 
 std::uint8_t parse_depth(std::string depth_string) {
-    std::uint8_t depth = parse_number_string(depth_string);
+    int depth = parse_number_string(depth_string);
     if (depth == 0 || depth > 16) { throw CommandError("Depth must be between 1 and 16."); }
-    return depth;
+    return static_cast<std::uint8_t>(depth);
 }
 
 Command parse_perft(const std::vector<std::string>& tokens) {

@@ -46,7 +46,11 @@ std::uint64_t perft_impl(
     return count;
 }
 
-std::map<std::string, uint64_t> perft_div(Position& position, std::uint8_t depth, MoveNotation notation) {
+std::map<std::string, uint64_t> perft_div(
+    Position& position,
+    std::uint8_t depth,
+    MoveNotation notation
+) {
     std::map<std::string, uint64_t> divide;
     MoveListStack move_lists;
 
@@ -74,7 +78,11 @@ std::uint64_t perft(Position& position, std::uint8_t depth) {
     return perft_impl(position, depth, 0, move_lists);
 }
 
-ReportContents perft_test(Position& position, std::uint8_t depth, MoveNotation notation) {
+ReportContents perft_test(
+    Position& position,
+    std::uint8_t depth,
+    MoveNotation notation
+) {
     std::vector<std::string> lines;
     std::uint64_t total_nodes = 0;
 

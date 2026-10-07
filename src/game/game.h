@@ -208,13 +208,21 @@ public:
             snapshots_.back().captures(Color::White),
             snapshots_.back().captures(Color::Black),
             snapshots_.back().has_clock_data()
-                ? std::optional<ClockState>(ClockState{snapshots_.back().clock(Color::White), snapshots_.back().clock(Color::Black)})
+                ? std::optional<ClockState>(
+                    ClockState{
+                        snapshots_.back().clock(Color::White),
+                        snapshots_.back().clock(Color::Black)
+                    }
+                )
                 : std::nullopt
         );
         result_ = std::nullopt;
         check_game_end();
     }
-    void finish_without_result() noexcept { assert(!result_.has_value()); result_ = GameResult::Unknown_End; }
+    void finish_without_result() noexcept {
+        assert(!result_.has_value());
+        result_ = GameResult::Unknown_End;
+    }
 
     void consume_time(std::chrono::milliseconds time_taken) noexcept;
     void play_move(Move move);
@@ -231,5 +239,8 @@ private:
     std::vector<GameSnapshot> snapshots_;
 
     std::optional<GameResult> result_;
-    void finish(GameResult result) noexcept { assert(!result_.has_value()); result_ = result; }
+    void finish(GameResult result) noexcept {
+        assert(!result_.has_value());
+        result_ = result;
+    }
 };

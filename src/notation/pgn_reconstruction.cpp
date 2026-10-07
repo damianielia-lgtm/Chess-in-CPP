@@ -44,7 +44,9 @@ Game reconstruct_game(const ParsedPGN& pgn_data) {
             Move move = resolve_move(san_move, game.live_position(), MoveNotation::San);
             game.play_move(move);
         } catch (const IllegalMoveError& e) {
-            throw PgnError("Move " + san_move + " at movenumber " + std::to_string(movenumber) + " isn't legal.");
+            throw PgnError(
+                "Move " + san_move + " at movenumber " + std::to_string(movenumber) + " isn't legal."
+            );
         }
 
         if (game.live_position().turn() == Color::White) { movenumber++; }

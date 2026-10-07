@@ -9,6 +9,7 @@
 #include "../storage/presets.h"
 #include "../game/game.h"
 #include "../config.h"
+#include "session.h"
 
 struct HelpCommand {};
 
@@ -127,3 +128,6 @@ using Command = std::variant<
     EngineBestmoveCommand,
     EngineRankMovesCommand
 >;
+
+Command parse(std::string line);
+void execute(const Command& command, Session& session, ConfigData& config);

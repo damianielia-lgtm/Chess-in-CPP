@@ -301,16 +301,19 @@ def compact_number(value: float, _position=None) -> str:
 def create_page(number: str, title: str, subtitle: str) -> Figure:
     """Create the shared 14-by-8.5-inch page header and separator line."""
     figure = plt.figure(figsize=(14, 8.5))
+
     figure.text(
         0.065, 0.957, f'PICKER LAB   /   {number}',
         fontsize=10, weight='bold', color=LAZYSELECT_COLOR,
     )
     figure.text(0.065, 0.897, title, fontsize=25, weight='bold')
     figure.text(0.065, 0.851, subtitle, fontsize=11, color=MUTED_COLOR)
+
     figure.add_artist(Line2D(
         [0.065, 0.94], [0.828, 0.828], transform=figure.transFigure,
         color=GRID_COLOR, linewidth=0.8,
     ))
+
     return figure
 
 
@@ -528,8 +531,8 @@ def plot_fixed_n(data: AnalysisData, n: int) -> Figure:
         f'{data.visits_percent[column]:.2f}% of all visits  /  '
         'cost curves and workload share the same k-axis',
     )
+
     cost_axis = figure.add_axes([0.09, 0.415, 0.83, 0.36])
-    frequency_axis = figure.add_axes([0.09, 0.15, 0.83, 0.19], sharex=cost_axis)
     cost_axis.plot(
         consumed_moves, presort_cost, color=PRESORT_COLOR,
         marker='o', markersize=3, label='Presort',
@@ -559,6 +562,7 @@ def plot_fixed_n(data: AnalysisData, n: int) -> Figure:
     )
 
     # These percentages describe k within this N, not within the whole workload.
+    frequency_axis = figure.add_axes([0.09, 0.15, 0.83, 0.19], sharex=cost_axis)
     conditional_percent = invocations / total_at_n * 100 if total_at_n else invocations
     frequency_axis.bar(
         consumed_moves, conditional_percent, width=0.76, color=FREQUENCY_COLOR,
@@ -594,6 +598,7 @@ def plot_fixed_n(data: AnalysisData, n: int) -> Figure:
         figure,
         'Dashed line = first measured k with Presort < LazySelect. Lines connect discrete measurements.',
     )
+    
     return figure
 
 
@@ -609,7 +614,10 @@ def write_fixed_n_pdf(data: AnalysisData, path: Path) -> None:
 
 
 def create_heatmap_axis(
-    figure: Figure, rectangle: list[float], limit: int, title: str,
+    figure: Figure,
+    rectangle: list[float],
+    limit: int,
+    title: str,
     data: AnalysisData,
 ) -> Axes:
     """Draw integer-centered cells with a cream valid and grey invalid domain."""
@@ -634,6 +642,7 @@ def create_heatmap_axis(
         0.05, 0.9, 'k > N\nOutside the valid domain', transform=axis.transAxes,
         color=MUTED_COLOR, fontsize=10, va='top',
     )
+
     return axis
 
 
@@ -642,25 +651,32 @@ def create_heatmap_panels(figure: Figure, data: AnalysisData) -> list[Axes]:
     return [
         create_heatmap_axis(
             figure, [0.07, 0.21, 0.40, 0.56], data.max_n,
-            f'Full benchmark domain  /  N ≤ {data.max_n}', data,
+            f'Full benchmark domain  /  N ≤ {data.max_n}', data
         ),
         create_heatmap_axis(
             figure, [0.565, 0.21, 0.36, 0.56], data.zoom_n,
-            f'Workload detail  /  N ≤ {data.zoom_n} contains 99% of visits', data,
+            f'Workload detail  /  N ≤ {data.zoom_n} contains 99% of visits', data
         ),
     ]
 
 
 def draw_heatmap(
-    axis: Axes, values: np.ma.MaskedArray, colormap: LinearSegmentedColormap,
-    normalization: LogNorm | SymLogNorm, data: AnalysisData,
+    axis: Axes,
+    values: np.ma.MaskedArray,
+    colormap: LinearSegmentedColormap,
+    normalization: LogNorm | SymLogNorm,
+    data: AnalysisData,
 ) -> AxesImage:
     """Overlay the measured cells, leaving masked cells transparent."""
     return axis.imshow(
-        values, origin='lower',
+        values,
+        origin='lower',
         extent=(0.5, data.max_n + 0.5, -0.5, data.max_n + 0.5),
-        interpolation='nearest', cmap=colormap, norm=normalization,
-        zorder=1, rasterized=True,
+        interpolation='nearest',
+        cmap=colormap,
+        norm=normalization,
+        zorder=1,
+        rasterized=True,
     )
 
 
@@ -680,6 +696,7 @@ def plot_frequency_heatmap(data: AnalysisData) -> Figure:
         'Observed counts on a logarithmic scale. Dashed lines: '
         f'average N = {data.observed_n_mean:.2f}; average k = {data.observed_k_mean:.2f} (all visits).',
     )
+
     axes = create_heatmap_panels(figure, data)
     # Logarithms cannot display zero; transparency exposes the cream background.
     values = np.ma.masked_where(
@@ -708,18 +725,23 @@ def plot_frequency_heatmap(data: AnalysisData) -> Figure:
     colorbar.set_label(
         'Observed count per (N, k) cell  /  logarithmic color scale', labelpad=6,
     )
+
     axes[0].text(
         0.05, 0.71,
         f'k = 1: {data.one_move_share:.1%} of visits\n'
         f'k = N: {data.full_consumption_share:.1%} of visits',
-        transform=axes[0].transAxes, fontsize=10,
-        color=LAZYSELECT_COLOR, linespacing=1.6,
+        transform=axes[0].transAxes,
+        fontsize=10,
+        color=LAZYSELECT_COLOR,
+        linespacing=1.6,
         bbox=dict(facecolor=INVALID_COLOR, edgecolor='none', pad=2),
     )
+
     add_footer(
         figure,
         'k = 1 and k = N shares overlap at N = 1. Missing frequency rows are zero; the grey triangle is invalid.',
     )
+
     return figure
 
 
@@ -729,6 +751,7 @@ def plot_winner_heatmap(data: AnalysisData) -> Figure:
         '04', 'Where each picker is faster',
         'Signed cost difference: LazySelect − Presort. Orange favors Presort; teal favors LazySelect.',
     )
+
     axes = create_heatmap_panels(figure, data)
     values = np.ma.masked_invalid(data.lazyselect_ns - data.presort_ns)
     color_limit = max(10.0, float(np.max(np.abs(values))))
@@ -755,10 +778,12 @@ def plot_winner_heatmap(data: AnalysisData) -> Figure:
         'LazySelect advantage  ←   cost difference (ns)   →  Presort advantage',
         labelpad=6,
     )
+
     add_footer(
         figure,
         'Symmetric log color scale; linear within ±10 ns. Dashed = first Presort win. Costs are unweighted.',
     )
+
     return figure
 
 
@@ -770,7 +795,8 @@ def add_frontier_detail(figure: Figure, data: AnalysisData) -> None:
     mean_k = mask_sparse_sizes(data.mean_k, data)
     sustained_k = mask_sparse_sizes(data.sustained_presort_k, data)
     first_k = mask_sparse_sizes(data.first_presort_k, data)
-    detail = figure.add_axes([0.675, 0.47, 0.225, 0.20], facecolor=BACKGROUND_COLOR)
+
+    detail = figure.add_axes([0.685, 0.41, 0.225, 0.20], facecolor=BACKGROUND_COLOR)
     detail.fill_between(
         data.n_values, q25_k, q75_k, color=LAZYSELECT_COLOR, alpha=0.11,
     )
@@ -810,13 +836,14 @@ def plot_crossover_frontier(data: AnalysisData) -> Figure:
     first_k = mask_sparse_sizes(data.first_presort_k, data)
     supported_n = data.n_values[data.supported_n]
     visits_percent = data.visits_percent[data.supported_n]
+
     figure = create_page(
         '05', 'Does search reach the break-even point?',
         f'Consumption and benchmark frontiers shown for N with at least '
         f'{MIN_OBSERVATIONS_PER_N:,} observations. Shaded sizes are omitted.',
     )
+
     frontier_axis = figure.add_axes([0.08, 0.345, 0.845, 0.425])
-    frequency_axis = figure.add_axes([0.08, 0.15, 0.845, 0.12], sharex=frontier_axis)
     frontier_axis.fill_between(
         data.n_values, q25_k, q75_k,
         color=LAZYSELECT_COLOR, alpha=0.11, label='Observed middle 50%',
@@ -848,6 +875,7 @@ def plot_crossover_frontier(data: AnalysisData) -> Figure:
     if 0 < data.supported_max_n < data.max_n - 25:
         add_frontier_detail(figure, data)
 
+    frequency_axis = figure.add_axes([0.08, 0.15, 0.845, 0.12], sharex=frontier_axis)
     frequency_axis.bar(
         supported_n, visits_percent, color=FREQUENCY_COLOR, width=0.82,
     )
@@ -855,10 +883,12 @@ def plot_crossover_frontier(data: AnalysisData) -> Figure:
     style_axis(frequency_axis, 'All visits (%)')
     frequency_axis.set_xlabel('Legal moves available, N', labelpad=10)
     frequency_axis.set_ylim(0, max(float(visits_percent.max(initial=0)) * 1.18, 1))
+
     add_footer(
         figure,
         'No marker means no strict win. Mean/median k cannot substitute for frequency-weighted expected cost.',
     )
+
     return figure
 
 
@@ -866,7 +896,8 @@ def add_expected_cost_detail(figure: Figure, data: AnalysisData) -> None:
     """Inset the same sample-filtered conditional costs as the main panel."""
     presort_ns = mask_sparse_sizes(data.expected_presort_ns, data)
     lazyselect_ns = mask_sparse_sizes(data.expected_lazyselect_ns, data)
-    detail = figure.add_axes([0.68, 0.415, 0.22, 0.22], facecolor=BACKGROUND_COLOR)
+
+    detail = figure.add_axes([0.685, 0.41, 0.22, 0.22], facecolor=BACKGROUND_COLOR)
     detail.plot(
         data.n_values, presort_ns, color=PRESORT_COLOR, linewidth=1.8,
     )
@@ -890,13 +921,14 @@ def plot_expected_cost(data: AnalysisData) -> Figure:
     lazyselect_ns = mask_sparse_sizes(data.expected_lazyselect_ns, data)
     supported_n = data.n_values[data.supported_n]
     visits_percent = data.visits_percent[data.supported_n]
+
     figure = create_page(
         '06', 'The best picker depends on list size',
         f'Expected costs shown for N with at least {MIN_OBSERVATIONS_PER_N:,} observations. '
         'The lower strip shows each N’s share of all visits.',
     )
+
     cost_axis = figure.add_axes([0.09, 0.37, 0.83, 0.40])
-    frequency_axis = figure.add_axes([0.09, 0.15, 0.83, 0.145], sharex=cost_axis)
     cost_axis.plot(
         data.n_values, presort_ns, color=PRESORT_COLOR, label='Presort',
     )
@@ -923,6 +955,7 @@ def plot_expected_cost(data: AnalysisData) -> Figure:
     if 0 < data.supported_max_n < data.max_n - 25:
         add_expected_cost_detail(figure, data)
 
+    frequency_axis = figure.add_axes([0.09, 0.15, 0.83, 0.145], sharex=cost_axis)
     bar_colors = []
     for presort, lazyselect in zip(presort_ns[data.supported_n], lazyselect_ns[data.supported_n]):
         if presort < lazyselect:
@@ -937,10 +970,12 @@ def plot_expected_cost(data: AnalysisData) -> Figure:
     style_axis(frequency_axis, 'All visits (%)')
     frequency_axis.set_xlabel('Legal moves available, N', labelpad=10)
     frequency_axis.set_ylim(0, max(float(visits_percent.max(initial=0)) * 1.15, 1))
+
     add_footer(
         figure,
         'E[cost | N] = Σk count(N,k) × cost(N,k) / Σk count(N,k). Bar color = lower conditional mean.',
     )
+
     return figure
 
 
@@ -950,10 +985,12 @@ def plot_workload_impact(data: AnalysisData) -> Figure:
         (data.expected_lazyselect_ns - data.expected_presort_ns)
         * data.invocations_by_n / data.total_invocations
     )
+
     figure = create_page(
         '07', 'Where the total cost difference comes from',
         'Each bar combines prevalence and cost advantage. Together, the bars sum to the global weighted difference.',
     )
+
     impact_axis = figure.add_axes([0.09, 0.37, 0.83, 0.40])
     impact_axis.bar(
         data.n_values, contribution_ns,
@@ -986,10 +1023,12 @@ def plot_workload_impact(data: AnalysisData) -> Figure:
         figure.text(x, 0.225, label, color=MUTED_COLOR, fontsize=9, weight='bold')
         figure.text(x, 0.165, f'{value:.2f} ns', color=TEXT_COLOR, fontsize=25, weight='bold')
         figure.text(x, 0.125, note, color=MUTED_COLOR, fontsize=10)
+
     add_footer(
         figure,
         'N-only choice is fitted on this workload, without dispatch overhead. Future k is unknown when choosing a picker.',
     )
+
     return figure
 
 

@@ -19,7 +19,11 @@
 
 namespace {
 
-std::map<std::string, uint64_t> stockfish_results(StockfishProcess& sf, std::string fen, std::uint8_t depth) {
+std::map<std::string, uint64_t> stockfish_results(
+    StockfishProcess& sf,
+    std::string fen,
+    std::uint8_t depth
+) {
     sendCommand(sf, "position fen " + fen);
     sendCommand(sf, "go perft " + std::to_string(depth));
     std::string unparsed_sf_output = readUntil(sf, "Nodes searched:");
@@ -44,7 +48,10 @@ std::map<std::string, uint64_t> stockfish_results(StockfishProcess& sf, std::str
     return sf_output;
 }
 
-std::expected<std::map<std::string, uint64_t>, std::string> debug_perft(std::string fen_string, std::uint8_t depth) {
+std::expected<std::map<std::string, uint64_t>, std::string> debug_perft(
+    std::string fen_string,
+    std::uint8_t depth
+) {
     Position position(fen_string);
     Position original_pos = position;
     std::map<std::string, uint64_t> divide;
@@ -56,8 +63,10 @@ std::expected<std::map<std::string, uint64_t>, std::string> debug_perft(std::str
 
         if (position != original_pos) {
             return std::unexpected(
-                "undo move bug: applying and reverting move '" + move_notation(move, position, MoveNotation::Uci)
-                + "' from fen '" + fen_string + "', got '" + position.to_fen() + "'.\n"
+                "undo move bug: applying and reverting move '" +
+                move_notation(move, position, MoveNotation::Uci) +
+                "' from fen '" + fen_string +
+                "', got '" + position.to_fen() + "'.\n"
             );
         }
     }
@@ -65,7 +74,11 @@ std::expected<std::map<std::string, uint64_t>, std::string> debug_perft(std::str
     return divide;
 }
 
-std::string stockfish_apply_move(StockfishProcess& sf, std::string fen, std::string move) {
+std::string stockfish_apply_move(
+    StockfishProcess& sf,
+    std::string fen,
+    std::string move
+) {
     sendCommand(sf, "position fen " + fen + " moves " + move);
     sendCommand(sf, "d");
     std::string unparsed_sf_output = readUntil(sf, "Checkers:");
@@ -81,7 +94,11 @@ std::string stockfish_apply_move(StockfishProcess& sf, std::string fen, std::str
     throw StockfishError("Unexpected Stockfish behavior.");
 }
 
-std::string debugger(StockfishProcess& sf, std::string fen, std::uint8_t depth) {
+std::string debugger(
+    StockfishProcess& sf,
+    std::string fen,
+    std::uint8_t depth
+) {
     auto perft_result = debug_perft(fen, depth);
 
     if (!perft_result) {
