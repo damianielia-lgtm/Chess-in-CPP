@@ -4,7 +4,7 @@
 #include <thread>
 #include <chrono>
 
-#include "interface/handle_cli.h"
+#include "interface/cli.h"
 #include "interface/session.h"
 #include "storage/file_manager.h"
 #include "config.h"

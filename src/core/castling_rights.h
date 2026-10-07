@@ -26,7 +26,9 @@ public:
     explicit CastlingOption(CastlingType type) noexcept : encoding_(type) {}
 
     CastlingOption(Color color, CastlingSide side) noexcept {
-        encoding_ = static_cast<CastlingType>((static_cast<std::uint8_t>(color) << 1) | static_cast<std::uint8_t>(side));
+        encoding_ = static_cast<CastlingType>(
+            (static_cast<std::uint8_t>(color) << 1) | static_cast<std::uint8_t>(side)
+        );
     }
 
     explicit CastlingOption(char fen_char) noexcept {

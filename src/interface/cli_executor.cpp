@@ -1,4 +1,4 @@
-#include "handle_cli.h"
+#include "cli.h"
 
 #include <variant>
 #include <optional>
@@ -17,7 +17,6 @@
 #include "../engine/search.h"
 #include "../config.h"
 #include "../errors.h"
-#include "commands.h"
 #include "display.h"
 #include "session.h"
 
@@ -25,16 +24,19 @@ namespace fs = std::filesystem;
 
 namespace {
 
-void execute_impl(const HelpCommand&, Session&, ConfigData&) { print_lines(help_lines()); }
+void execute_impl(const HelpCommand&, Session&, ConfigData&) { print_help(); }
+
 
 void execute_impl(const PlayLocalCommand& cmd, Session& session, ConfigData& config) {
     std::optional<Game> game = play_local(cmd.time, config);
     if (game.has_value()) { session.store_last_game(std::move(*game)); }
 }
+
 void execute_impl(const PlayEngineCommand& cmd, Session& session, ConfigData& config) {
     std::optional<Game> game = play_engine(cmd.player_color, config);
     if (game.has_value()) { session.store_last_game(std::move(*game)); }
 }
+
 void execute_impl(const ReplayCommand& cmd, Session&, ConfigData& config) {
     fs::path dir = make_pgn_path(cmd.name);
     std::vector<std::string> pgn_lines = read_file(dir);
@@ -42,81 +44,105 @@ void execute_impl(const ReplayCommand& cmd, Session&, ConfigData& config) {
     Game game = reconstruct_game(parsed);
     replay(game, config);
 }
+
 void execute_impl(const AnalyzeCommand&, Session& session, ConfigData& config) {
     std::optional<Game> game = analyze(session.current_position(), config, false);
     if (game.has_value()) { session.store_last_game(std::move(*game)); }
 }
 
+
 void execute_impl(const PositionShowCommand&, Session& session, ConfigData& config) {
-    print_lines(construct_board_lines(session.current_position(), config.board_orientation));
+    print_board(session.current_position(), config.board_orientation);
     print_lines({"Fen: \"" + session.current_position().to_fen() + '\"'});
 }
-void execute_impl(const PositionStartposCommand&, Session& session, ConfigData&) { session.reset_pos(); }
-void execute_impl(const PositionFenCommand& cmd, Session& session, ConfigData&) { session.set_pos(cmd.fen); }
+
+void execute_impl(const PositionStartposCommand&, Session& session, ConfigData&) {
+    session.reset_pos();
+}
+
+void execute_impl(const PositionFenCommand& cmd, Session& session, ConfigData&) {
+    session.set_pos(cmd.fen);
+}
+
 void execute_impl(const PositionSavedFenCommand& cmd, Session& session, ConfigData&) {
-    fs::path dir = make_fen_path(cmd.name);
-    std::vector<std::string> lines = read_file(dir);
+    std::vector<std::string> lines = read_file(make_fen_path(cmd.name));
     if (lines.size() != 1) { throw FenError("Saved fen must be one line."); }
     session.set_pos(lines[0]);
 }
+
 void execute_impl(const MoveCommand& cmd, Session& session, ConfigData& config) {
     session.apply_move(resolve_move(cmd.move_string, session.current_position(), config.move_notation));
 }
+
 
 void print_and_save(ReportContents report, Session& session) {
     print_lines(report.text_lines);
     session.store_last_report(std::move(report));
 }
 
+
 void execute_impl(const PerftTestCommand& cmd, Session& session, ConfigData& config) {
     Position position = session.current_position();
     print_and_save(perft_test(position, cmd.depth, config.move_notation), session);
 }
+
 void execute_impl(const PerftTestPresetCommand& cmd, Session& session, ConfigData&) {
     print_and_save(perft_test_preset(cmd.preset), session);
 }
+
 void execute_impl(const PerftBenchmarkCommand& cmd, Session& session, ConfigData&) {
     Position position = session.current_position();
     print_and_save(perft_benchmark(position, cmd.depth), session);
 }
+
 void execute_impl(const PerftBenchmarkPresetCommand& cmd, Session& session, ConfigData&) {
     print_and_save(perft_benchmark_preset(cmd.preset), session);
 }
+
 void execute_impl(const EngineBenchmarkCommand& cmd, Session& session, ConfigData& config) {
     Position position = session.current_position();
     print_and_save(benchmark_engine(position, cmd.depth, config), session);
 }
+
 void execute_impl(const EngineBenchmarkPresetCommand& cmd, Session& session, ConfigData& config) {
     print_and_save(benchmark_engine_preset(cmd.preset, config), session);
 }
+
 void execute_impl(const EngineProfilePruningCommand& cmd, Session& session, ConfigData&) {
     Position position = session.current_position();
     print_and_save(profile_pruning(position, cmd.depth), session);
 }
+
 void execute_impl(const EngineProfilePruningPresetCommand& cmd, Session& session, ConfigData&) {
     print_and_save(profile_pruning_preset(cmd.preset), session);
 }
+
 void execute_impl(const DebugCommand& cmd, Session& session, ConfigData&) {
     print_and_save(debug_pos(session.current_position().to_fen(), cmd.depth), session);
 }
+
 
 void execute_impl(const PgnDeleteCommand& cmd, Session&, ConfigData&) {
     fs::path dir = make_pgn_path(cmd.name);
     delete_file(dir);
 }
+
 void execute_impl(const PgnSaveCommand& cmd, Session& session, ConfigData& config) {
     fs::path dir = make_pgn_path(cmd.name);
     std::vector<std::string> pgn_lines = construct_pgn_lines(session.last_game(), config.pgn_save_clock);
     write_file(dir, pgn_lines);
 }
+
 void execute_impl(const PgnShowCommand& cmd, Session& session, ConfigData&) {
     fs::path dir = make_pgn_path(cmd.name);
     print_lines(read_file(dir));
 }
+
 void execute_impl(const PgnListCommand&, Session&, ConfigData&) {
     std::vector<std::string> files_list = pgn_list();
     print_lines(files_list.empty() ? std::vector<std::string>{"No saved PGN's yet."} : files_list);
 }
+
 void execute_impl(const PgnImportCommand& cmd, Session&, ConfigData&) {    
     std::vector<std::string> external_lines = read_file(cmd.path);
     reconstruct_game(parse_pgn_document(external_lines));
@@ -124,6 +150,7 @@ void execute_impl(const PgnImportCommand& cmd, Session&, ConfigData&) {
     fs::path local_dir = make_pgn_path(cmd.path.stem().string());
     write_file(local_dir, external_lines);
 }
+
 void execute_impl(const PgnExportCommand& cmd, Session&, ConfigData&) {    
     fs::path local_path = make_pgn_path(cmd.name);
     std::vector<std::string> lines = read_file(local_path);
@@ -131,23 +158,28 @@ void execute_impl(const PgnExportCommand& cmd, Session&, ConfigData&) {
     write_file(external_path, lines);
 }
 
+
 void execute_impl(const FenDeleteCommand& cmd, Session&, ConfigData&) {
     fs::path dir = make_fen_path(cmd.name);
     delete_file(dir);
 }
+
 void execute_impl(const FenSaveCommand& cmd, Session& session, ConfigData&) {
     fs::path dir = make_fen_path(cmd.name);
     std::string fen_line = session.current_position().to_fen();
     write_file(dir, {fen_line});
 }
+
 void execute_impl(const FenShowCommand& cmd, Session& session, ConfigData&) {
     fs::path dir = make_fen_path(cmd.name);
     print_lines(read_file(dir));
 }
+
 void execute_impl(const FenListCommand&, Session&, ConfigData&) {
     std::vector<std::string> files_list = fen_list();
     print_lines(files_list.empty() ? std::vector<std::string>{"No saved FEN's yet."} : files_list);
 }
+
 void execute_impl(const FenImportCommand& cmd, Session&, ConfigData&) {
     std::vector<std::string> external_lines = read_file(cmd.path);
     if (external_lines.size() != 1) { throw FenError("Saved fen must be one line."); }
@@ -156,6 +188,7 @@ void execute_impl(const FenImportCommand& cmd, Session&, ConfigData&) {
     fs::path local_dir = make_fen_path(cmd.path.stem().string());
     write_file(local_dir, external_lines);
 }
+
 void execute_impl(const FenExportCommand& cmd, Session&, ConfigData&) {
     fs::path local_path = make_fen_path(cmd.name);
     std::vector<std::string> lines = read_file(local_path);
@@ -163,54 +196,89 @@ void execute_impl(const FenExportCommand& cmd, Session&, ConfigData&) {
     write_file(external_path, lines);
 }
 
+
 void execute_impl(const ReportDeleteCommand& cmd, Session&, ConfigData&) {
     delete_file(make_report_path(cmd.name));
     try {
         delete_file(make_csv_path(cmd.name));
     } catch (StorageError&) {}
 }
+
 void execute_impl(const ReportSaveCommand& cmd, Session& session, ConfigData&) {
     const ReportContents& report = session.last_report();
+    const fs::path text_path = make_report_path(cmd.name);
+    const fs::path csv_path = make_csv_path(cmd.name);
 
-    fs::path dir = make_report_path(cmd.name);
-    write_file(dir, report.text_lines);
+    ensure_path_available(text_path);
+    if (report.csv_lines) { ensure_path_available(csv_path); }
 
-    if (report.csv_lines) {
-        fs::path dir = make_csv_path(cmd.name);
-        write_file(dir, *report.csv_lines);
-    }
+    write_file(text_path, report.text_lines);
+    if (report.csv_lines) { write_file(csv_path, *report.csv_lines); }
 }
+
 void execute_impl(const ReportShowCommand& cmd, Session& session, ConfigData&) {
     fs::path dir = make_report_path(cmd.name);
     print_lines(read_file(dir));
 }
+
 void execute_impl(const ReportListCommand&, Session&, ConfigData&) {
     std::vector<std::string> files_list = report_list();
     print_lines(files_list.empty() ? std::vector<std::string>{"No saved reports yet."} : files_list);
 }
 
+
 void execute_impl(const ConfigShowCommand&, Session&, ConfigData& config) {
-    print_lines(construct_config_show_lines(config));
+    print_config_show(config);
 }
-void execute_impl(const ConfigSetPlayer1Command& cmd, Session&, ConfigData& config) { config.player1_name = cmd.name; }
-void execute_impl(const ConfigSetPlayer2Command& cmd, Session&, ConfigData& config) { config.player2_name = cmd.name; }
-void execute_impl(const ConfigSetEventCommand& cmd, Session&, ConfigData& config) { config.event = cmd.event; }
-void execute_impl(const ConfigSetSiteCommand cmd, Session&, ConfigData& config) { config.site = cmd.site; }
-void execute_impl(const ConfigSetExportClocksCommand& cmd, Session&, ConfigData& config) { config.pgn_save_clock = cmd.export_clocks; }
-void execute_impl(const ConfigSetMoveNotationCommand& cmd, Session&, ConfigData& config) { config.move_notation = cmd.input; }
-void execute_impl(const ConfigSetBoardOrientationCommand& cmd, Session&, ConfigData& config) { config.board_orientation = cmd.orientation; }
-void execute_impl(const ConfigSetEngineDepthCommand& cmd, Session&, ConfigData& config) { config.engine_depth = cmd.depth; }
-void execute_impl(const ConfigSetBenchmarkStatsTrackingCommand& cmd, Session&, ConfigData& config) { config.track_stats = cmd.track_stats; }
+
+void execute_impl(const ConfigSetPlayer1Command& cmd, Session&, ConfigData& config) {
+    config.player1_name = cmd.name;
+}
+
+void execute_impl(const ConfigSetPlayer2Command& cmd, Session&, ConfigData& config) {
+    config.player2_name = cmd.name;
+}
+
+void execute_impl(const ConfigSetEventCommand& cmd, Session&, ConfigData& config) {
+    config.event = cmd.event;
+}
+
+void execute_impl(const ConfigSetSiteCommand cmd, Session&, ConfigData& config) {
+    config.site = cmd.site;
+}
+
+void execute_impl(const ConfigSetExportClocksCommand& cmd, Session&, ConfigData& config) {
+    config.pgn_save_clock = cmd.export_clocks;
+}
+
+void execute_impl(const ConfigSetMoveNotationCommand& cmd, Session&, ConfigData& config) {
+    config.move_notation = cmd.input;
+}
+
+void execute_impl(const ConfigSetBoardOrientationCommand& cmd, Session&, ConfigData& config) {
+    config.board_orientation = cmd.orientation;
+}
+
+void execute_impl(const ConfigSetEngineDepthCommand& cmd, Session&, ConfigData& config) {
+    config.engine_depth = cmd.depth;
+}
+
+void execute_impl(const ConfigSetBenchmarkStatsTrackingCommand& cmd, Session&, ConfigData& config) {
+    config.track_stats = cmd.track_stats;
+}
+
 
 void execute_impl(const EngineStaticEvalCommand&, Session& session, ConfigData&) {
     std::int16_t eval = normalize_centipawn(static_eval(session.current_position()));
     print_lines({"Static eval : " + std::to_string(eval)});
 }
+
 void execute_impl(const EngineDynamicEvalCommand&, Session& session, ConfigData& config) {
     Position position = session.current_position();
     std::int16_t eval = normalize_centipawn(minimax(position, config.engine_depth));
     print_lines({"Minimax eval : " + std::to_string(eval)});
 }
+
 void execute_impl(const EngineBestmoveCommand&, Session& session, ConfigData& config) {
     Position position = session.current_position();
     std::optional<Move> bestmove = pick_best_move(position, config.engine_depth).move;
@@ -222,6 +290,7 @@ void execute_impl(const EngineBestmoveCommand&, Session& session, ConfigData& co
         }
     );
 }
+
 void execute_impl(const EngineRankMovesCommand&, Session& session, ConfigData& config) {
     std::vector<std::string> lines;
     Position position = session.current_position();

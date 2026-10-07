@@ -57,7 +57,9 @@ UndoState Position::apply_move(const Move move) noexcept {
     Piece captured_piece = piece_at(move.target());
 
     UndoState undo_state{};
-    undo_state.captured_piece = (move.is_en_passant()) ? piece_at(move.en_passant_capture()) : piece_at(move.target());
+    undo_state.captured_piece = move.is_en_passant()
+        ? piece_at(move.en_passant_capture())
+        : piece_at(move.target());
     undo_state.castling_rights = castling_rights_;
     undo_state.en_passant_target = en_passant_target_;
     undo_state.halfmove_clock = halfmove_clock_;
@@ -80,7 +82,9 @@ UndoState Position::apply_move(const Move move) noexcept {
         castling_rights_.revoke_from_rook(move.target());
     }
 
-    en_passant_target_ = (move.is_double_pawn()) ? Square((move.origin().index() + move.target().index()) / 2) : Square();
+    en_passant_target_ = move.is_double_pawn()
+        ? Square((move.origin().index() + move.target().index()) / 2)
+        : Square();
 
     if (moving_piece.type() == PieceType::Pawn || move.is_capture()) {
         halfmove_clock_ = 0;

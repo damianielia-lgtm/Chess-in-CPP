@@ -82,9 +82,6 @@ constexpr std::string_view help_content =
     "   engine profile pruning --preset <fast|moderate|extended>                      test engine pruning through the database\n"
     "   engine profile pruning --depth <n>                                            test engine pruning on current position\n"
     "   debug --depth <n>                                                             recusively go through a position and compare with stockfish.\n";
-}
-
-std::vector<std::string> help_lines() { return {std::string(help_content)}; }
 
 std::vector<std::string> construct_board_lines(
     const Position& position,
@@ -152,8 +149,6 @@ std::vector<std::string> construct_board_lines(
 
     return lines;
 }
-
-namespace {
 
 std::string format_time(milliseconds duration) {
     auto hms = hh_mm_ss{duration};
@@ -352,4 +347,36 @@ void GameDisplay::update(const GameSnapshot& game, BoardOrientation board_orient
 void GameDisplay::clear_rendered_area() {
     clear_lines(rendered_line_count_);
     rendered_line_count_ = 0;
+}
+
+void print_help() { std::cout << help_content << '\n'; }
+
+void print_config_show(const ConfigData& config) {
+    std::cout << std::boolalpha
+        << "Player 1               " + config.player1_name << '\n'
+        << "Player 2               " + config.player2_name << '\n'
+        << "Event                  " + config.event << '\n'
+        << "Site                   " + config.site << '\n'
+        << "Export clocks          " + config.pgn_save_clock << '\n'
+        << "Move notation          " + (
+            config.move_notation == MoveNotation::Uci
+                ? std::string("uci")
+                : std::string("san")
+            ) << '\n'
+        << "Board orientation      " + (
+            config.board_orientation == BoardOrientation::White
+                ? std::string("white")
+                : std::string("black")
+            ) << '\n'
+        << "Engine depth           " + std::to_string(config.engine_depth) << '\n'
+        << "Track benchmark stats  " + config.track_stats << '\n'
+        << std::noboolalpha;
+}
+
+void print_board(
+    const Position& position,
+    BoardOrientation orientation,
+    std::optional<Move> move
+) {
+    print_lines(construct_board_lines(position, orientation, move));
 }

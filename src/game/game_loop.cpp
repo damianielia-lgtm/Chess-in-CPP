@@ -23,7 +23,11 @@ void flip_orientation(ConfigData& config) {
         : BoardOrientation::White;
 }
 
-bool handle_navigation(std::string_view input, std::size_t& cursor, std::size_t current_game_length) {
+bool handle_navigation(
+    std::string_view input,
+    std::size_t& cursor,
+    std::size_t current_game_length
+) {
     if (input == "next") {
         if (cursor < current_game_length - 1) { cursor++; }
         return true;
@@ -41,9 +45,16 @@ bool handle_navigation(std::string_view input, std::size_t& cursor, std::size_t 
     return false;
 }
 
-void refresh_display(GameDisplay& display, const Game& game, std::size_t cursor, const ConfigData& config) {
+void refresh_display(
+    GameDisplay& display,
+    const Game& game,
+    std::size_t cursor,
+    const ConfigData& config
+) {
     display.update(
-        cursor == game.snapshot_count() - 1 ? game.live_snapshot() : game.snapshot_at(cursor),
+        cursor == game.snapshot_count() - 1
+            ? game.live_snapshot()
+            : game.snapshot_at(cursor),
         config.board_orientation
     );
     display.clear_error();
@@ -55,9 +66,19 @@ enum class GameInput {
     GameEndedWithoutMove
 };
 
-GameInput try_play_move(std::string_view user_input, Game& game, MoveNotation notation) {
-    if (user_input == "resign") { game.resign(); return GameInput::GameEndedWithoutMove; }
-    if (user_input == "draw") { game.agree_draw(); return GameInput::GameEndedWithoutMove; }
+GameInput try_play_move(
+    std::string_view user_input,
+    Game& game,
+    MoveNotation notation
+) {
+    if (user_input == "resign") {
+        game.resign();
+        return GameInput::GameEndedWithoutMove;
+    }
+    if (user_input == "draw") {
+        game.agree_draw();
+        return GameInput::GameEndedWithoutMove;
+    }
 
     try {
         game.play_move(resolve_move(user_input, game.live_position(), notation));
@@ -80,8 +101,14 @@ TurnOutcome handle_move_input(
 ) {
     display.add_newline_offset();
     
-    if (user_input == "flip") { flip_orientation(config); return TurnOutcome::Continue; }
-    if (handle_navigation(user_input, cursor, game.snapshot_count())) { return TurnOutcome::Continue; }
+    if (user_input == "flip") {
+        flip_orientation(config);
+        return TurnOutcome::Continue;
+    }
+
+    if (handle_navigation(user_input, cursor, game.snapshot_count())) {
+        return TurnOutcome::Continue;
+    }
 
     if (cursor != game.snapshot_count() - 1) {
         display.set_error("Go to the most recent position to play moves.");
@@ -100,11 +127,22 @@ TurnOutcome handle_move_input(
 
 }
 
-std::optional<Game> play_local(std::optional<TimeControl> time_control, ConfigData& config) {
+std::optional<Game> play_local(
+    std::optional<TimeControl> time_control,
+    ConfigData& config
+) {
     using namespace std::chrono;
 
     std::size_t cursor = 0;
-    Game game(config.player1_name, config.player2_name, config.event, config.site, time_control);
+
+    Game game(
+        config.player1_name,
+        config.player2_name,
+        config.event,
+        config.site,
+        time_control
+    );
+    
     GameDisplay display(game.metadata());
 
     while (true) {
@@ -122,7 +160,9 @@ std::optional<Game> play_local(std::optional<TimeControl> time_control, ConfigDa
             if (game.has_ended()) { break; }
         }
 
-        if (handle_move_input(user_input, game, display, config, cursor) == TurnOutcome::Break) { break; }
+        if (handle_move_input(user_input, game, display, config, cursor) == TurnOutcome::Break) {
+            break;
+        }
     }
 
     display.set_result(game.result());
@@ -156,7 +196,9 @@ std::optional<Game> play_engine(Color player_color, ConfigData& config) {
             std::string user_input;
             if (!std::getline(std::cin, user_input)) { return std::nullopt; }
 
-            if (handle_move_input(user_input, game, display, config, cursor) == TurnOutcome::Break) { break; }
+            if (handle_move_input(user_input, game, display, config, cursor) == TurnOutcome::Break) {
+                break;
+            }
         }
     }
 
@@ -166,7 +208,11 @@ std::optional<Game> play_engine(Color player_color, ConfigData& config) {
     return game;
 }
 
-std::optional<Game> analyze(const Position& position, ConfigData& config, bool clear_output_at_end) {
+std::optional<Game> analyze(
+    const Position& position,
+    ConfigData& config,
+    bool clear_output_at_end
+) {
     std::size_t cursor = 0;
     Game game("White", "Black", config.event, config.site, std::nullopt, position);
     GameDisplay display(game.metadata());

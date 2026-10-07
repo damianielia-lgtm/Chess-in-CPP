@@ -43,10 +43,14 @@ void parse_epd_line(const std::string& line, PresetData& data) {
         }
     }
 
+    if (tokens.size() < 2) {
+        throw EpdError("Malformed line.");
+    }
+
     try {
         position = Position(tokens[0]);
     } catch (const FenError&) {
-        throw EpdError("Invalid fen \"" + position.to_fen() + '\"');
+        throw EpdError("Invalid fen \"" + tokens[0] + '\"');
     }
 
     if (!tokens[1].starts_with("id ")) {

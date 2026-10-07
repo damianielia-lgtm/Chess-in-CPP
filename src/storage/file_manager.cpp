@@ -77,10 +77,16 @@ void delete_file(const fs::path& path) try {
     throw StorageIoError("Filesystem error: " + std::string{e.what()});
 }
 
-void write_file(const fs::path& path, const std::vector<std::string>& contents) try {
+void ensure_path_available(const fs::path& path) try {
     if (fs::exists(path)) {
         throw StorageError(path.string() + " already exists.");
     }
+} catch (const fs::filesystem_error& e) {
+    throw StorageIoError("Filesystem error: " + std::string{e.what()});
+}
+
+void write_file(const fs::path& path, const std::vector<std::string>& contents) try {
+    ensure_path_available(path);
 
     std::ofstream output{path};
 

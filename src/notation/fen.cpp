@@ -82,7 +82,7 @@ Position::Position(const std::string_view fen_string) {
                         throw FenError("Too many squares on board");
                     }
 
-                    Square square(static_cast<std::uint8_t>(fen_index ^ 56)); // Reverses rank to fit our indexing
+                    Square square(static_cast<std::uint8_t>(fen_index ^ 56)); // Reverses rank
                     set_piece(square, Piece());
 
                     fen_index++;
@@ -93,7 +93,7 @@ Position::Position(const std::string_view fen_string) {
                     throw FenError("Too many squares on board");
                 }
 
-                Square square(static_cast<std::uint8_t>(fen_index ^ 56)); // Reverses rank to fit our indexing
+                Square square(static_cast<std::uint8_t>(fen_index ^ 56)); // Reverses rank
                 
                 if (token == 'K') {white_kings++;}
                 if (token == 'k') {black_kings++;}

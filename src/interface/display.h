@@ -14,11 +14,11 @@
 
 void print_lines(const std::vector<std::string>& lines);
 
-std::vector<std::string> help_lines();
-
-std::vector<std::string> construct_board_lines(
+void print_help();
+void print_config_show(const ConfigData& config);
+void print_board(
     const Position& position,
-    BoardOrientation board_orientation,
+    BoardOrientation orientation,
     std::optional<Move> move = std::nullopt
 );
 
