@@ -1,100 +1,189 @@
 #include "game.h"
 
-#include <chrono>
-#include <optional>
-#include <cassert>
 #include <algorithm>
+#include <utility>
 
-#include "../core/position.h"
-#include "../core/move.h"
-#include "../core/piece.h"
-#include "../core/square.h"
-#include "../movegen/legal_moves.h"
 #include "../movegen/attacks.h"
+#include "../movegen/legal_moves.h"
 
 namespace {
 
 Square valid_ep_target(const Position& position) {
-    Position modifiable_copy = position;
-
-    for (const Move move : all_moves(modifiable_copy, MoveGeneration::All)) {
-        if (
-            move.is_en_passant() &&
-            move.target() == position.en_passant_target()
-        ) {
+    Position copy = position;
+    for (const Move move : all_moves(copy, MoveGeneration::All)) {
+        if (move.is_en_passant() && move.target() == position.en_passant_target()) {
             return move.target();
         }
     }
-
     return Square();
 }
 
-bool is_repeated_position(const Position& position1, const Position& position2) {
+bool is_repeated_position(const Position& first, const Position& second) {
     for (const Square square : Square::all()) {
-        if (position1.piece_at(square) != position2.piece_at(square)) {
+        if (first.piece_at(square) != second.piece_at(square)) {
             return false;
         }
     }
-
-    if (position1.turn() != position2.turn()) {
-        return false;
-    }
-
-    if (position1.castling_rights() != position2.castling_rights()) {
-        return false;
-    }
-
-    if (valid_ep_target(position1) != valid_ep_target(position2)) {
-        return false;
-    }
-
-    return true;
+    return first.turn() == second.turn()
+        && first.castling_rights() == second.castling_rights()
+        && valid_ep_target(first) == valid_ep_target(second);
 }
 
 bool insufficient_material(const Position& position) {
     int minor_count = 0;
     bool has_knight = false;
-    std::optional<Color> bishop_square_color;
+    std::optional<int> bishop_square_color;
 
     for (const Square square : Square::all()) {
-        Piece piece = position.piece_at(square);
-
-        if (piece.empty() || piece.type() == PieceType::King) {
-            continue;
-        }
-
-        switch (piece.type()) {            
-            case PieceType::Pawn: return false;
-            case PieceType::Rook: return false;
-            case PieceType::Queen: return false;
-
-            case PieceType::Knight: has_knight = true; break;
-
+        const Piece piece = position.piece_at(square);
+        switch (piece.type()) {
+            case PieceType::Empty:
+            case PieceType::King:
+                continue;
+            case PieceType::Knight:
+                has_knight = true;
+                break;
             case PieceType::Bishop: {
-                const Color square_color = (square.rank() + square.file()) % 2 == 0
-                    ? Color::White
-                    : Color::Black;
-                if (bishop_square_color && *bishop_square_color != square_color) {
-                    return false; // bishops on opposite-colored squares
+                const int color = (square.rank() + square.file()) % 2;
+                if (bishop_square_color && *bishop_square_color != color) {
+                    return false;
                 }
-                bishop_square_color = square_color;
+                bishop_square_color = color;
                 break;
             }
+            default:
+                return false;
         }
 
+        // At most two bishops on the same color, or a single minor piece.
         if (++minor_count > 2 || (minor_count == 2 && has_knight)) {
-            return false; // 3+ minors, or 2 minors including a knight
+            return false;
         }
     }
-
     return true;
 }
 
 }
 
+GameSnapshot::GameSnapshot(
+    Position position,
+    std::optional<Move> move,
+    std::vector<Piece> white_captures,
+    std::vector<Piece> black_captures,
+    std::optional<ClockState> clock
+) :
+    position_(std::move(position)),
+    last_move_(move),
+    white_captures_(std::move(white_captures)),
+    black_captures_(std::move(black_captures)),
+    clocks_(clock) {}
+
+int GameSnapshot::material_comparison() const noexcept {
+    int material = 0;
+    for (const Square square : Square::all()) {
+        material += position_.piece_at(square).material_value();
+    }
+    return material;
+}
+
+LiveGameState::LiveGameState(
+    Position position,
+    std::optional<Move> move,
+    std::vector<Piece> white_captures,
+    std::vector<Piece> black_captures,
+    std::optional<ClockState> clock
+) :
+    snapshot_(std::move(position), move, std::move(white_captures), std::move(black_captures), clock) {}
+
+std::chrono::milliseconds& LiveGameState::remaining_time(Color side) noexcept {
+    assert(is_timed_game());
+    return side == Color::White ? snapshot_.clocks_->white_time : snapshot_.clocks_->black_time;
+}
+
+void LiveGameState::consume_time(Color side, std::chrono::milliseconds time_taken) noexcept {
+    auto& time = remaining_time(side);
+    time = std::max(time - time_taken, std::chrono::milliseconds::zero());
+}
+
+void LiveGameState::add_increment(Color side, std::chrono::milliseconds increment) noexcept {
+    remaining_time(side) += increment;
+}
+
+void LiveGameState::play_move(Move move) {
+    snapshot_.last_move_ = move;
+    update_captures(snapshot_.position_.apply_move(move).captured_piece);
+}
+
+void LiveGameState::update_captures(Piece captured_piece) noexcept {
+    if (captured_piece.empty()) { return; }
+    auto& captures = captured_piece.color() == Color::White
+        ? snapshot_.black_captures_
+        : snapshot_.white_captures_;
+    captures.push_back(captured_piece);
+}
+
+Game::Game(
+    std::string white_name,
+    std::string black_name,
+    std::string event,
+    std::string site,
+    std::optional<TimeControl> time,
+    std::optional<Position> starting_pos
+) :
+    metadata_{
+        std::move(white_name), std::move(black_name), std::move(event), std::move(site),
+        time, starting_pos.value_or(Position())
+    },
+    live_state_(
+        metadata_.starting_position, std::nullopt, {}, {},
+        time ? std::optional<ClockState>{{time->initial, time->initial}} : std::nullopt
+    ),
+    snapshots_{live_state_.make_snapshot()} {}
+
+void Game::pop_state() noexcept {
+    assert(snapshots_.size() > 1);
+    snapshots_.pop_back();
+    live_state_ = LiveGameState(snapshots_.back());
+    result_.reset();
+    check_game_end();
+}
+
+void Game::consume_time(std::chrono::milliseconds time_taken) noexcept {
+    assert(!has_ended());
+    assert(is_timed_game());
+    live_state_.consume_time(live_state_.turn(), time_taken);
+}
+
+void Game::play_move(Move move) {
+    assert(!has_ended());
+    const Color mover = live_state_.turn();
+    live_state_.play_move(move);
+    if (is_timed_game()) {
+        live_state_.add_increment(mover, metadata_.time_control->increment);
+    }
+    snapshots_.push_back(live_state_.make_snapshot());
+}
+
+void Game::resign() noexcept {
+    finish(live_state_.turn() == Color::White
+        ? GameResult::Black_by_Resignation
+        : GameResult::White_by_Resignation);
+}
+
+void Game::agree_draw() noexcept {
+    finish(GameResult::Draw_by_Agreement);
+}
+
+void Game::record_unknown_result(GameResult result) noexcept {
+    assert(result == GameResult::White_by_Unknown
+        || result == GameResult::Black_by_Unknown
+        || result == GameResult::Draw_by_Unknown
+        || result == GameResult::Unknown_End);
+    finish(result);
+}
+
 void Game::check_game_end() {
     assert(!has_ended());
-
     if (is_timed_game()) {
         if (live_state_.clock(Color::White) <= std::chrono::milliseconds::zero()) {
             finish(GameResult::Black_by_Timeout);
@@ -108,130 +197,24 @@ void Game::check_game_end() {
 
     Position position = live_state_.position();
     if (all_moves(position, MoveGeneration::All).empty()) {
-        bool in_check = is_attacked_square(
-            position,
-            position.king_square(position.turn()),
-            position.opposite_turn()
+        const bool in_check = is_attacked_square(
+            position, position.king_square(position.turn()), position.opposite_turn()
         );
-        finish(
-            in_check
-            ? ((live_state_.turn() == Color::White)
-                ? GameResult::Black_by_Checkmate
-                : GameResult::White_by_Checkmate)
-            : GameResult::Draw_by_Stalemate
-        );
-    }
-    
-    else if (insufficient_material(position)) {
+        finish(in_check
+            ? (position.turn() == Color::White
+                ? GameResult::Black_by_Checkmate : GameResult::White_by_Checkmate)
+            : GameResult::Draw_by_Stalemate);
+    } else if (insufficient_material(position)) {
         finish(GameResult::Draw_by_InsufficientMaterial);
-    }
-    
-    else if (position.halfmove_clock() >= 100) {
+    } else if (position.halfmove_clock() >= 100) {
         finish(GameResult::Draw_by_FiftyMove);
-    }
-    
-    else {
-        int same_positions_count = 0;
-        for (const GameSnapshot& snapshot : snapshots_) {
-            if (is_repeated_position(position, snapshot.position())) {
-                same_positions_count++;
-            }
-        }
-        if (same_positions_count >= 3) {
+    } else {
+        const auto occurrences = std::count_if(snapshots_.begin(), snapshots_.end(),
+            [&](const GameSnapshot& snapshot) {
+                return is_repeated_position(position, snapshot.position());
+            });
+        if (occurrences >= 3) {
             finish(GameResult::Draw_by_ThreefoldRepetition);
         }
     }
-}
-
-void Game::consume_time(std::chrono::milliseconds time_taken) noexcept {
-    assert(!has_ended());
-    assert(is_timed_game());
-    live_state_.consume_time(live_state_.turn(), time_taken);
-}
-
-void Game::play_move(Move move) {
-    assert(!has_ended());
-
-    Color mover = live_state_.turn();
-
-    live_state_.play_move(move);
-
-    if (is_timed_game()) {
-        live_state_.add_increment(mover, metadata_.time_control->increment);
-    }
-
-    snapshots_.push_back(live_state_.make_snapshot());
-}
-
-void Game::resign() noexcept {
-    assert(!has_ended());
-    finish(
-        live_position().turn() == Color::White
-            ? GameResult::Black_by_Resignation
-            : GameResult::White_by_Resignation
-    );
-}
-
-void Game::agree_draw() noexcept {
-    assert(!has_ended());
-    finish(GameResult::Draw_by_Agreement);
-}
-
-void Game::record_unknown_result(GameResult result) noexcept {
-    assert(
-        result == GameResult::White_by_Unknown ||
-        result == GameResult::Black_by_Unknown ||
-        result == GameResult::Draw_by_Unknown ||
-        result == GameResult::Unknown_End
-    );
-
-    finish(result);
-}
-
-void LiveGameState::consume_time(Color side, std::chrono::milliseconds time_taken) noexcept {
-    assert(is_timed_game());
-
-    if (side == Color::White) {
-        clocks_->white_time -= time_taken;
-        clocks_->white_time = std::max(clocks_->white_time, std::chrono::milliseconds::zero());
-    } else {
-        clocks_->black_time -= time_taken;
-        clocks_->black_time = std::max(clocks_->black_time, std::chrono::milliseconds::zero());
-    }
-}
-
-void LiveGameState::add_increment(Color side, std::chrono::milliseconds increment) noexcept {
-    assert(is_timed_game());
-
-    if (side == Color::White) {
-        clocks_->white_time += increment;
-    } else {
-        clocks_->black_time += increment;
-    }
-}
-
-void LiveGameState::play_move(Move move) {
-    incoming_move_ = move;
-    UndoState move_state = position_.apply_move(move);
-    update_captures(move_state.captured_piece);
-}
-
-void LiveGameState::update_captures(const Piece captured_piece) noexcept {
-    if (!captured_piece.empty()) {
-        if (captured_piece.color() == Color::White) {
-            black_captured_material_.push_back(captured_piece);
-        } else if (captured_piece.color() == Color::Black) {
-            white_captured_material_.push_back(captured_piece);
-        }
-    }
-}
-
-GameSnapshot LiveGameState::make_snapshot() const {
-    return GameSnapshot(
-        position_,
-        incoming_move_,
-        white_captured_material_,
-        black_captured_material_,
-        clocks_
-    );
 }
