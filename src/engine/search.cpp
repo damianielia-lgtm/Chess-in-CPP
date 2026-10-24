@@ -44,7 +44,7 @@ struct TimedSearch {
     }
 };
 
-std::int16_t terminal_eval(const Position& position) {
+std::int16_t terminal_eval(const Position& position, std::uint8_t ply) {
     const Color side = position.turn();
     const Color opponent =
         side == Color::White ? Color::Black : Color::White;
@@ -57,7 +57,7 @@ std::int16_t terminal_eval(const Position& position) {
         return 0;
     }
 
-    return side == Color::White ? -MATE : MATE;
+    return (MATE - ply) * (side == Color::White ? -1 : 1);
 }
 
 template <typename Observer, typename StopControl>
@@ -87,7 +87,7 @@ std::int16_t minimax_impl(
 
     if (legal_moves.empty()) {
         observer.on_leaf();
-        return terminal_eval(position);
+        return terminal_eval(position, ply);
     }
 
     std::int16_t best_eval = maximizing ? -INF : INF;
@@ -151,7 +151,7 @@ SearchedMove pbm_impl(
     
     if (legal_moves.empty()) {
         observer.on_leaf();
-        search_result.eval = terminal_eval(position);
+        search_result.eval = terminal_eval(position, 0);
         return search_result;
     }
 
@@ -210,7 +210,7 @@ SearchedMove iterative_deepening(Position& position, TimeLimits limits) {
     MovesList legal_moves;
     generate_all_moves(legal_moves, position, MoveGeneration::All);
     if (legal_moves.empty()) {
-        return {std::nullopt, terminal_eval(position)};
+        return {std::nullopt, terminal_eval(position, 0)};
     }
 
     SearchedMove best{*legal_moves.begin(), static_eval(position)};
@@ -225,7 +225,7 @@ SearchedMove iterative_deepening(Position& position, TimeLimits limits) {
 
         if (control.expired) { break; }
         best = candidate;
-        if (best.eval == MATE || best.eval == -MATE) { break; }
+        if (abs(best.eval) >= MATE - depth) { break; }
     }
 
     return best;
