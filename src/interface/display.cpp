@@ -36,14 +36,14 @@ constexpr std::string_view help_content =
 
     "Game features\n"
     " - play local { --untimed | --time-control <initial+increment> }\n"
-    " - play engine --player-color {white|black}\n"
+    " - play engine --player-color {white|black} { --untimed | --time-control <initial+increment> }\n"
     " - replay <saved pgn name>\n"
     " - analyze\n\n"
 
     "Engine\n"
     " - engine static-eval\n"
-    " - engine dynamic-eval --depth <n>\n"
-    " - engine bestmove --depth <n>\n"
+    " - engine dynamic-eval { --depth <n> | --time-ms <milliseconds> }\n"
+    " - engine bestmove { --depth <n> | --time-ms <milliseconds> }\n"
     " - engine rank --depth <n>\n\n"
 
     "PGN management\n"
@@ -360,7 +360,6 @@ void print_config_show(const ConfigData& config) {
                 ? std::string("white")
                 : std::string("black")
             ) << '\n'
-        << "Engine depth           " << std::to_string(config.engine_depth) << '\n'
         << "Track benchmark stats  " << config.track_stats << '\n'
         << std::noboolalpha;
 }

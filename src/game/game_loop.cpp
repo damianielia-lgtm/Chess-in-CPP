@@ -15,6 +15,8 @@
 #include "../config.h"
 #include "game.h"
 
+using namespace std::chrono;
+
 namespace {
 
 void flip_orientation(ConfigData& config) {
@@ -131,8 +133,6 @@ std::optional<Game> play_local(
     std::optional<TimeControl> time_control,
     ConfigData& config
 ) {
-    using namespace std::chrono;
-
     std::size_t cursor = 0;
 
     Game game(
@@ -171,14 +171,21 @@ std::optional<Game> play_local(
     return game;
 }
 
-std::optional<Game> play_engine(Color player_color, ConfigData& config) {
+std::optional<Game> play_engine(
+    std::optional<TimeControl> time_control,
+    Color player_color,
+    ConfigData& config
+) {
     std::size_t cursor = 0;
+
     Game game(
         player_color == Color::White ? config.player1_name : "Engine",
         player_color == Color::White ? "Engine" : config.player1_name,
         config.event,
-        config.site
+        config.site,
+        time_control
     );
+
     GameDisplay display(game.metadata());
 
     while (true) {
@@ -186,15 +193,43 @@ std::optional<Game> play_engine(Color player_color, ConfigData& config) {
 
         if (game.live_position().turn() != player_color) {
             Position current_position = game.live_position();
-            game.play_move(*pick_best_move(current_position, config.engine_depth).move);
+            Move engine_move;
 
+            if (game.is_timed_game()) {
+                auto start = steady_clock::now();
+                engine_move = *pbm_timed_game(
+                    current_position,
+                    game.live_snapshot().clock(current_position.turn()),
+                    game.metadata().time_control.value().increment,
+                    std::nullopt
+                ).move;
+                auto end = steady_clock::now();
+                milliseconds time_taken = duration_cast<milliseconds>(end - start);
+
+                game.consume_time(time_taken);
+                game.check_game_end();
+                if (game.has_ended()) { break; }
+            } else {
+                engine_move = *pbm_fixed_time(current_position, milliseconds(1000)).move;
+            }
+
+            game.play_move(engine_move);
             game.check_game_end();
             if (game.has_ended()) { break; }
 
             cursor++;
         } else {
             std::string user_input;
+            auto start = steady_clock::now();
             if (!std::getline(std::cin, user_input)) { return std::nullopt; }
+            auto end = steady_clock::now();
+            milliseconds time_taken = duration_cast<milliseconds>(end - start);
+
+            if (game.is_timed_game()) {
+                game.consume_time(time_taken);
+                game.check_game_end();
+                if (game.has_ended()) { break; }
+            }
 
             if (handle_move_input(user_input, game, display, config, cursor) == TurnOutcome::Break) {
                 break;

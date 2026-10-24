@@ -33,7 +33,7 @@ void execute_impl(const PlayLocalCommand& cmd, Session& session, ConfigData& con
 }
 
 void execute_impl(const PlayEngineCommand& cmd, Session& session, ConfigData& config) {
-    std::optional<Game> game = play_engine(cmd.player_color, config);
+    std::optional<Game> game = play_engine(cmd.time, cmd.player_color, config);
     if (game.has_value()) { session.store_last_game(std::move(*game)); }
 }
 
@@ -259,45 +259,52 @@ void execute_impl(const ConfigSetBoardOrientationCommand& cmd, Session&, ConfigD
     config.board_orientation = cmd.orientation;
 }
 
-void execute_impl(const ConfigSetEngineDepthCommand& cmd, Session&, ConfigData& config) {
-    config.engine_depth = cmd.depth;
-}
-
 void execute_impl(const ConfigSetBenchmarkStatsTrackingCommand& cmd, Session&, ConfigData& config) {
     config.track_stats = cmd.track_stats;
 }
 
 
 void execute_impl(const EngineStaticEvalCommand&, Session& session, ConfigData&) {
-    std::int16_t eval = normalize_centipawn(static_eval(session.current_position()));
-    print_lines({"Static eval : " + std::to_string(eval)});
+    std::int16_t eval = static_eval(session.current_position());
+    print_lines({"Static eval : " + std::to_string(normalize_centipawn(eval))});
 }
 
-void execute_impl(const EngineDynamicEvalCommand&, Session& session, ConfigData& config) {
+void execute_impl(const EngineDynamicEvalTimeCommand& cmd, Session& session, ConfigData&) {
     Position position = session.current_position();
-    std::int16_t eval = normalize_centipawn(minimax(position, config.engine_depth));
-    print_lines({"Minimax eval : " + std::to_string(eval)});
+    std::int16_t eval = pbm_fixed_time(position, cmd.thinking_time).eval;
+    print_lines({"Dynamic eval : " + std::to_string(normalize_centipawn(eval))});
 }
 
-void execute_impl(const EngineBestmoveCommand&, Session& session, ConfigData& config) {
+void execute_impl(const EngineDynamicEvalDepthCommand& cmd, Session& session, ConfigData&) {
     Position position = session.current_position();
-    std::optional<Move> bestmove = pick_best_move(position, config.engine_depth).move;
-    print_lines(
-        {
-            bestmove
-                ? "Best move : " + move_notation(*bestmove, position, config.move_notation)
-                : "No moves available."
-        }
-    );
+    std::int16_t eval = pbm_fixed_depth(position, cmd.depth).eval;
+    print_lines({"Dynamic eval : " + std::to_string(normalize_centipawn(eval))});
 }
 
-void execute_impl(const EngineRankMovesCommand&, Session& session, ConfigData& config) {
+void execute_impl(const EngineBestmoveTimeCommand& cmd, Session& session, ConfigData& config) {
+    Position position = session.current_position();
+    const std::optional<Move> bestmove = pbm_fixed_time(position, cmd.thinking_time).move;
+    std::string line = bestmove
+        ? "Best move : " + move_notation(*bestmove, position, config.move_notation)
+        : "No moves available.";
+    print_lines({line});
+}
+
+void execute_impl(const EngineBestmoveDepthCommand& cmd, Session& session, ConfigData& config) {
+    Position position = session.current_position();
+    const std::optional<Move> bestmove = pbm_fixed_depth(position, cmd.depth).move;
+    std::string line = bestmove
+        ? "Best move : " + move_notation(*bestmove, position, config.move_notation)
+        : "No moves available.";
+    print_lines({line});
+}
+
+void execute_impl(const EngineRankMovesCommand& cmd, Session& session, ConfigData& config) {
+    Position position = session.current_position();
+    std::vector<SearchedMove> moves = rank_moves(position, cmd.depth);
+
     std::vector<std::string> lines;
-    Position position = session.current_position();
-
-    std::vector<SearchedMove> moves = rank_moves(position, config.engine_depth);
     int rank = 1;
-
     for (const SearchedMove& move : moves) {
         lines.push_back(
             std::to_string(rank) + ". " +
@@ -307,7 +314,6 @@ void execute_impl(const EngineRankMovesCommand&, Session& session, ConfigData& c
 
         rank++;
     }
-
     print_lines(lines);
 }
 

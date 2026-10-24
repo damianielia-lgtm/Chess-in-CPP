@@ -65,7 +65,7 @@ void interpret_histogram(
 
 ReportContents profile_pruning(Position& position, std::uint8_t depth) {
     PruningObserver observer{};
-    pick_best_move<PruningObserver>(position, depth, observer);
+    pbm_fixed_depth_stats<PruningObserver>(position, depth, observer);
 
     ReportContents report;
 
@@ -84,7 +84,7 @@ ReportContents profile_pruning_preset(Preset preset) {
 
     PruningObserver observer{};
     for (TestCase suite : test_info.suites) {
-        pick_best_move<PruningObserver>(suite.position, suite.depth, observer);
+        pbm_fixed_depth_stats<PruningObserver>(suite.position, suite.depth, observer);
         progress.advance(suite.expected);
     }
 

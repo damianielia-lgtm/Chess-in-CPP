@@ -23,7 +23,6 @@ std::vector<std::string> construct_config_save_lines(const ConfigData& config) {
         "export_clocks=" + (config.pgn_save_clock ? std::string("true") : std::string("false")),
         "move_notation=" + (config.move_notation == MoveNotation::Uci ? std::string("uci") : std::string("san")),
         "board_orientation=" + (config.board_orientation == BoardOrientation::White ? std::string("white") : std::string("black")),
-        "engine_depth=" + std::to_string(config.engine_depth),
         "benchmark_track_stats=" + (config.track_stats ? std::string("true") : std::string("false"))
     };
 }
@@ -64,7 +63,6 @@ ConfigData load_saved_config() {
     bool found_export_clocks = false;
     bool found_move_notation = false;
     bool found_board_orientation = false;
-    bool found_engine_depth = false;
     bool found_benchmark_track_stats = false;
 
     for (const std::string& line : read_file(config_dir)) {
@@ -145,22 +143,6 @@ ConfigData load_saved_config() {
                 } else {
                     throw ConfigError("Unrecognized board_orientation config value.");
                 }
-            }
-        } else if (field == "engine_depth") {
-            if (found_engine_depth) {
-                throw ConfigError("Repeated engine_depth configuration.");
-            } else {
-                found_engine_depth = true;
-
-                if (value.empty() || value.length() > 2) { throw ConfigError("Invalid engine depth."); }
-                for (unsigned char c : value) {
-                    if (!std::isdigit(c)) { throw ConfigError("Invalid engine depth."); }
-                }
-
-                std::uint8_t depth = std::stoi(value);
-                if (depth > 16) { throw ConfigError("Invalid engine depth."); }
-
-                data.engine_depth = depth;
             }
         } else if (field == "benchmark_track_stats") {
             if (found_benchmark_track_stats) {

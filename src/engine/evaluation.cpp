@@ -207,8 +207,6 @@ constexpr std::array<std::array<std::int16_t, 64>, 15> blend_scores(
 constexpr std::array<std::array<std::int16_t, 64>, 15> MG_TOTAL = blend_scores(MG_PSQT, MG_PPV);
 constexpr std::array<std::array<std::int16_t, 64>, 15> EG_TOTAL = blend_scores(EG_PSQT, EG_PPV);
 
-constexpr std::uint8_t MAX_PHASE = 24;
-
 std::uint8_t piece_phase_score(PieceType piece) {
     assert(piece != PieceType::Empty);
     switch (piece) {
@@ -219,6 +217,14 @@ std::uint8_t piece_phase_score(PieceType piece) {
         case PieceType::Queen: return 4;
         case PieceType::King: return 0;
     }
+}
+
+std::uint8_t get_phase(const Position& position) {
+    std::uint8_t phase = 0;
+    for (const Square square : Square::all()) {
+        phase += piece_phase_score(position.piece_at(square).type());
+    }
+    return phase;
 }
 
 std::int16_t static_eval(const Position& position) {

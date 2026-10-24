@@ -11,6 +11,8 @@
 #include "../game/game.h"
 #include "../errors.h"
 
+using namespace std::chrono;
+
 namespace {
 
 void check_token_count(const std::vector<std::string>& tokens, std::size_t count) {
@@ -59,7 +61,7 @@ std::vector<std::string> tokenizer(const std::string_view line) {
 }
 
 Command parse_position(const std::vector<std::string>& tokens) {
-    std::string position_command = require_token(tokens, 1);
+    const std::string& position_command = require_token(tokens, 1);
     if (position_command == "show") {
         check_token_count(tokens, 2);
         return PositionShowCommand{};
@@ -103,20 +105,19 @@ TimeControl parse_time(const std::string_view time) {
     std::string increment{time.substr(first + 1)};
 
     TimeControl time_control;
-    time_control.initial = std::chrono::seconds{parse_number_string(initial)};
-    time_control.increment = std::chrono::seconds{parse_number_string(increment)};
+    time_control.initial = seconds{parse_number_string(initial)};
+    time_control.increment = seconds{parse_number_string(increment)};
     
     return time_control;
 }
 
 Command parse_game(const std::vector<std::string>& tokens) {
-    std::string game_command = require_token(tokens, 1);
+    const std::string& game_command = require_token(tokens, 1);
     if (game_command == "local") {
-        std::string local_command = require_token(tokens, 2);
+        const std::string& local_command = require_token(tokens, 2);
         if (local_command == "--time-control") {
             check_token_count(tokens, 4);
-            std::string time_command = tokens[3];
-            return PlayLocalCommand{parse_time(time_command)};
+            return PlayLocalCommand{parse_time(tokens[3])};
         } if (local_command == "--untimed") {
             check_token_count(tokens, 3);
             return PlayLocalCommand{};
@@ -124,19 +125,28 @@ Command parse_game(const std::vector<std::string>& tokens) {
             throw CommandError("Unrecognized play local command.");
         }
     } else if (game_command == "engine") {
-        std::string engine_command = require_token(tokens, 2);
-        if (engine_command == "--player-color") {
-            check_token_count(tokens, 4);
-            std::string player_color = tokens[3];
-            if (player_color == "white") {
-                return PlayEngineCommand{Color::White};
-            } else if (player_color == "black") {
-                return PlayEngineCommand{Color::Black};
-            } else {
-                throw CommandError("Invalid player color.");
-            }
-        } else {
+        if (require_token(tokens, 2) != "--player-color") {
             throw CommandError("Unrecognized play engine command.");
+        }
+        const std::string& player_color_field = require_token(tokens, 3);
+        Color player_color;
+        if (player_color_field == "white") {
+            player_color = Color::White;
+        } else if (player_color_field == "black") {
+            player_color = Color::Black;
+        } else {
+            throw CommandError("Invalid player color.");
+        }
+
+        const std::string& time_control_field = require_token(tokens, 4);
+        if (time_control_field == "--time-control") {
+            check_token_count(tokens, 6);
+            return PlayEngineCommand{parse_time(tokens[5]), player_color};
+        } else if (time_control_field == "--untimed") {
+            check_token_count(tokens, 5);
+            return PlayEngineCommand{std::nullopt, player_color};
+        } else {
+            throw CommandError("Unrecognized play local command.");
         }
     } else {
         throw CommandError("Unrecognized play command.");
@@ -163,21 +173,21 @@ std::uint8_t parse_depth(std::string depth_string) {
 
 Command parse_perft(const std::vector<std::string>& tokens) {
     check_token_count(tokens, 4);
-    std::string perft_command = tokens[1];
+    const std::string& perft_command = tokens[1];
     if (perft_command == "test") {
-        std::string perft_test_command = tokens[2];
-        if (perft_test_command == "--preset") {
+        const std::string& test_mode = tokens[2];
+        if (test_mode == "--preset") {
             return PerftTestPresetCommand{parse_preset(tokens[3])};
-        } else if (perft_test_command == "--depth") {
+        } else if (test_mode == "--depth") {
             return PerftTestCommand{parse_depth(tokens[3])};
         } else {
             throw CommandError("Unrecognized perft test command.");
         }
     } else if (perft_command == "benchmark") {
-        std::string perft_benchmark_command = tokens[2];
-        if (perft_benchmark_command == "--preset") {
+        const std::string& benchmark_mode = tokens[2];
+        if (benchmark_mode == "--preset") {
             return PerftBenchmarkPresetCommand{parse_preset(tokens[3])};
-        } else if (perft_benchmark_command == "--depth") {
+        } else if (benchmark_mode == "--depth") {
             return PerftBenchmarkCommand{parse_depth(tokens[3])};
         } else {
             throw CommandError("Unrecognized perft benchmark command.");
@@ -189,7 +199,7 @@ Command parse_perft(const std::vector<std::string>& tokens) {
 
 Command parse_debug(const std::vector<std::string>& tokens) {
     check_token_count(tokens, 3);
-    std::string debug_command = tokens[1];
+    const std::string& debug_command = tokens[1];
     if (debug_command == "--depth") {
         return DebugCommand{parse_depth(tokens[2])};
     } else {
@@ -198,7 +208,7 @@ Command parse_debug(const std::vector<std::string>& tokens) {
 }
 
 Command parse_pgn(const std::vector<std::string>& tokens) {
-    std::string pgn_command = require_token(tokens, 1);
+    const std::string& pgn_command = require_token(tokens, 1);
     if (pgn_command == "save") {
         check_token_count(tokens, 3);
         return PgnSaveCommand{tokens[2]};
@@ -223,7 +233,7 @@ Command parse_pgn(const std::vector<std::string>& tokens) {
 }
 
 Command parse_fen(const std::vector<std::string>& tokens) {
-    std::string fen_command = require_token(tokens, 1);
+    const std::string& fen_command = require_token(tokens, 1);
     if (fen_command == "save") {
         check_token_count(tokens, 3);
         return FenSaveCommand{tokens[2]};
@@ -248,7 +258,7 @@ Command parse_fen(const std::vector<std::string>& tokens) {
 }
 
 Command parse_report(const std::vector<std::string>& tokens) {
-    std::string report_command = require_token(tokens, 1);
+    const std::string& report_command = require_token(tokens, 1);
     if (report_command == "save") {
         check_token_count(tokens, 3);
         return ReportSaveCommand{tokens[2]};
@@ -267,13 +277,13 @@ Command parse_report(const std::vector<std::string>& tokens) {
 }
 
 Command parse_config(const std::vector<std::string>& tokens) {
-    std::string config_command = require_token(tokens, 1);
+    const std::string& config_command = require_token(tokens, 1);
     if (config_command == "show") {
         check_token_count(tokens, 2);
         return ConfigShowCommand{};
     } else if (config_command == "set") {
-        std::string set_field = require_token(tokens, 2);
-        std::string set_value = require_token(tokens, 3);
+        const std::string& set_field = require_token(tokens, 2);
+        const std::string& set_value = require_token(tokens, 3);
         check_token_count(tokens, 4);
         if (set_field == "player-1") {
             return ConfigSetPlayer1Command{set_value};
@@ -307,8 +317,6 @@ Command parse_config(const std::vector<std::string>& tokens) {
             } else {
                 throw CommandError("Unrecognized board-orientation value.");
             }
-        } else if (set_field == "engine-depth") {
-            return ConfigSetEngineDepthCommand{static_cast<std::uint8_t>(parse_depth(set_value))};
         } else if (set_field == "track-benchmark-stats") {
             if (set_value == "true") {
                 return ConfigSetBenchmarkStatsTrackingCommand{true};
@@ -326,37 +334,55 @@ Command parse_config(const std::vector<std::string>& tokens) {
 }
 
 Command parse_engine(const std::vector<std::string>& tokens) {
-    std::string engine_command = require_token(tokens, 1);;
+    const std::string& engine_command = require_token(tokens, 1);
     if (engine_command == "static-eval") {
         check_token_count(tokens, 2);
         return EngineStaticEvalCommand{};
     } else if (engine_command == "dynamic-eval") {
-        check_token_count(tokens, 2);
-        return EngineDynamicEvalCommand{};
+        check_token_count(tokens, 4);
+        const std::string& search_limit = tokens[2];
+        if (search_limit == "--time-ms") {
+            return EngineDynamicEvalTimeCommand{milliseconds{parse_number_string(tokens[3])}};
+        } else if (search_limit == "--depth") {
+            return EngineDynamicEvalDepthCommand{parse_depth(tokens[3])};
+        } else {
+            throw CommandError("Unrecognized engine dynamic-eval command.");
+        }
     } else if (engine_command == "bestmove") {
-        check_token_count(tokens, 2);
-        return EngineBestmoveCommand{};
+        check_token_count(tokens, 4);
+        const std::string& search_limit = tokens[2];
+        if (search_limit == "--time-ms") {
+            return EngineBestmoveTimeCommand{milliseconds{parse_number_string(tokens[3])}};
+        } else if (search_limit == "--depth") {
+            return EngineBestmoveDepthCommand{parse_depth(tokens[3])};
+        } else {
+            throw CommandError("Unrecognized engine bestmove command.");
+        }
     } else if (engine_command == "rank") {
-        check_token_count(tokens, 2);
-        return EngineRankMovesCommand{};
+        check_token_count(tokens, 4);
+        if (tokens[2] == "--depth") {
+            return EngineRankMovesCommand{parse_depth(tokens[3])};
+        } else {
+            throw CommandError("Unrecognized engine bestmove command.");
+        }
     } else if (engine_command == "benchmark") {
         check_token_count(tokens, 4);
-        std::string engine_benchmark_command = tokens[2];
-        if (engine_benchmark_command == "--preset") {
+        const std::string& benchmark_setting = tokens[2];
+        if (benchmark_setting == "--preset") {
             return EngineBenchmarkPresetCommand{parse_preset(tokens[3])};
-        } else if (engine_benchmark_command == "--depth") {
+        } else if (benchmark_setting == "--depth") {
             return EngineBenchmarkCommand{parse_depth(tokens[3])};
         } else {
             throw CommandError("Unrecognized engine benchmark command.");
         }
     } else if (engine_command == "profile") {
         check_token_count(tokens, 5);
-        std::string engine_profile_command = tokens[2];
-        if (engine_profile_command == "pruning") {
-            std::string engine_profile_move_ordering_command = tokens[3];
-            if (engine_profile_move_ordering_command == "--preset") {
+        const std::string& profile_mode = tokens[2];
+        if (profile_mode == "pruning") {
+            const std::string& profile_setting = tokens[3];
+            if (profile_setting == "--preset") {
                 return EngineProfilePruningPresetCommand{parse_preset(tokens[4])};
-            } else if (engine_profile_move_ordering_command == "--depth") {
+            } else if (profile_setting == "--depth") {
                 return EngineProfilePruningCommand{parse_depth(tokens[4])};
             } else {
                 throw CommandError("Unrecognized engine profile pruning command.");
@@ -373,7 +399,7 @@ Command parse_engine(const std::vector<std::string>& tokens) {
 
 Command parse(std::string line) {
     std::vector<std::string> tokens = tokenizer(line);
-    std::string base_command = require_token(tokens, 0);
+    const std::string& base_command = require_token(tokens, 0);
     if (base_command == "position") {
         return parse_position(tokens);
     } else if (base_command == "move") {

@@ -12,10 +12,37 @@
 #include "../movegen/attacks.h"
 #include "evaluation.h"
 
+using namespace std::chrono;
+
 namespace {
 
 constexpr std::int16_t INF = 32767;
 constexpr std::int16_t MATE = 32766;
+
+struct UnlimitedSearch {
+    static constexpr bool expired = false;
+    bool stop_soft() const noexcept { return false; }
+    bool stop_hard() const noexcept { return false; }
+};
+
+struct TimedSearch {
+    milliseconds soft_budget;
+    milliseconds hard_budget;
+    bool expired = false;
+    steady_clock::time_point start = steady_clock::now();
+    std::uint64_t node_counter = 0;
+
+    bool stop_soft() noexcept {
+        return expired || duration_cast<milliseconds>(steady_clock::now() - start) >= soft_budget;
+    }
+
+    bool stop_hard() noexcept {
+        if (expired) { return true; }
+        if ((node_counter++ & 2047) != 0) { return false; }
+        expired = expired || duration_cast<milliseconds>(steady_clock::now() - start) >= hard_budget;
+        return expired;
+    }
+};
 
 std::int16_t terminal_eval(const Position& position) {
     const Color side = position.turn();
@@ -33,7 +60,7 @@ std::int16_t terminal_eval(const Position& position) {
     return side == Color::White ? -MATE : MATE;
 }
 
-template <typename Observer>
+template <typename Observer, typename StopControl>
 std::int16_t minimax_impl(
     Position& position,
     std::uint8_t depth,
@@ -41,7 +68,8 @@ std::int16_t minimax_impl(
     MoveListStack& move_lists,
     std::int16_t alpha,
     std::int16_t beta,
-    Observer& observer
+    Observer& observer,
+    StopControl& control
 ) {
     observer.on_node();
 
@@ -49,6 +77,8 @@ std::int16_t minimax_impl(
         observer.on_leaf();
         return static_eval(position);
     }
+
+    if (control.stop_hard()) { return 0; }
 
     MovesList& legal_moves = move_lists[ply];
     generate_all_moves(legal_moves, position, MoveGeneration::All);
@@ -66,10 +96,21 @@ std::int16_t minimax_impl(
 
     for (const Move move : legal_moves) {
         UndoState move_state = position.apply_move(move);
-        std::int16_t score =
-            minimax_impl(position, depth - 1, ply + 1, move_lists, alpha, beta, observer);
+
+        std::int16_t score = minimax_impl(
+            position,
+            depth - 1,
+            ply + 1,
+            move_lists,
+            alpha,
+            beta,
+            observer,
+            control
+        );
+
         position.revert_move(move, move_state);
 
+        if (control.expired) { return 0; }
         probe.searched_move();
 
         if (maximizing) {
@@ -90,53 +131,12 @@ std::int16_t minimax_impl(
     return best_eval;
 }
 
-}
-
-std::int16_t minimax(Position& position, std::uint8_t depth) {
-    MoveListStack move_lists;
-    NullObserver observer;
-    std::int16_t eval =
-        minimax_impl(position, depth, 0, move_lists, -INF, INF, observer);
-    return eval;
-}
-
-std::vector<SearchedMove> rank_moves(Position& position, std::uint8_t depth) {
-    assert(depth > 0);
-
-    MoveListStack move_lists;
-    MovesList& legal_moves = move_lists[0];
-    generate_all_moves(legal_moves, position, MoveGeneration::All);
-
-    NullObserver observer;
-    std::vector<SearchedMove> ranked_moves;
-    ranked_moves.reserve(legal_moves.size());
-
-    for (const Move move : legal_moves) {
-        UndoState move_state = position.apply_move(move);
-        std::int16_t score =
-            minimax_impl(position, depth - 1, 1, move_lists, -INF, INF, observer);
-        position.revert_move(move, move_state);
-
-        ranked_moves.push_back({move, score});
-    }
-
-    bool maximizing = position.turn() == Color::White;
-    std::sort(
-        ranked_moves.begin(),
-        ranked_moves.end(),
-        [maximizing](const SearchedMove& a, const SearchedMove& b) {
-            return maximizing ? a.eval > b.eval : a.eval < b.eval;
-        }
-    );
-
-    return ranked_moves;
-}
-
-template <typename Observer>
-SearchedMove pick_best_move(
+template <typename Observer, typename StopControl>
+SearchedMove pbm_impl(
     Position& position,
     std::uint8_t depth,
-    Observer& observer
+    Observer& observer,
+    StopControl& control
 ) {
     assert(depth > 0);
 
@@ -170,11 +170,13 @@ SearchedMove pick_best_move(
             move_lists,
             alpha,
             beta,
-            observer
+            observer,
+            control
         );
 
         position.revert_move(move, move_state);
 
+        if (control.expired) { return search_result; }
         probe.searched_move();
 
         if (
@@ -197,11 +199,129 @@ SearchedMove pick_best_move(
     return search_result;
 }
 
-template SearchedMove pick_best_move<NullObserver>(Position& position, std::uint8_t depth, NullObserver& observer);
-template SearchedMove pick_best_move<BasicStatsObserver>(Position& position, std::uint8_t depth, BasicStatsObserver& observer);
-template SearchedMove pick_best_move<PruningObserver>(Position& position, std::uint8_t depth, PruningObserver& observer);
+struct TimeLimits {
+    milliseconds soft;
+    milliseconds hard;
+};
 
-SearchedMove pick_best_move(Position& position, std::uint8_t depth) {
+SearchedMove iterative_deepening(Position& position, TimeLimits limits) {
+    TimedSearch control{limits.soft, limits.hard};
+
+    MovesList legal_moves;
+    generate_all_moves(legal_moves, position, MoveGeneration::All);
+    if (legal_moves.empty()) {
+        return {std::nullopt, terminal_eval(position)};
+    }
+
+    SearchedMove best{*legal_moves.begin(), static_eval(position)};
     NullObserver observer;
-    return pick_best_move(position, depth, observer);
+
+    for (std::uint8_t depth = 1; depth <= max_ply; depth++) {
+        if (depth > 1 && control.stop_soft()) { break; }
+
+        const SearchedMove candidate = pbm_impl(
+            position, depth, observer, control
+        );
+
+        if (control.expired) { break; }
+        best = candidate;
+        if (best.eval == MATE || best.eval == -MATE) { break; }
+    }
+
+    return best;
+}
+
+}
+
+std::vector<SearchedMove> rank_moves(Position& position, std::uint8_t depth) {
+    assert(depth > 0);
+
+    MoveListStack move_lists;
+    MovesList& legal_moves = move_lists[0];
+    generate_all_moves(legal_moves, position, MoveGeneration::All);
+
+    NullObserver observer;
+    UnlimitedSearch control;
+    std::vector<SearchedMove> ranked_moves;
+    ranked_moves.reserve(legal_moves.size());
+
+    for (const Move move : legal_moves) {
+        UndoState move_state = position.apply_move(move);
+
+        std::int16_t score = minimax_impl(
+            position,
+            depth - 1,
+            1,
+            move_lists,
+            -INF,
+            INF,
+            observer,
+            control
+        );
+
+        position.revert_move(move, move_state);
+
+        ranked_moves.push_back({move, score});
+    }
+
+    bool maximizing = position.turn() == Color::White;
+    std::sort(
+        ranked_moves.begin(),
+        ranked_moves.end(),
+        [maximizing](const SearchedMove& a, const SearchedMove& b) {
+            return maximizing ? a.eval > b.eval : a.eval < b.eval;
+        }
+    );
+
+    return ranked_moves;
+}
+
+template <typename Observer>
+SearchedMove pbm_fixed_depth_stats(
+    Position& position,
+    std::uint8_t depth,
+    Observer& observer
+) {
+    UnlimitedSearch control;
+    return pbm_impl(position, depth, observer, control);
+}
+
+template SearchedMove pbm_fixed_depth_stats<NullObserver>(Position& position, std::uint8_t depth, NullObserver& observer);
+template SearchedMove pbm_fixed_depth_stats<BasicStatsObserver>(Position& position, std::uint8_t depth, BasicStatsObserver& observer);
+template SearchedMove pbm_fixed_depth_stats<PruningObserver>(Position& position, std::uint8_t depth, PruningObserver& observer);
+
+SearchedMove pbm_fixed_depth(Position& position, std::uint8_t depth) {
+    NullObserver observer;
+    UnlimitedSearch control;
+    return pbm_impl(position, depth, observer, control);
+}
+
+SearchedMove pbm_fixed_time(Position& position, milliseconds thinking_time) {
+    return iterative_deepening(position, {thinking_time, thinking_time});
+}
+
+SearchedMove pbm_timed_game(
+    Position& position,
+    milliseconds remaining,
+    milliseconds increment,
+    std::optional<int> moves_to_go
+) {
+    remaining = std::max(remaining, milliseconds{0});
+    increment = std::max(increment, milliseconds{0});
+
+    const milliseconds reserve = std::min(milliseconds{50}, remaining / 10);
+    const milliseconds available = remaining - reserve;
+
+    const int estimated_moves = 20 + 20 * get_phase(position) / MAX_PHASE;
+    const int horizon = moves_to_go
+        ? std::max(1, *moves_to_go)
+        : estimated_moves;
+
+    const milliseconds soft = std::min(
+        available,
+        available / horizon + (increment / 4) * 3
+    );
+    const milliseconds hard = soft + std::min(available - soft, soft * 2);
+
+    return iterative_deepening(position, {soft, hard});
 }

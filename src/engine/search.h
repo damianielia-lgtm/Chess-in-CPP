@@ -5,12 +5,11 @@
 #include <vector>
 #include <array>
 #include <cassert>
+#include <chrono>
 
 #include "../core/position.h"
 #include "../core/move.h"
 #include "../movegen/legal_moves.h"
-
-std::int16_t minimax(Position& position, std::uint8_t depth);
 
 struct SearchedMove {
     std::optional<Move> move;
@@ -83,7 +82,17 @@ struct PruningObserver {
 };
 
 template <typename Observer>
-SearchedMove pick_best_move(Position& position, std::uint8_t depth, Observer& observer);
+SearchedMove pbm_fixed_depth_stats(Position& position, std::uint8_t depth, Observer& observer);
 
-SearchedMove pick_best_move(Position& position, std::uint8_t depth);
+SearchedMove pbm_fixed_depth(Position& position, std::uint8_t depth);
+
+SearchedMove pbm_fixed_time(Position& position, std::chrono::milliseconds thinking_time);
+
+SearchedMove pbm_timed_game(
+    Position& position,
+    std::chrono::milliseconds remaining,
+    std::chrono::milliseconds increment,
+    std::optional<int> moves_to_go
+);
+
 std::vector<SearchedMove> rank_moves(Position& position, std::uint8_t depth);

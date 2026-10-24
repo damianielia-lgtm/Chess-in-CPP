@@ -5,6 +5,7 @@
 #include <optional>
 #include <filesystem>
 #include <cstdint>
+#include <chrono>
 
 #include "../storage/presets.h"
 #include "../game/game.h"
@@ -14,7 +15,7 @@
 struct HelpCommand {};
 
 struct PlayLocalCommand { std::optional<TimeControl> time; };
-struct PlayEngineCommand { Color player_color; };
+struct PlayEngineCommand { std::optional<TimeControl> time; Color player_color; };
 struct ReplayCommand { std::string name; };
 struct AnalyzeCommand {};
 
@@ -61,13 +62,14 @@ struct ConfigSetSiteCommand { std::string site; };
 struct ConfigSetExportClocksCommand { bool export_clocks; };
 struct ConfigSetMoveNotationCommand { MoveNotation input; };
 struct ConfigSetBoardOrientationCommand { BoardOrientation orientation; };
-struct ConfigSetEngineDepthCommand { std::uint8_t depth; };
 struct ConfigSetBenchmarkStatsTrackingCommand { bool track_stats; };
 
 struct EngineStaticEvalCommand {};
-struct EngineDynamicEvalCommand {};
-struct EngineBestmoveCommand {};
-struct EngineRankMovesCommand {};
+struct EngineDynamicEvalTimeCommand { std::chrono::milliseconds thinking_time; };
+struct EngineDynamicEvalDepthCommand { std::uint8_t depth; };
+struct EngineBestmoveTimeCommand { std::chrono::milliseconds thinking_time; };
+struct EngineBestmoveDepthCommand { std::uint8_t depth; };
+struct EngineRankMovesCommand { std::uint8_t depth; };
 
 using Command = std::variant<
     HelpCommand,
@@ -120,12 +122,13 @@ using Command = std::variant<
     ConfigSetExportClocksCommand,
     ConfigSetMoveNotationCommand,
     ConfigSetBoardOrientationCommand,
-    ConfigSetEngineDepthCommand,
     ConfigSetBenchmarkStatsTrackingCommand,
 
     EngineStaticEvalCommand,
-    EngineDynamicEvalCommand,
-    EngineBestmoveCommand,
+    EngineDynamicEvalTimeCommand,
+    EngineDynamicEvalDepthCommand,
+    EngineBestmoveTimeCommand,
+    EngineBestmoveDepthCommand,
     EngineRankMovesCommand
 >;
 

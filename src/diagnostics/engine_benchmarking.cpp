@@ -21,9 +21,9 @@ using namespace std::chrono;
 
 void warmup() {
     Position test_pos("startpos");
-    pick_best_move(test_pos, 6);
-    pick_best_move(test_pos, 6);
-    pick_best_move(test_pos, 6);
+    pbm_fixed_depth(test_pos, 6);
+    pbm_fixed_depth(test_pos, 6);
+    pbm_fixed_depth(test_pos, 6);
 }
 
 template <typename Observer>
@@ -36,9 +36,9 @@ std::vector<std::string> benchmark_engine_impl(
     Observer observer{};
 
     auto start = steady_clock::now();
-    SearchedMove search_result = pick_best_move(position, depth, observer);
-    auto end = steady_clock::now();    
-    duration<double> dur = end - start; 
+    SearchedMove search_result = pbm_fixed_depth_stats(position, depth, observer);
+    auto end = steady_clock::now();
+    duration<double> dur = end - start;
 
     if (!search_result.move) {
         return std::vector<std::string>{"No legal moves."};
@@ -85,7 +85,7 @@ std::vector<std::string> benchmark_engine_preset_impl(Preset preset, const Confi
         Observer observer{};
 
         auto start = steady_clock::now();
-        SearchedMove search_result = pick_best_move(suite.position, suite.depth, observer);
+        SearchedMove search_result = pbm_fixed_depth_stats(suite.position, suite.depth, observer);
         auto end = steady_clock::now();
         duration<double> dur = end - start; 
 
