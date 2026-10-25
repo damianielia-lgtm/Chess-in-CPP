@@ -1,0 +1,11 @@
+code_stats.py
+commits.txt
+speed-progress.md
+
+resources/stockfish.exe
+src/picker_lab/old_report/
+
+versions/
+build/
+data/
+.vscode/
