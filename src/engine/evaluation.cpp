@@ -208,8 +208,8 @@ constexpr std::array<std::array<std::int16_t, 64>, 15> MG_TOTAL = blend_scores(M
 constexpr std::array<std::array<std::int16_t, 64>, 15> EG_TOTAL = blend_scores(EG_PSQT, EG_PPV);
 
 std::uint8_t piece_phase_score(PieceType piece) {
-    assert(piece != PieceType::Empty);
     switch (piece) {
+        case PieceType::Empty: return 0;
         case PieceType::Pawn: return 0;
         case PieceType::Knight: return 1;
         case PieceType::Bishop: return 1;

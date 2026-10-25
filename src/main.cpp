@@ -5,6 +5,7 @@
 #include <chrono>
 
 #include "interface/cli.h"
+#include "interface/uci.h"
 #include "interface/session.h"
 #include "storage/file_manager.h"
 #include "config.h"
@@ -21,7 +22,8 @@ int main() {
         return 2;
     }
 
-    Session session;
+    CliSession cli_session;
+    UciSession uci_session;
     ConfigData config;
 
     try {
@@ -39,18 +41,34 @@ int main() {
         return 2;
     }
 
+    enum class InputMode { CLI, UCI };
+    InputMode mode = InputMode::CLI;
+
     while (true) {
-        std::cout << "\033[32mchess> \033[0m";
+        if (mode == InputMode::CLI) {
+            std::cerr << "\033[32mchess> \033[0m";
+        }
+
         std::string line;
-        
         if (!std::getline(std::cin, line)) { break; }
+
         if (line.empty()) { continue; }
-        if (line == "exit") { break; }
+        if (line == "quit") { break; }
+        if (line == "uci") {
+            mode = InputMode::UCI;
+            std::cout << "id name MultiPLY v1.0\n"
+                << "id author Elia Damiani\n"
+                << "uciok\n";
+            continue;
+        }
 
         try {
-            Command command = parse(line);
-            execute(command, session, config);
-            update_saved_config(config);
+            if (mode == InputMode::CLI) {
+                cli_command(line, cli_session, config);
+                update_saved_config(config);
+            } else {
+                uci_command(line, uci_session);
+            }
         } catch (const UserError& e) {
             std::cerr << "\033[31m" << e.what() << "\033[0m\n";
             continue;

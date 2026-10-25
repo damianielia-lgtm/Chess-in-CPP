@@ -12,125 +12,133 @@
 #include "../config.h"
 #include "session.h"
 
-struct HelpCommand {};
+namespace cli {
 
-struct PlayLocalCommand { std::optional<TimeControl> time; };
-struct PlayEngineCommand { std::optional<TimeControl> time; Color player_color; };
-struct ReplayCommand { std::string name; };
-struct AnalyzeCommand {};
+struct Help {};
 
-struct PositionShowCommand {};
-struct PositionStartposCommand {};
-struct PositionFenCommand { std::string fen; };
-struct PositionSavedFenCommand { std::string name; };
-struct MoveCommand { std::string move_string; };
+struct PlayLocal { std::optional<TimeControl> time; };
+struct PlayEngine { std::optional<TimeControl> time; Color player_color; };
+struct Replay { std::string name; };
+struct Analyze {};
 
-struct PerftTestCommand { std::uint8_t depth; };
-struct PerftTestPresetCommand { Preset preset; };
-struct PerftBenchmarkCommand { std::uint8_t depth; };
-struct PerftBenchmarkPresetCommand { Preset preset; };
-struct EngineBenchmarkCommand { std::uint8_t depth; };
-struct EngineBenchmarkPresetCommand { Preset preset; };
-struct EngineProfilePruningCommand { std::uint8_t depth; };
-struct EngineProfilePruningPresetCommand { Preset preset; };
-struct DebugCommand { std::uint8_t depth; };
+struct PositionShow {};
+struct PositionStartpos {};
+struct PositionFen { std::string fen; };
+struct PositionSavedFen { std::string name; };
+struct ApplyMove { std::string move_string; };
 
-struct PgnDeleteCommand { std::string name; };
-struct PgnSaveCommand { std::string name; };
-struct PgnShowCommand { std::string name; };
-struct PgnListCommand {};
-struct PgnImportCommand { std::filesystem::path path; };
-struct PgnExportCommand { std::string name; std::filesystem::path directory; };
+struct PerftTest { std::uint8_t depth; };
+struct PerftTestPreset { Preset preset; };
+struct PerftBenchmark { std::uint8_t depth; };
+struct PerftBenchmarkPreset { Preset preset; };
+struct EngineBenchmark { std::uint8_t depth; };
+struct EngineBenchmarkPreset { Preset preset; };
+struct EngineProfilePruning { std::uint8_t depth; };
+struct EngineProfilePruningPreset { Preset preset; };
+struct Debug { std::uint8_t depth; };
 
-struct FenDeleteCommand { std::string name; };
-struct FenSaveCommand { std::string name; };
-struct FenShowCommand { std::string name; };
-struct FenListCommand {};
-struct FenImportCommand { std::filesystem::path path; };
-struct FenExportCommand { std::string name; std::filesystem::path directory; };
+struct PgnDelete { std::string name; };
+struct PgnSave { std::string name; };
+struct PgnShow { std::string name; };
+struct PgnList {};
+struct PgnImport { std::filesystem::path path; };
+struct PgnExport { std::string name; std::filesystem::path directory; };
 
-struct ReportDeleteCommand { std::string name; };
-struct ReportSaveCommand { std::string name; };
-struct ReportShowCommand { std::string name; };
-struct ReportListCommand {};
+struct FenDelete { std::string name; };
+struct FenSave { std::string name; };
+struct FenShow { std::string name; };
+struct FenList {};
+struct FenImport { std::filesystem::path path; };
+struct FenExport { std::string name; std::filesystem::path directory; };
 
-struct ConfigShowCommand {};
-struct ConfigSetPlayer1Command { std::string name; };
-struct ConfigSetPlayer2Command { std::string name; };
-struct ConfigSetEventCommand { std::string event; };
-struct ConfigSetSiteCommand { std::string site; };
-struct ConfigSetExportClocksCommand { bool export_clocks; };
-struct ConfigSetMoveNotationCommand { MoveNotation input; };
-struct ConfigSetBoardOrientationCommand { BoardOrientation orientation; };
-struct ConfigSetBenchmarkStatsTrackingCommand { bool track_stats; };
+struct ReportDelete { std::string name; };
+struct ReportSave { std::string name; };
+struct ReportShow { std::string name; };
+struct ReportList {};
 
-struct EngineStaticEvalCommand {};
-struct EngineDynamicEvalTimeCommand { std::chrono::milliseconds thinking_time; };
-struct EngineDynamicEvalDepthCommand { std::uint8_t depth; };
-struct EngineBestmoveTimeCommand { std::chrono::milliseconds thinking_time; };
-struct EngineBestmoveDepthCommand { std::uint8_t depth; };
-struct EngineRankMovesCommand { std::uint8_t depth; };
+struct ConfigShow {};
+struct ConfigSetPlayer1 { std::string name; };
+struct ConfigSetPlayer2 { std::string name; };
+struct ConfigSetEvent { std::string event; };
+struct ConfigSetSite { std::string site; };
+struct ConfigSetExportClocks { bool export_clocks; };
+struct ConfigSetMoveNotation { MoveNotation input; };
+struct ConfigSetBoardOrientation { BoardOrientation orientation; };
+struct ConfigSetBenchmarkStatsTracking { bool track_stats; };
+
+struct EngineStaticEval {};
+struct EngineDynamicEvalTime { std::chrono::milliseconds thinking_time; };
+struct EngineDynamicEvalDepth { std::uint8_t depth; };
+struct EngineBestmoveTime { std::chrono::milliseconds thinking_time; };
+struct EngineBestmoveDepth { std::uint8_t depth; };
+struct EngineRankMoves { std::uint8_t depth; };
 
 using Command = std::variant<
-    HelpCommand,
+    Help,
 
-    PlayLocalCommand,
-    PlayEngineCommand,
-    ReplayCommand,
-    AnalyzeCommand,
+    PlayLocal,
+    PlayEngine,
+    Replay,
+    Analyze,
 
-    PositionShowCommand,
-    PositionStartposCommand,
-    PositionFenCommand,
-    PositionSavedFenCommand,
-    MoveCommand,
+    PositionShow,
+    PositionStartpos,
+    PositionFen,
+    PositionSavedFen,
+    ApplyMove,
 
-    PerftTestCommand,
-    PerftTestPresetCommand,
-    PerftBenchmarkCommand,
-    PerftBenchmarkPresetCommand,
-    EngineBenchmarkCommand,
-    EngineBenchmarkPresetCommand,
-    EngineProfilePruningCommand,
-    EngineProfilePruningPresetCommand,
-    DebugCommand,
+    PerftTest,
+    PerftTestPreset,
+    PerftBenchmark,
+    PerftBenchmarkPreset,
+    EngineBenchmark,
+    EngineBenchmarkPreset,
+    EngineProfilePruning,
+    EngineProfilePruningPreset,
+    Debug,
 
-    PgnDeleteCommand,
-    PgnSaveCommand,
-    PgnShowCommand,
-    PgnListCommand,
-    PgnImportCommand,
-    PgnExportCommand,
+    PgnDelete,
+    PgnSave,
+    PgnShow,
+    PgnList,
+    PgnImport,
+    PgnExport,
 
-    FenDeleteCommand,
-    FenSaveCommand,
-    FenShowCommand,
-    FenListCommand,
-    FenImportCommand,
-    FenExportCommand,
+    FenDelete,
+    FenSave,
+    FenShow,
+    FenList,
+    FenImport,
+    FenExport,
     
-    ReportDeleteCommand,
-    ReportSaveCommand,
-    ReportShowCommand,
-    ReportListCommand,
+    ReportDelete,
+    ReportSave,
+    ReportShow,
+    ReportList,
 
-    ConfigShowCommand,
-    ConfigSetPlayer1Command,
-    ConfigSetPlayer2Command,
-    ConfigSetEventCommand,
-    ConfigSetSiteCommand,
-    ConfigSetExportClocksCommand,
-    ConfigSetMoveNotationCommand,
-    ConfigSetBoardOrientationCommand,
-    ConfigSetBenchmarkStatsTrackingCommand,
+    ConfigShow,
+    ConfigSetPlayer1,
+    ConfigSetPlayer2,
+    ConfigSetEvent,
+    ConfigSetSite,
+    ConfigSetExportClocks,
+    ConfigSetMoveNotation,
+    ConfigSetBoardOrientation,
+    ConfigSetBenchmarkStatsTracking,
 
-    EngineStaticEvalCommand,
-    EngineDynamicEvalTimeCommand,
-    EngineDynamicEvalDepthCommand,
-    EngineBestmoveTimeCommand,
-    EngineBestmoveDepthCommand,
-    EngineRankMovesCommand
+    EngineStaticEval,
+    EngineDynamicEvalTime,
+    EngineDynamicEvalDepth,
+    EngineBestmoveTime,
+    EngineBestmoveDepth,
+    EngineRankMoves
 >;
 
-Command parse(std::string line);
-void execute(const Command& command, Session& session, ConfigData& config);
+};
+
+cli::Command parse_cli(std::string line);
+void execute_cli(const cli::Command& command, CliSession& session, ConfigData& config);
+
+inline void cli_command(std::string line, CliSession& session, ConfigData& config) {
+    execute_cli(parse_cli(line), session, config);
+}

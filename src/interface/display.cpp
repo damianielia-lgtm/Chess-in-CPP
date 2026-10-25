@@ -73,7 +73,16 @@ constexpr std::string_view help_content =
     " - perft benchmark { --preset <fast|moderate|extended> | --depth <n> }\n"
     " - engine benchmark { --preset <fast|moderate|extended> | --depth <n> }\n"
     " - engine profile pruning { --preset <fast|moderate|extended> | --depth <n> }\n"
-    " - debug --depth <n>\n";
+    " - debug --depth <n>\n\n"
+    
+    "UCI\n"
+    " - uci\n"
+    " - isready\n"
+    " - ucinewgame\n"
+    " - position { startpos | fen <fen string> } [moves <uci moves>]\n"
+    " - go depth <n>\n"
+    " - go movetime <ms>\n"
+    " - go wtime <ms> btime <ms> [winc <ms> binc <ms>] [movestogo <n>]\n";
 
 std::vector<std::string> construct_board_lines(
     const Position& position,

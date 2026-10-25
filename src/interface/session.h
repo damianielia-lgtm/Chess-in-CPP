@@ -12,9 +12,9 @@
 #include "../game/game.h"
 #include "../errors.h"
 
-class Session {
+class CliSession {
 public:
-    Session() = default;
+    CliSession() = default;
 
     void reset_pos() noexcept { current_position_ = Position(); }
     void set_pos(std::string_view fen_string) { current_position_ = Position(fen_string); }
@@ -44,4 +44,18 @@ private:
     Position current_position_;
     std::optional<Game> last_game_;
     std::optional<ReportContents> last_report_;
+};
+
+class UciSession {
+public:
+    UciSession() = default;
+
+    void reset_pos() noexcept { current_position_ = Position(); }
+    void set_pos(std::string_view fen_string) { current_position_ = Position(fen_string); }
+    void apply_move(Move move) { current_position_.apply_move(move); }
+
+    const Position& current_position() const noexcept { return current_position_; }
+
+private:
+    Position current_position_;
 };
