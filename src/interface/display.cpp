@@ -249,7 +249,7 @@ std::string construct_game_end_message(const GameResult result, const GameMetada
 
 std::vector<std::string> construct_game_lines(
     const GameSnapshot& snapshot,
-    std::optional<std::string> error,
+    std::optional<std::string> message,
     std::optional<GameResult> result_message,
     const GameMetadata& metadata,
     BoardOrientation board_orientation
@@ -267,12 +267,8 @@ std::vector<std::string> construct_game_lines(
 
     lines.push_back(construct_material_line(snapshot, metadata));
 
-    if (error) {
-        std::string error_line;
-        error_line += "\033[31m";
-        error_line += error.value();
-        error_line += "\033[0m";
-        lines.push_back(error_line);
+    if (message) {
+        lines.push_back(*message);
     }
 
     if (result_message) {
@@ -332,7 +328,7 @@ void GameDisplay::update(const GameSnapshot& game, BoardOrientation board_orient
 
     std::vector<std::string> lines = construct_game_lines(
         game,
-        error_message_,
+        message_,
         result_,
         metatdata_,
         board_orientation

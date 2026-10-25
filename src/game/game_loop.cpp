@@ -48,7 +48,7 @@ void refresh_display(
         cursor == game.snapshot_count() - 1 ? game.live_snapshot() : game.snapshot_at(cursor),
         config.board_orientation
     );
-    display.clear_error();
+    display.clear_message();
 }
 
 enum class GameInput { IllegalInput, MovePlayed, GameEndedWithoutMove };
@@ -123,7 +123,7 @@ std::optional<Game> play_game(Game game, ConfigData& config, std::optional<Color
                 ).move;
                 if (charge_elapsed_time(game, start)) { break; }
             } else {
-                move = *pbm_fixed_time(position, milliseconds(1000)).move;
+                move = *pbm_fixed_time(position, milliseconds(3000)).move;
             }
 
             game.play_move(move);
@@ -180,6 +180,26 @@ std::optional<Game> analyze(const Position& position, ConfigData& config, bool c
         }
         if (handle_view_command(input, cursor, game.snapshot_count(), config)) { continue; }
 
+        if (input == "fen") {
+            display.set_message("Fen: \"" + game.live_position().to_fen() + '\"');
+            continue;
+        }
+
+        if (input == "bestmove") {
+            Position position = game.live_position();
+            std::optional<Move> bestmove = pbm_fixed_time(position, milliseconds(3000)).move;
+            std::string message = bestmove
+                ? "Bestmove: " + move_notation(*bestmove, position, config.move_notation)
+                : "No moves available.";
+            display.set_message(message);
+            continue;
+        } else if (input == "eval") {
+            Position position = game.live_position();
+            std::int16_t eval = pbm_fixed_time(position, milliseconds(3000)).eval;
+            display.set_message("Eval: " + std::to_string(eval));
+            continue;
+        }
+
         while (cursor < game.snapshot_count() - 1) { game.pop_state(); }
         const GameInput result = try_play_move(input, game, config.move_notation);
         if (result == GameInput::IllegalInput) {
@@ -201,7 +221,7 @@ void replay(const Game& game, ConfigData& config) {
     while (true) {
         if (cursor == game.snapshot_count() - 1) { display.set_result(game.result()); }
         display.update(game.snapshot_at(cursor), config.board_orientation);
-        display.clear_error();
+        display.clear_message();
         display.clear_result();
 
         std::string input;

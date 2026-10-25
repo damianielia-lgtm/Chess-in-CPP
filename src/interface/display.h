@@ -40,7 +40,7 @@ class GameDisplay {
 public:
     GameDisplay(GameMetadata metadata) :
         rendered_line_count_(0),
-        error_message_(std::nullopt),
+        message_(std::nullopt),
         result_(std::nullopt),
         metatdata_(std::move(metadata)) {}
 
@@ -48,17 +48,18 @@ public:
 
     void add_newline_offset() { rendered_line_count_++; }
 
-    void set_error(std::string message) { error_message_ = message; }
-    void clear_error() { error_message_ = std::nullopt; }
-
     void set_result(GameResult result) { result_ = result; }
     void clear_result() { result_ = std::nullopt; }
+
+    void set_error(std::string error) { message_ = "\033[31m" + error + "\033[0m"; }
+    void set_message(std::string message) { message_ = message; }
+    void clear_message() { message_ = std::nullopt; }
 
     void clear_rendered_area();
 
 private:
     std::size_t rendered_line_count_ = 0;
-    std::optional<std::string> error_message_;
+    std::optional<std::string> message_;
     std::optional<GameResult> result_;
     GameMetadata metatdata_;
 };
