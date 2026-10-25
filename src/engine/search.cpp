@@ -306,10 +306,12 @@ SearchedMove pbm_timed_game(
     milliseconds increment,
     std::optional<int> moves_to_go
 ) {
+    static constexpr milliseconds MaxThinking = milliseconds(40000); 
+
     remaining = std::max(remaining, milliseconds{0});
     increment = std::max(increment, milliseconds{0});
 
-    const milliseconds reserve = std::min(milliseconds{50}, remaining / 10);
+    const milliseconds reserve = std::min(milliseconds{500}, remaining / 5);
     const milliseconds available = remaining - reserve;
 
     const int estimated_moves = 20 + 20 * get_phase(position) / MAX_PHASE;
@@ -317,11 +319,16 @@ SearchedMove pbm_timed_game(
         ? std::max(1, *moves_to_go)
         : estimated_moves;
 
-    const milliseconds soft = std::min(
+    const milliseconds soft = std::min({
+        MaxThinking / 2,
         available,
         available / horizon + (increment / 4) * 3
-    );
-    const milliseconds hard = soft + std::min(available - soft, soft * 2);
+    });
+    const milliseconds hard = std::min({
+        MaxThinking,
+        available,
+        soft * 3
+    });
 
     return iterative_deepening(position, {soft, hard});
 }
