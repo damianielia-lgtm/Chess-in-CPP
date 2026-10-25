@@ -62,10 +62,12 @@ Command parse_position(const std::vector<std::string>& tokens) {
     if (position_option == "startpos") {
         fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     } else if (position_option == "fen") {
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 5; i++) {
             cursor++;
-            fen += require_token(tokens, cursor);
+            fen += require_token(tokens, cursor) + ' ';
         }
+        cursor++;
+        fen += require_token(tokens, cursor);
     } else {
         throw UciError("Unrecognized position command.");
     }
@@ -191,7 +193,9 @@ void execute_impl(const IsReady&, UciSession&) {
     std::cout << "readyok\n";
 }
 
-void execute_impl(const NewGame&, UciSession&) {}
+void execute_impl(const NewGame&, UciSession& session) {
+    session.reset_pos();
+}
 
 void execute_impl(const PositionFen& cmd, UciSession& session) {
     session.set_pos(cmd.fen);

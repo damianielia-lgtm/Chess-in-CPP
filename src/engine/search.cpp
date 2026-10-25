@@ -261,7 +261,7 @@ std::vector<SearchedMove> rank_moves(Position& position, std::uint8_t depth) {
 
         position.revert_move(move, move_state);
 
-        ranked_moves.push_back({move, score});
+        ranked_moves.push_back({move, normalize_centipawn(score)});
     }
 
     bool maximizing = position.turn() == Color::White;
@@ -283,7 +283,9 @@ SearchedMove pbm_fixed_depth_stats(
     Observer& observer
 ) {
     UnlimitedSearch control;
-    return pbm_impl(position, depth, observer, control);
+    SearchedMove raw_search = pbm_impl(position, depth, observer, control);
+    raw_search.eval = normalize_centipawn(raw_search.eval);
+    return raw_search;
 }
 
 template SearchedMove pbm_fixed_depth_stats<NullObserver>(Position& position, std::uint8_t depth, NullObserver& observer);
@@ -293,11 +295,15 @@ template SearchedMove pbm_fixed_depth_stats<PruningObserver>(Position& position,
 SearchedMove pbm_fixed_depth(Position& position, std::uint8_t depth) {
     NullObserver observer;
     UnlimitedSearch control;
-    return pbm_impl(position, depth, observer, control);
+    SearchedMove raw_search = pbm_impl(position, depth, observer, control);
+    raw_search.eval = normalize_centipawn(raw_search.eval);
+    return raw_search;
 }
 
 SearchedMove pbm_fixed_time(Position& position, milliseconds thinking_time) {
-    return iterative_deepening(position, {thinking_time, thinking_time});
+    SearchedMove raw_search = iterative_deepening(position, {thinking_time, thinking_time});
+    raw_search.eval = normalize_centipawn(raw_search.eval);
+    return raw_search;
 }
 
 SearchedMove pbm_timed_game(
@@ -330,5 +336,7 @@ SearchedMove pbm_timed_game(
         soft * 3
     });
 
-    return iterative_deepening(position, {soft, hard});
+    SearchedMove raw_search = iterative_deepening(position, {soft, hard});
+    raw_search.eval = normalize_centipawn(raw_search.eval);
+    return raw_search;
 }

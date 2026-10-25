@@ -273,13 +273,13 @@ void execute_impl(const EngineStaticEval&, CliSession& session, ConfigData&) {
 void execute_impl(const EngineDynamicEvalTime& cmd, CliSession& session, ConfigData&) {
     Position position = session.current_position();
     std::int16_t eval = pbm_fixed_time(position, cmd.thinking_time).eval;
-    print_lines({"Dynamic eval : " + std::to_string(normalize_centipawn(eval))});
+    print_lines({"Dynamic eval : " + std::to_string(eval)});
 }
 
 void execute_impl(const EngineDynamicEvalDepth& cmd, CliSession& session, ConfigData&) {
     Position position = session.current_position();
     std::int16_t eval = pbm_fixed_depth(position, cmd.depth).eval;
-    print_lines({"Dynamic eval : " + std::to_string(normalize_centipawn(eval))});
+    print_lines({"Dynamic eval : " + std::to_string(eval)});
 }
 
 void execute_impl(const EngineBestmoveTime& cmd, CliSession& session, ConfigData& config) {
@@ -310,7 +310,7 @@ void execute_impl(const EngineRankMoves& cmd, CliSession& session, ConfigData& c
         lines.push_back(
             std::to_string(rank) + ". " +
             move_notation(*move.move, position, config.move_notation) +
-            ": " + std::to_string(normalize_centipawn(move.eval))
+            ": " + std::to_string(move.eval)
         );
 
         rank++;
