@@ -36,7 +36,6 @@ add_executable(MultiPLY
     src/core/position.cpp
     
     src/diagnostics/perft.cpp
-    src/diagnostics/stockfish_bridge.cpp
     src/diagnostics/debugger.cpp
     src/diagnostics/engine_benchmarking.cpp
     src/diagnostics/engine_profiling.cpp

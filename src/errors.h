@@ -18,4 +18,4 @@ struct EpdError : UserError { using UserError::UserError; };
 
 struct OperationalError : AppError { using AppError::AppError; };
 struct StorageIoError : OperationalError { using OperationalError::OperationalError; };
-struct StockfishError : OperationalError { using OperationalError::OperationalError; };
+struct ProcessError : OperationalError { using OperationalError::OperationalError; };

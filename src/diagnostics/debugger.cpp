@@ -14,31 +14,29 @@
 #include "../core/move.h"
 #include "../movegen/legal_moves.h"
 #include "../notation/move_notation.h"
+#include "../storage/process.h"
 #include "../errors.h"
-#include "stockfish_bridge.h"
 
 namespace {
 
 std::map<std::string, uint64_t> stockfish_results(
-    StockfishProcess& sf,
+    Process& sf,
     std::string fen,
     std::uint8_t depth
 ) {
-    sendCommand(sf, "position fen " + fen);
-    sendCommand(sf, "go perft " + std::to_string(depth));
-    std::string unparsed_sf_output = readUntil(sf, "Nodes searched:");
+    sf.send_line("position fen " + fen);
+    sf.send_line("go perft " + std::to_string(depth));
+    std::vector<std::string> unparsed_sf_output = sf.read_until("Nodes searched:");
 
-    std::stringstream ss(unparsed_sf_output);
-    std::string token;
     std::map<std::string, uint64_t> sf_output;
     
-    while (std::getline(ss, token, '\n')) {
-        std::size_t delimiter_pos = token.rfind(": ");
+    for (const std::string& line : unparsed_sf_output) {
+        std::size_t delimiter_pos = line.rfind(": ");
 
         if (delimiter_pos == std::string::npos) { continue; }
 
-        const std::string move_text = token.substr(0, delimiter_pos);
-        const std::string count_text = token.substr(delimiter_pos + 2);
+        const std::string move_text = line.substr(0, delimiter_pos);
+        const std::string count_text = line.substr(delimiter_pos + 2);
 
         if (move_text.size() != 4 && move_text.size() != 5) { continue; }
 
@@ -75,27 +73,25 @@ std::expected<std::map<std::string, uint64_t>, std::string> debug_perft(
 }
 
 std::string stockfish_apply_move(
-    StockfishProcess& sf,
+    Process& sf,
     std::string fen,
     std::string move
 ) {
-    sendCommand(sf, "position fen " + fen + " moves " + move);
-    sendCommand(sf, "d");
-    std::string unparsed_sf_output = readUntil(sf, "Checkers:");
+    sf.send_line("position fen " + fen + " moves " + move);
+    sf.send_line("d");
+    std::vector<std::string> unparsed_sf_output = sf.read_until("Checkers:");
 
-    std::stringstream ss(unparsed_sf_output);
-    std::string token;
-    while (std::getline(ss, token, '\n')) {
-        if (token.starts_with("Fen: ")) {
-            return token.substr(5);
+    for (const std::string& line : unparsed_sf_output) {
+        if (line.starts_with("Fen: ")) {
+            return line.substr(5);
         }
     }
 
-    throw StockfishError("Unexpected Stockfish behavior.");
+    throw ProcessError("Unexpected Stockfish behavior.");
 }
 
 std::string debugger(
-    StockfishProcess& sf,
+    Process& sf,
     std::string fen,
     std::uint8_t depth
 ) {
@@ -163,12 +159,12 @@ std::string debugger(
 }
 
 ReportContents debug_pos(std::string fen, std::uint8_t depth) {
-    StockfishProcess sf = startStockfish("resources/stockfish.exe");
+    Process sf("resources/stockfish.exe");
 
-    sendCommand(sf, "uci");
-    readUntil(sf, "uciok");
-    sendCommand(sf, "isready");
-    readUntil(sf, "readyok");
+    sf.send_line("uci");
+    sf.read_until("uciok");
+    sf.send_line("isready");
+    sf.read_until("readyok");
 
     if (fen == "startpos") { fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"; }
 
@@ -179,8 +175,6 @@ ReportContents debug_pos(std::string fen, std::uint8_t depth) {
 
     lines.push_back("Suite: \"" + fen + "\" at depth " + std::to_string(depth));
     lines.push_back(debugger(sf, fen, depth));
-
-    sf.requestQuit();
 
     return {lines, std::nullopt};
 }
