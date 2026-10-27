@@ -32,7 +32,7 @@ std::uint64_t perft_impl(
     if (depth == 0) { return 1; }
     
     MovesList& legal_moves = move_lists[ply];
-    generate_all_moves(legal_moves, position, MoveGeneration::All);
+    generate_all_moves(legal_moves, position);
     
     if (depth == 1) { return legal_moves.size(); }
 
@@ -54,7 +54,7 @@ std::map<std::string, uint64_t> perft_div(
     std::map<std::string, uint64_t> divide;
     MoveListStack move_lists;
 
-    for (const Move move : all_moves(position, MoveGeneration::All)) {
+    for (const Move move : all_moves(position)) {
         std::string move_string = move_notation(move, position, notation);
         UndoState move_state = position.apply_move(move);
         divide[move_string] = perft_impl(position, depth - 1, 0, move_lists);

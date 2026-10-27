@@ -72,7 +72,7 @@ constexpr std::string_view help_content =
     " - perft test { --preset <fast|moderate|extended> | --depth <n> }\n"
     " - perft benchmark { --preset <fast|moderate|extended> | --depth <n> }\n"
     " - engine benchmark { --preset <fast|moderate|extended> | --depth <n> }\n"
-    " - engine profile pruning { --preset <fast|moderate|extended> | --depth <n> }\n"
+    " - engine profile-pruning { --preset <fast|moderate|extended> | --depth <n> }\n"
     " - debug --depth <n>\n\n"
     
     "UCI\n"

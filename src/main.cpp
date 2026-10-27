@@ -56,7 +56,7 @@ int main() {
         if (line == "quit") { break; }
         if (line == "uci") {
             mode = InputMode::UCI;
-            std::cout << "id name MultiPLY v1.0\n"
+            std::cout << "id name MultiPLY v1.1\n"
                 << "id author Elia Damiani\n"
                 << "uciok\n";
             continue;

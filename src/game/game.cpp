@@ -10,7 +10,7 @@ namespace {
 
 Square valid_ep_target(const Position& position) {
     Position copy = position;
-    for (const Move move : all_moves(copy, MoveGeneration::All)) {
+    for (const Move move : all_moves(copy)) {
         if (move.is_en_passant() && move.target() == position.en_passant_target()) {
             return move.target();
         }
@@ -206,7 +206,7 @@ void Game::check_game_end() {
     }
 
     Position position = live_state_.position();
-    if (all_moves(position, MoveGeneration::All).empty()) {
+    if (all_moves(position).empty()) {
         const bool in_check = is_attacked_square(
             position, position.king_square(position.turn()), position.opposite_turn()
         );

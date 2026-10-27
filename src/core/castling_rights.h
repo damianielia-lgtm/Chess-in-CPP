@@ -55,38 +55,27 @@ public:
 
     Move castling_king_movement() const noexcept {
         switch (encoding_) {
-            case CastlingType::WhiteKingside: return Move(Square('e', '1'), Square('g', '1'), MoveKind::Castling);
-            case CastlingType::WhiteQueenside: return Move(Square('e', '1'), Square('c', '1'), MoveKind::Castling);
-            case CastlingType::BlackKingside: return Move(Square('e', '8'), Square('g', '8'), MoveKind::Castling);
-            case CastlingType::BlackQueenside: return Move(Square('e', '8'), Square('c', '8'), MoveKind::Castling);
+            case CastlingType::WhiteKingside:
+                return Move(Square('e', '1'), Square('g', '1'), MoveKind::Castling);
+            case CastlingType::WhiteQueenside:
+                return Move(Square('e', '1'), Square('c', '1'), MoveKind::Castling);
+            case CastlingType::BlackKingside:
+                return Move(Square('e', '8'), Square('g', '8'), MoveKind::Castling);
+            case CastlingType::BlackQueenside:
+                return Move(Square('e', '8'), Square('c', '8'), MoveKind::Castling);
         }
-        return Move(Square('e', '1'), Square('g', '1'), MoveKind::Castling);
     }
     Move castling_rook_movement() const noexcept {
         switch (encoding_) {
-            case CastlingType::WhiteKingside: return Move(Square('h', '1'), Square('f', '1'), MoveKind::None);
-            case CastlingType::WhiteQueenside: return Move(Square('a', '1'), Square('d', '1'), MoveKind::None);
-            case CastlingType::BlackKingside: return Move(Square('h', '8'), Square('f', '8'), MoveKind::None);
-            case CastlingType::BlackQueenside: return Move(Square('a', '8'), Square('d', '8'), MoveKind::None);
+            case CastlingType::WhiteKingside:
+                return Move(Square('h', '1'), Square('f', '1'), MoveKind::None);
+            case CastlingType::WhiteQueenside:
+                return Move(Square('a', '1'), Square('d', '1'), MoveKind::None);
+            case CastlingType::BlackKingside:
+                return Move(Square('h', '8'), Square('f', '8'), MoveKind::None);
+            case CastlingType::BlackQueenside:
+                return Move(Square('a', '8'), Square('d', '8'), MoveKind::None);
         }
-        return Move(Square('h', '1'), Square('f', '1'), MoveKind::None);
-    }
-
-    char fen_char() const noexcept {
-        switch (encoding_) {
-            case CastlingType::WhiteKingside: return 'K';
-            case CastlingType::WhiteQueenside: return 'Q';
-            case CastlingType::BlackKingside: return 'k';
-            case CastlingType::BlackQueenside: return 'q';
-        }
-        return '?';
-    }
-
-    static std::array<CastlingOption, 4> all() noexcept {
-        return {
-            CastlingOption(CastlingType::WhiteKingside), CastlingOption(CastlingType::WhiteQueenside),
-            CastlingOption(CastlingType::BlackKingside), CastlingOption(CastlingType::BlackQueenside)
-        };
     }
 
 private:

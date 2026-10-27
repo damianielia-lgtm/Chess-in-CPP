@@ -9,7 +9,9 @@
 #include "../core/piece.h"
 #include "../core/position.h"
 
-constexpr std::array<std::array<std::int16_t, 64>, 15> MG_PSQT = {{
+using ByPieceBySquare = std::array<std::array<std::int16_t, 64>, 15>;
+
+constexpr ByPieceBySquare MG_PSQT = {{
     {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -95,7 +97,7 @@ constexpr std::array<std::array<std::int16_t, 64>, 15> MG_PSQT = {{
     }
 }};
 
-constexpr std::array<std::array<std::int16_t, 64>, 15> EG_PSQT = {{
+constexpr ByPieceBySquare EG_PSQT = {{
     {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -183,11 +185,11 @@ constexpr std::array<std::array<std::int16_t, 64>, 15> EG_PSQT = {{
 constexpr std::array<std::int16_t, 15> MG_PPV = {{0, 126, 781, 825, 1276, 2538, 0, 0, 0, -126, -781, -825, -1276, -2538, 0}};
 constexpr std::array<std::int16_t, 15> EG_PPV = {{0, 208, 854, 915, 1380, 2682, 0, 0, 0, -208, -854, -915, -1380, -2682, 0}};
 
-constexpr std::array<std::array<std::int16_t, 64>, 15> blend_scores(
-    const std::array<std::array<std::int16_t, 64>, 15>& PSQT,
+constexpr ByPieceBySquare blend_scores(
+    const ByPieceBySquare& PSQT,
     const std::array<std::int16_t, 15>& PPV
 ) {
-    std::array<std::array<std::int16_t, 64>, 15> blended{};
+    ByPieceBySquare blended{};
 
     for (const Piece piece : ALL_PIECES) {
         for (
@@ -204,8 +206,8 @@ constexpr std::array<std::array<std::int16_t, 64>, 15> blend_scores(
     return blended;
 }
 
-constexpr std::array<std::array<std::int16_t, 64>, 15> MG_TOTAL = blend_scores(MG_PSQT, MG_PPV);
-constexpr std::array<std::array<std::int16_t, 64>, 15> EG_TOTAL = blend_scores(EG_PSQT, EG_PPV);
+constexpr ByPieceBySquare MG_TOTAL = blend_scores(MG_PSQT, MG_PPV);
+constexpr ByPieceBySquare EG_TOTAL = blend_scores(EG_PSQT, EG_PPV);
 
 std::uint8_t piece_phase_score(PieceType piece) {
     switch (piece) {
@@ -224,7 +226,7 @@ std::uint8_t get_phase(const Position& position) {
     for (const Square square : Square::all()) {
         phase += piece_phase_score(position.piece_at(square).type());
     }
-    return phase;
+    return std::min(phase, MAX_PHASE);
 }
 
 std::int16_t static_eval(const Position& position) {
@@ -249,3 +251,91 @@ std::int16_t static_eval(const Position& position) {
 
 constexpr std::int16_t PAWN_VALUE = (MG_PPV[1] + EG_PPV[1]) / 2;
 std::int16_t normalize_centipawn(std::int16_t eval) { return eval * 100 / PAWN_VALUE; }
+
+
+constexpr std::array<std::array<std::int16_t, 15>, 15> precompute_mvvlva() {
+    std::array<std::array<std::int16_t, 15>, 15> mvvlva{};
+    
+    for (const Piece attacker : ALL_PIECES) {
+        for (const Piece victim : ALL_PIECES) {
+            std::uint8_t white_attacker = Piece(Color::White, attacker.type()).encoding();
+            std::uint8_t white_victim = Piece(Color::White, victim.type()).encoding();
+            mvvlva[attacker.encoding()][victim.encoding()] =
+                ((MG_PPV[white_victim] + EG_PPV[white_victim]) / 2) * 10
+                - ((MG_PPV[white_attacker] + EG_PPV[white_attacker]) / 2);
+        }
+    }
+
+    return mvvlva;
+}
+const std::array<std::array<std::int16_t, 15>, 15> mvvlva
+    = precompute_mvvlva();
+
+
+constexpr std::array<ByPieceBySquare, MAX_PHASE + 1> precompute_tapered_scores() {
+    std::array<ByPieceBySquare, MAX_PHASE + 1> tapered_scores{};
+    
+    for (std::uint8_t phase = 0; phase <= MAX_PHASE; phase++) {
+        for (const Piece piece : ALL_PIECES) {
+            for (
+                const Square square : Square::iterate(
+                    piece.type() == PieceType::Pawn ? 8 : 0,
+                    piece.type() == PieceType::Pawn ? 55 : 63
+                )
+            ) {
+                std::uint8_t white_piece = Piece(Color::White, piece.type()).encoding();
+                tapered_scores[phase][piece.encoding()][square.index()] =
+                    (MG_PSQT[white_piece][square.index()] * phase
+                    + EG_PSQT[white_piece][square.index()] * (MAX_PHASE - phase))
+                    / MAX_PHASE;
+            }
+        }
+    }
+
+    return tapered_scores;
+}
+const std::array<ByPieceBySquare, MAX_PHASE + 1> tampered_scores
+    = precompute_tapered_scores();
+
+
+constexpr std::array<std::array<std::int16_t, 4>, MAX_PHASE + 1> precompute_castling_scores() {
+    static constexpr std::int16_t mg_kingside_delta =
+        MG_PSQT[Piece('K').encoding()][Square('g', '1').index()]
+        - MG_PSQT[Piece('K').encoding()][Square('e', '1').index()]
+        + MG_PSQT[Piece('R').encoding()][Square('f', '1').index()]
+        - MG_PSQT[Piece('R').encoding()][Square('h', '1').index()];
+    static constexpr std::int16_t mg_queenside_delta =
+        MG_PSQT[Piece('K').encoding()][Square('c', '1').index()]
+        - MG_PSQT[Piece('K').encoding()][Square('e', '1').index()]
+        + MG_PSQT[Piece('R').encoding()][Square('d', '1').index()]
+        - MG_PSQT[Piece('R').encoding()][Square('a', '1').index()];
+    static constexpr std::int16_t eg_kingside_delta =
+        EG_PSQT[Piece('K').encoding()][Square('g', '1').index()]
+        - EG_PSQT[Piece('K').encoding()][Square('e', '1').index()]
+        + EG_PSQT[Piece('R').encoding()][Square('f', '1').index()]
+        - EG_PSQT[Piece('R').encoding()][Square('h', '1').index()];
+    static constexpr std::int16_t eg_queenside_delta =
+        EG_PSQT[Piece('K').encoding()][Square('c', '1').index()]
+        - EG_PSQT[Piece('K').encoding()][Square('e', '1').index()]
+        + EG_PSQT[Piece('R').encoding()][Square('d', '1').index()]
+        - EG_PSQT[Piece('R').encoding()][Square('a', '1').index()];
+        
+    std::array<std::array<std::int16_t, 4>, MAX_PHASE + 1> scores{};
+
+    for (std::uint8_t phase = 0; phase <= MAX_PHASE; phase++) {
+        std::int16_t kingside =
+            (mg_kingside_delta * phase + eg_kingside_delta * (MAX_PHASE - phase))
+            / MAX_PHASE;
+        std::int16_t queenside =
+            (mg_queenside_delta * phase + eg_queenside_delta * (MAX_PHASE - phase))
+            / MAX_PHASE;
+        scores[phase][0] = kingside;
+        scores[phase][1] = queenside;
+        scores[phase][2] = kingside;
+        scores[phase][3] = queenside;
+    }
+
+    return scores;
+}
+const std::array<std::array<std::int16_t, 4>, MAX_PHASE + 1> castling_scores
+    = precompute_castling_scores();

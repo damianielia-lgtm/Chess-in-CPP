@@ -21,7 +21,7 @@ std::string to_san(Move move, const Position& position) {
     Square target = move.target();
     Square origin = move.origin();
     Piece moving_piece = modifiable_copy.piece_at(origin);
-    MovesList legal_moves = all_moves(modifiable_copy, MoveGeneration::All);
+    MovesList legal_moves = all_moves(modifiable_copy);
 
     std::string piece_field;
     if (moving_piece.type() != PieceType::Pawn) {
@@ -88,7 +88,7 @@ std::string to_san(Move move, const Position& position) {
         modifiable_copy.opposite_turn()
     );
     if (in_check) {
-        check_or_mate_field = (all_moves(modifiable_copy, MoveGeneration::All).empty())
+        check_or_mate_field = (all_moves(modifiable_copy).empty())
             ? '#'
             : '+';
     }
@@ -145,7 +145,7 @@ std::string move_notation(Move move, const Position& position, MoveNotation nota
 Move resolve_move(std::string_view move, const Position& position, MoveNotation notation) {
     Position modifiable_copy = position;
 
-    for (const Move encoded_move : all_moves(modifiable_copy, MoveGeneration::All)) {
+    for (const Move encoded_move : all_moves(modifiable_copy)) {
         if (
             notation == MoveNotation::Uci
                 ? to_uci(encoded_move) == move

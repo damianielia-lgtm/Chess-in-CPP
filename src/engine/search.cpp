@@ -65,7 +65,7 @@ std::int16_t minimax_impl(
     Position& position,
     std::uint8_t depth,
     std::uint8_t ply,
-    MoveListStack& move_lists,
+    ScoredMoveListStack& move_lists,
     std::int16_t alpha,
     std::int16_t beta,
     Observer& observer,
@@ -80,8 +80,8 @@ std::int16_t minimax_impl(
 
     if (control.stop_hard()) { return 0; }
 
-    MovesList& legal_moves = move_lists[ply];
-    generate_all_moves(legal_moves, position, MoveGeneration::All);
+    ScoredMoveList& legal_moves = move_lists[ply];
+    generate_scored_moves(legal_moves, position);
 
     bool maximizing = position.turn() == Color::White;
 
@@ -94,18 +94,17 @@ std::int16_t minimax_impl(
 
     auto probe = observer.start_move_loop(legal_moves.size());
 
-    for (const Move move : legal_moves) {
+    while (!legal_moves.exhausted()) {
+        Move move = legal_moves.next_move();
+
         UndoState move_state = position.apply_move(move);
 
         std::int16_t score = minimax_impl(
             position,
-            depth - 1,
-            ply + 1,
+            depth - 1, ply + 1,
             move_lists,
-            alpha,
-            beta,
-            observer,
-            control
+            alpha, beta,
+            observer, control
         );
 
         position.revert_move(move, move_state);
@@ -145,9 +144,9 @@ SearchedMove pbm_impl(
     bool maximizing = position.turn() == Color::White;
     SearchedMove search_result{std::nullopt, maximizing ? -INF : INF};
 
-    MoveListStack move_lists;
-    MovesList& legal_moves = move_lists[0];
-    generate_all_moves(legal_moves, position, MoveGeneration::All);
+    ScoredMoveListStack move_lists;
+    ScoredMoveList& legal_moves = move_lists[0];
+    generate_scored_moves(legal_moves, position);
     
     if (legal_moves.empty()) {
         observer.on_leaf();
@@ -160,18 +159,17 @@ SearchedMove pbm_impl(
 
     auto probe = observer.start_move_loop(legal_moves.size());
 
-    for (const Move move : legal_moves) {
+    while (!legal_moves.exhausted()) {
+        Move move = legal_moves.next_move();
+        
         UndoState move_state = position.apply_move(move);
 
         std::int16_t score = minimax_impl(
             position,
-            depth - 1,
-            1,
+            depth - 1, 1,
             move_lists,
-            alpha,
-            beta,
-            observer,
-            control
+            alpha, beta,
+            observer, control
         );
 
         position.revert_move(move, move_state);
@@ -207,8 +205,7 @@ struct TimeLimits {
 SearchedMove iterative_deepening(Position& position, TimeLimits limits) {
     TimedSearch control{limits.soft, limits.hard};
 
-    MovesList legal_moves;
-    generate_all_moves(legal_moves, position, MoveGeneration::All);
+    MovesList legal_moves = all_moves(position);
     if (legal_moves.empty()) {
         return {std::nullopt, terminal_eval(position, 0)};
     }
@@ -236,9 +233,8 @@ SearchedMove iterative_deepening(Position& position, TimeLimits limits) {
 std::vector<SearchedMove> rank_moves(Position& position, std::uint8_t depth) {
     assert(depth > 0);
 
-    MoveListStack move_lists;
-    MovesList& legal_moves = move_lists[0];
-    generate_all_moves(legal_moves, position, MoveGeneration::All);
+    ScoredMoveListStack move_lists;
+    MovesList legal_moves = all_moves(position);
 
     NullObserver observer;
     UnlimitedSearch control;
@@ -250,13 +246,10 @@ std::vector<SearchedMove> rank_moves(Position& position, std::uint8_t depth) {
 
         std::int16_t score = minimax_impl(
             position,
-            depth - 1,
-            1,
+            depth - 1, 1,
             move_lists,
-            -INF,
-            INF,
-            observer,
-            control
+            -INF, INF,
+            observer, control
         );
 
         position.revert_move(move, move_state);

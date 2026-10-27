@@ -376,21 +376,16 @@ Command parse_engine(const std::vector<std::string>& tokens) {
         } else {
             throw CliError("Unrecognized engine benchmark command.");
         }
-    } else if (engine_command == "profile") {
-        check_token_count(tokens, 5);
-        const std::string& profile_mode = tokens[2];
-        if (profile_mode == "pruning") {
-            const std::string& profile_setting = tokens[3];
-            if (profile_setting == "--preset") {
-                return EngineProfilePruningPreset{parse_preset(tokens[4])};
-            } else if (profile_setting == "--depth") {
-                return EngineProfilePruning{parse_depth(tokens[4])};
-            } else {
-                throw CliError("Unrecognized engine profile pruning command.");
-            }
+    } else if (engine_command == "profile-pruning") {
+        check_token_count(tokens, 4);
+        const std::string& profile_setting = tokens[2];
+        if (profile_setting == "--preset") {
+            return EngineProfilePruningPreset{parse_preset(tokens[3])};
+        } else if (profile_setting == "--depth") {
+            return EngineProfilePruning{parse_depth(tokens[3])};
         } else {
-            throw CliError("Unrecognized engine profile command.");
-        }  
+            throw CliError("Unrecognized engine profile pruning command.");
+        }
     } else {
         throw CliError("Unrecognized engine command.");
     }

@@ -267,9 +267,10 @@ std::string Position::to_fen(bool ignore_clocks) const {
     if (castling_rights_.encoding() == 0) {
         fen_string += '-';
     } else {
-        for (const CastlingOption index : CastlingOption::all()) {
-            if (castling_rights_.has(index)) { fen_string += index.fen_char(); }
-        }
+        if (castling_rights_.has(CastlingOption(CastlingType::WhiteKingside))) { fen_string += 'K'; }
+        if (castling_rights_.has(CastlingOption(CastlingType::WhiteQueenside))) { fen_string += 'Q'; }
+        if (castling_rights_.has(CastlingOption(CastlingType::BlackKingside))) { fen_string += 'k'; }
+        if (castling_rights_.has(CastlingOption(CastlingType::BlackQueenside))) { fen_string += 'q'; }
     }
     fen_string += ' ';
 

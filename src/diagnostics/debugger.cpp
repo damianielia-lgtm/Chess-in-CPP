@@ -54,7 +54,7 @@ std::expected<std::map<std::string, uint64_t>, std::string> debug_perft(
     Position original_pos = position;
     std::map<std::string, uint64_t> divide;
 
-    for (const Move move : all_moves(position, MoveGeneration::All)) {
+    for (const Move move : all_moves(position)) {
         UndoState move_state = position.apply_move(move);
         divide[move_notation(move, position, MoveNotation::Uci)] = perft(position, depth - 1);
         position.revert_move(move, move_state);
