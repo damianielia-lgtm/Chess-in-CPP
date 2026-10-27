@@ -235,7 +235,7 @@ Position::Position(const std::string_view fen_string) {
     }
 }
 
-std::string Position::to_fen() const {
+std::string Position::to_fen(bool ignore_clocks) const {
     std::string fen_string;
 
     std::string fen_board;
@@ -281,8 +281,10 @@ std::string Position::to_fen() const {
     }
     fen_string += ' ';
 
-    fen_string += std::to_string(halfmove_clock_) + ' ';
-    fen_string += std::to_string(fullmove_number_);
+    if (!ignore_clocks) {
+        fen_string += std::to_string(halfmove_clock_) + ' ';
+        fen_string += std::to_string(fullmove_number_);
+    }
 
     return fen_string;
 }

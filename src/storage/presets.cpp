@@ -118,9 +118,9 @@ PresetData make_preset(Preset preset) {
 
     std::string suite_path;
     switch (preset) {
-        case Preset::Fast: suite_path = "resources/fast-suite.epd"; break;
-        case Preset::Moderate: suite_path = "resources/moderate-suite.epd"; break;
-        case Preset::Extended: suite_path = "resources/extended-suite.epd"; break;
+        case Preset::Fast: suite_path = "resources/suites/fast-suite.epd"; break;
+        case Preset::Moderate: suite_path = "resources/suites/moderate-suite.epd"; break;
+        case Preset::Extended: suite_path = "resources/suites/extended-suite.epd"; break;
     }
 
     for (const std::string& line : read_file(suite_path)) {

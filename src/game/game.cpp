@@ -128,11 +128,19 @@ Game::Game(
     std::string event,
     std::string site,
     std::optional<TimeControl> time,
-    std::optional<Position> starting_pos
+    std::optional<Position> starting_pos,
+    std::optional<int> opening_id,
+    std::optional<std::string> eco_tag
 ) :
     metadata_{
-        std::move(white_name), std::move(black_name), std::move(event), std::move(site),
-        time, starting_pos.value_or(Position())
+        std::move(white_name),
+        std::move(black_name),
+        std::move(event),
+        std::move(site),
+        time,
+        starting_pos.value_or(Position()),
+        opening_id,
+        eco_tag
     },
     live_state_(
         metadata_.starting_position, std::nullopt, {}, {},
@@ -175,10 +183,12 @@ void Game::agree_draw() noexcept {
 }
 
 void Game::record_unknown_result(GameResult result) noexcept {
-    assert(result == GameResult::White_by_Unknown
-        || result == GameResult::Black_by_Unknown
-        || result == GameResult::Draw_by_Unknown
-        || result == GameResult::Unknown_End);
+    assert(
+        result == GameResult::White_by_Unknown ||
+        result == GameResult::Black_by_Unknown ||
+        result == GameResult::Draw_by_Unknown ||
+        result == GameResult::Unknown_End
+    );
     finish(result);
 }
 

@@ -82,6 +82,13 @@ std::vector<std::string> construct_pgn_lines(const Game& game, bool save_clock_i
         lines.push_back("[FEN \"" + game.metadata().starting_position.to_fen() + "\"]");
     }
 
+    if (game.metadata().opening_id != std::nullopt) {
+        lines.push_back("[Opening_ID \"" + std::to_string(*game.metadata().opening_id) + "\"]");
+    }
+    if (game.metadata().eco_tag != std::nullopt) {
+        lines.push_back("[ECO \"" + *game.metadata().eco_tag + "\"]");
+    }
+
     lines.push_back("");
 
     std::string moves_line;

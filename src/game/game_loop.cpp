@@ -118,8 +118,10 @@ std::optional<Game> play_game(Game game, ConfigData& config, std::optional<Color
             if (game.is_timed_game()) {
                 const auto start = steady_clock::now();
                 move = *pbm_timed_game(
-                    position, game.live_snapshot().clock(position.turn()),
-                    game.metadata().time_control->increment, std::nullopt
+                    position,
+                    game.live_snapshot().clock(position.turn()),
+                    game.metadata().time_control->increment,
+                    std::nullopt
                 ).move;
                 if (charge_elapsed_time(game, start)) { break; }
             } else {

@@ -176,6 +176,7 @@ struct TagPairs {
     GameResult Result;
     std::optional<TimeControl> TimeControl;
     std::optional<Position> FEN;
+    std::optional<std::string> ECO;
 };
 
 TagPairs parse_tags(const std::vector<std::string>& tags) {
@@ -189,6 +190,7 @@ TagPairs parse_tags(const std::vector<std::string>& tags) {
     bool found_TimeControl_tag = false;
     bool found_SetUp_tag = false;
     bool found_FEN_tag = false;
+    bool found_ECO = false;
 
     bool expect_FEN_tag = false;
 
@@ -264,6 +266,21 @@ TagPairs parse_tags(const std::vector<std::string>& tags) {
                     throw PgnError("Invalid fen inside \"FEN\" tag.");
                 }
                 found_FEN_tag = true;
+            }
+        } else if (name == "ECO") {
+            if (found_ECO) {
+                throw PgnError("Repeated \"ECO\" tag.");
+            } else {
+                if (
+                    value.length() != 3 ||
+                    'A' > value[0] || value[0] > 'E' ||
+                    '0' > value[1] || value[1] > '9' ||
+                    '0' > value[2] || value[2] > '9'
+                ) {
+                    throw PgnError("Invalid \"ECO\" tag.");
+                }
+                parsed_tags.ECO = value;
+                found_ECO = true;
             }
         }
         // Ignore un-needed PGN tags.
@@ -553,6 +570,7 @@ ParsedPGN parse_pgn_document(const std::vector<std::string>& lines) {
     parsed.result = tag_pairs.Result;
     parsed.time_control = tag_pairs.TimeControl;
     parsed.starting_position = tag_pairs.FEN;
+    parsed.ECO_tag = tag_pairs.ECO;
 
     MoveTextData movetext = parse_movetext(
         sections.movetext,

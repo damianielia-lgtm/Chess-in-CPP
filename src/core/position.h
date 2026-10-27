@@ -36,7 +36,7 @@ public:
     Position() noexcept { set_startpos(); }
 
     explicit Position(const std::string_view fen_string);
-    std::string to_fen() const;
+    std::string to_fen(bool ignore_clocks = false) const;
 
     Piece piece_at(Square index) const noexcept {
         assert(index.is_valid());

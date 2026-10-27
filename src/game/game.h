@@ -113,6 +113,8 @@ struct GameMetadata {
     std::string site;
     std::optional<TimeControl> time_control;
     Position starting_position;
+    std::optional<int> opening_id;
+    std::optional<std::string> eco_tag;
 };
 
 class Game {
@@ -123,7 +125,9 @@ public:
         std::string event,
         std::string site,
         std::optional<TimeControl> time = std::nullopt,
-        std::optional<Position> starting_pos = std::nullopt
+        std::optional<Position> starting_pos = std::nullopt,
+        std::optional<int> opening_id = std::nullopt,
+        std::optional<std::string> eco_tag = std::nullopt
     );
 
     const std::vector<GameSnapshot>& all_snapshots() const noexcept { return snapshots_; }

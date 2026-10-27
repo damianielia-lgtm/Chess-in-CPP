@@ -23,6 +23,7 @@ struct ParsedPGN {
     std::optional<TimeControl> time_control;
     GameResult result;
     std::optional<Position> starting_position;
+    std::optional<std::string> ECO_tag;
     std::vector<ParsedPly> plies;
 };
 
