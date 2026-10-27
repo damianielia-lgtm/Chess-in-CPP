@@ -20,7 +20,7 @@ perft test --preset fast
 report save perft-fast
 ```
 
-Preset tests read `resources/fast-suite.epd`, `moderate-suite.epd`, or `extended-suite.epd`. They print `[PASS]` or `[FAIL]` for each selected position/depth pair. Failed cases include the expected count and FEN. One EPD position can supply multiple searches. Only positive-depth records with expected counts from **5,000 through 20,000,000**, inclusive, are selected; the preset name selects a file, not a depth multiplier. See the [suite format](file-formats.md#epd-suites).
+Preset tests read `resources/suites/fast-suite.epd`, `moderate-suite.epd`, or `extended-suite.epd`. They print `[PASS]` or `[FAIL]` for each selected position/depth pair. Failed cases include the expected count and FEN. One EPD position can supply multiple searches. Only positive-depth records with expected counts from **5,000 through 20,000,000**, inclusive, are selected; the preset name selects a file, not a depth multiplier. See the [suite format](file-formats.md#epd-suites).
 
 Check the output for failures: a failed comparison does not set a failing process exit code. A larger suite is broader validation, not a proof of every rule or every possible position.
 

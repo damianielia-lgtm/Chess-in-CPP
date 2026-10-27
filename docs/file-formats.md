@@ -14,9 +14,10 @@ data/
     reports/<name>.txt
     reports/<name>.csv
 resources/
-    fast-suite.epd
-    moderate-suite.epd
-    extended-suite.epd
+    suites/fast-suite.epd
+    suites/moderate-suite.epd
+    suites/extended-suite.epd
+    openings/             # source PGNs and compiled match opening books
     stockfish.exe          # optional, independently supplied
 ```
 
@@ -102,6 +103,8 @@ Movetext uses SAN and valid move numbering. The parser strips trailing `!`/`?`, 
 
 Import validates by reconstructing the legal move sequence, then stores the original input lines. Replay reconstructs positions and snapshots, including clocks when possible, and records the PGN's declared outcome. Saving a returned game generates new PGN with Event, Site, Date, Round, White, Black, Result, and TimeControl tags, optional SetUp/FEN, and optional clocks. Date is the save date. General comments, variations, and extra original tags are not reconstructed into newly generated PGN.
 
+The optional `ECO` tag is parsed as a code from `A00` through `E99`; duplicate or invalid ECO tags are rejected. Game metadata now supports an opening ID and ECO code, which PGN export writes as `Opening_ID` and `ECO` when present. `Opening_ID` is still ignored on import. See [engine matches](match-runner.md) for compiled opening books and match output.
+
 ## EPD suites
 
 The resources use an EPD-like perft format with a **six-field FEN** before the first semicolon:
@@ -114,7 +117,7 @@ This differs from conventional four-field EPD. Each nonempty line is a position 
 
 Only records with positive depth and expected counts between 5,000 and 20,000,000 inclusive are selected. Thus the example selects D3/D4 but not D1/D2. Multiple selected depths create multiple searches. A position counts in the summary only if at least one record is selected. Blank lines are skipped; comment lines and whitespace-only lines are not a supported comment mechanism.
 
-Keep custom suite depths within **1–16**, valid for the engine's move-list stack. The EPD loader permits depth text beyond the normal CLI range and does not enforce the stack limit. Ensure a suite contains at least one selected record; empty selections are unsuitable for progress displays and aggregate rate calculations. There is no CLI switch for an arbitrary suite filename: edit the appropriate `resources/*-suite.epd` file or load a single FEN and use a depth command. Rebuild to refresh the copy beside the executable.
+Keep custom suite depths within **1–16**, valid for the engine's move-list stack. The EPD loader permits depth text beyond the normal CLI range and does not enforce the stack limit. Ensure a suite contains at least one selected record; empty selections are unsuitable for progress displays and aggregate rate calculations. There is no CLI switch for an arbitrary suite filename: edit the appropriate `resources/suites/*-suite.epd` file or load a single FEN and use a depth command. Rebuild to refresh the copy beside the executable.
 
 ## Text reports and CSV data
 

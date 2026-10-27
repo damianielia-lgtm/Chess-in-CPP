@@ -35,7 +35,7 @@ cmake --build --preset max
 .\build\max\Release\MultiPLY.exe
 ```
 
-These executable paths assume the Visual Studio generator. The build creates `MultiPLY` and the separate `picker_bench` tool. Release interprocedural optimization is enabled when supported. For a Debug build:
+These executable paths assume the Visual Studio generator. The build creates `MultiPLY` and the separate `picker_bench`, `book_compiler`, and `match_runner` tools. Release interprocedural optimization is enabled when supported. For a Debug build:
 
 ```powershell
 cmake --preset debug
@@ -121,6 +121,7 @@ Search depth is limited to 16 plies. The search does not track repetition, the f
 | [docs/movegen.md](docs/movegen.md) | Movement tables, attack detection, legal moves, and special moves |
 | [docs/architecture.md](docs/architecture.md) | Modules, state ownership, and data flow |
 | [docs/diagnostics.md](docs/diagnostics.md) | Perft, debugger, benchmarks, profiles, and Picker Lab |
+| [docs/match-runner.md](docs/match-runner.md) | Opening-book compilation and paired UCI engine matches |
 | [docs/file-formats.md](docs/file-formats.md) | Managed files, configuration, PGN/FEN, EPD, and CSV |
 | `src/core/`, `src/movegen/` | Position representation, attacks, and legal moves |
 | `src/game/`, `src/notation/` | Game history, clocks, results, and notation |

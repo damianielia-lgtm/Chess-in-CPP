@@ -51,6 +51,36 @@ add_executable(picker_bench
     src/picker_lab/picker_microbenchmark.cpp
 )
 
+add_executable(book_compiler
+    src/game/game.cpp
+    
+    src/notation/fen.cpp
+    src/notation/move_notation.cpp
+    src/notation/pgn_parsing.cpp
+
+    src/movegen/legal_moves.cpp
+    src/movegen/attacks.cpp
+
+    src/core/position.cpp
+
+    src/match_runner/book_compiler.cpp
+)
+
+add_executable(match_runner
+    src/game/game.cpp
+    
+    src/notation/fen.cpp
+    src/notation/move_notation.cpp
+    src/notation/pgn_construction.cpp
+
+    src/movegen/legal_moves.cpp
+    src/movegen/attacks.cpp
+
+    src/core/position.cpp
+
+    src/match_runner/match_runner.cpp
+)
+
 function(apply_project_standard target)
     check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
 
@@ -81,6 +111,8 @@ endfunction()
 
 apply_project_standard(MultiPLY)
 apply_project_standard(picker_bench)
+apply_project_standard(book_compiler)
+apply_project_standard(match_runner)
 
 # Commands:
 # cd "C:/Python projects/Chess in CPP"
