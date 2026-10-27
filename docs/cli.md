@@ -1,4 +1,4 @@
-# CLI reference — MultiPLY v1.0
+# CLI reference — MultiPLY v1.1
 
 [README](../README.md) · [UCI](uci.md) · [File formats](file-formats.md)
 
@@ -111,8 +111,8 @@ Each command below prints a report and replaces the last report in memory. Savin
 | `debug --depth <N>` | Compare against `resources/stockfish.exe`, descending into a mismatching branch. |
 | `engine benchmark --depth <N>` | Benchmark fixed-depth search on the working position. |
 | `engine benchmark --preset <fast\|moderate\|extended>` | Benchmark fixed-depth searches from a suite. |
-| `engine profile pruning --depth <N>` | Collect move-list length versus moves searched on the working position. |
-| `engine profile pruning --preset <fast\|moderate\|extended>` | Collect the same histogram across a suite. |
+| `engine profile-pruning --depth <N>` | Collect move-list length versus moves searched on the working position. |
+| `engine profile-pruning --preset <fast\|moderate\|extended>` | Collect the same histogram across a suite. |
 
 Presets supply their own positions and depths. They do not use the working position. Benchmark warmups can take time before the requested measurement begins. See [Diagnostics](diagnostics.md) for interpretation and Picker Lab.
 

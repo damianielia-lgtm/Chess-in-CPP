@@ -1,8 +1,8 @@
-# Engine baseline — MultiPLY v1.0
+# Engine baseline — MultiPLY v1.1
 
 [README](../README.md) · [Architecture](architecture.md) · [Move generation](movegen.md) · [Diagnostics](diagnostics.md)
 
-Version 1 is a deliberately simple, single-threaded baseline: tapered static evaluation, minimax with alpha-beta pruning, mate-distance scoring, and iterative deepening for timed searches. Picker Lab studies future move-selection strategies; those strategies are not integrated into this engine.
+Version 1.1 is a simple, single-threaded baseline: tapered static evaluation, minimax with alpha-beta pruning and scored move ordering, mate-distance scoring, and iterative deepening for timed searches. Picker Lab separately studies move-selection costs; its measured policies are not integrated into this engine.
 
 ## Static evaluation
 
@@ -23,7 +23,7 @@ Internal units are not normalized centipawns. The average middlegame/endgame paw
 
 ## Fixed-depth search
 
-The root generates all legal moves in move-generator order. For each move, search applies it to one mutable position, recursively evaluates the child, then restores the position with its undo record. White maximizes and Black minimizes the score. Alpha and beta are updated as children complete; a node stops searching siblings when `beta <= alpha`.
+The root and recursive non-leaf nodes generate scored legal moves and search them from highest to lowest ordering score. For each move, search applies it to one mutable position, recursively evaluates the child, then restores the position with its undo record. White maximizes and Black minimizes the evaluation. Alpha and beta are updated as children complete; a node stops searching siblings when `beta <= alpha`.
 
 ![Minimax search](images/minimax_tree.png)
 ![Alpha-beta search tree with MAX and MIN nodes, score bounds, and pruned branches](images/alpha-beta.png)
@@ -34,9 +34,22 @@ The requested depth counts plies including the root move. A depth-1 search stati
 
 At nonzero remaining depth, no legal moves means checkmate when the king is attacked, otherwise stalemate. Stalemate scores zero. Mate uses magnitude `32766 - ply`, negative when White is mated and positive when Black is mated. This favors faster wins and delays unavoidable losses. Infinity is 32767. CLI output does not translate this to `mate N`.
 
-At the root, equal scores retain the first encountered best move. There is no root reordering between iterations. `engine rank` searches each root move with an independent full window and sorts the resulting scores for the side to move. This costs more than sharing a root alpha-beta window, but avoids presenting sibling cutoff bounds as independent exact scores. Equal-score ranking order is not guaranteed.
+At the root, equal search evaluations retain the first encountered best move. Each iteration regenerates heuristic ordering; previous iterations do not supply principal-variation ordering. `engine rank` enumerates its root moves with the unscored generator, searches each with an independent full window and scored recursive move lists, and sorts the resulting evaluations for the side to move. This costs more than sharing a root alpha-beta window, but avoids presenting sibling cutoff bounds as independent exact scores. Equal-score ranking order is not guaranteed.
 
 Fixed-depth requests perform one search, without iterative deepening or a time limit. CLI/UCI depths are restricted to 1–16; the move-list stack holds 16 plies and each list has capacity 256. High depths can still take a very long time.
+
+## Move ordering
+
+Ordering scores are separate from search evaluations. Both colors consume higher ordering scores first. `ScoredMoveList` inserts each accepted move into ascending score order, then `next_move()` removes the highest-scored entry from the end. Equal ordering scores preserve generation order when consumed.
+
+| Move | Ordering score |
+| --- | --- |
+| Capture, including en passant | MVV-LVA: `10 * victim_value - attacker_value`, using each piece type's average middlegame/endgame material value. En passant uses the captured pawn as victim. |
+| Promotion | Queen bonus 10,000; rook 9,000; bishop/knight 8,500. Promotion captures add the pawn's capture score. |
+| Quiet move, including a double pawn push | Destination minus origin in the precomputed phase-blended piece-square table. |
+| Castling | Phase-blended king and rook piece-square deltas combined. |
+
+All legal moves share one scored list; there are no separate capture and quiet priority tiers. Quiet ordering currently uses white piece-square entries at the supplied square indices for both colors; castling uses the same kingside/queenside deltas for both colors. These are ordering heuristics, not full static evaluations of the resulting positions. The tables live in `evaluation.cpp` (`mvvlva`, `tampered_scores`, and `castling_scores`).
 
 ## Timed iterative deepening
 
@@ -59,7 +72,7 @@ soft            = min(20,000 ms, available, available / horizon + (increment / 4
 hard            = min(40,000 ms, available, soft * 3)
 ```
 
-All durations use integer milliseconds. Material phase uses the same piece weights as evaluation, but this helper does not clamp the phase; promoted material can push the estimated horizon above 40. In ordinary material ranges the estimated horizon is 20–40 moves. The engine spends most of the supplied increment and a share of available time while retaining a small reserve. The soft limit controls starting another iteration; the hard limit can interrupt one already running.
+All durations use integer milliseconds. Material phase comes from `get_phase`, which clamps the weighted material sum to 24 for evaluation, move ordering, and time management. The estimated horizon is therefore 20–40 moves, including positions with promoted material. The engine spends most of the supplied increment and a share of available time while retaining a small reserve. The soft limit controls starting another iteration; the hard limit can interrupt one already running.
 
 ## Game rules versus search rules
 
@@ -71,7 +84,7 @@ Search works on `Position` only. It does not consult game snapshots, repetition 
 
 ## Features intentionally absent
 
-- Move ordering, including capture scoring, killer/history heuristics, or principal-variation ordering.
+- Killer/history heuristics and principal-variation ordering.
 - Quiescence search; tactically unstable leaves are evaluated directly.
 - Transposition tables, position hashing, and search-result reuse.
 - Aspiration windows, principal-variation search, null-move pruning, late-move reductions, futility pruning, or extensions.

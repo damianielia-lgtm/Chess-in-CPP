@@ -1,4 +1,4 @@
-# Move generation — MultiPLY v1.0
+# Move generation — MultiPLY v1.1
 
 [README](../README.md) · [Architecture](architecture.md) · [Engine](engine.md) · [Diagnostics](diagnostics.md)
 
@@ -9,14 +9,15 @@ The implementation uses a 64-square array, not bitboards. It generates candidate
 ## From a position to legal moves
 
 ```text
-position + generation mode
+position + output list (unscored or scored)
+    -> generate promotions from the penultimate rank
     -> scan the side to move's pieces
     -> look up movement targets/rays
     -> check occupancy and special-move conditions
     -> temporarily make each candidate
     -> reject it if the moving side's king is attacked
     -> restore the board and append accepted moves
-    -> append separately validated castling moves in All mode
+    -> append separately validated castling moves
 ```
 
 A **pseudo-legal candidate** obeys the piece's movement and occupancy rules but might leave its own king in check. A **legal move** also passes king safety. An **attack query** asks whether a particular color attacks a square; it does not generate that color's legal move list. Keeping these concepts distinct matters for pinned pieces, king moves, and castling.
@@ -86,11 +87,11 @@ The query checks pawn, knight, king, diagonal, then orthogonal attacks. It does 
 
 ## Candidate generation by piece
 
-For knights and kings, an empty destination produces a quiet move in `All` mode; an enemy-occupied destination produces a capture. Friendly-occupied destinations are skipped.
+For knights and kings, an empty destination produces a quiet move; an enemy-occupied destination produces a capture. Friendly-occupied destinations are skipped. Shared traversal helpers visit step targets or ray squares, while separate capture and quiet emitters select the appropriate destinations.
 
 Sliding pieces walk their rays in order. An empty square can produce a quiet move, then traversal continues. The first enemy piece can be captured, ending the ray. A friendly piece ends the ray without producing a move. Queens traverse diagonal rays before orthogonal rays.
 
-Pawns check diagonal captures and en passant first, then the single push and the starting-rank double push. A double push requires an empty intermediate square as well as an empty target. Reaching the final rank generates four separate promotion candidates: knight, bishop, rook, and queen. Both capturing and non-capturing promotions are supported.
+Promotions are generated first from pawns on the penultimate rank, with four candidates per destination: queen, rook, bishop, then knight. Both capturing and non-capturing promotions are supported. The subsequent board scan generates each piece's captures before its quiet moves. For pawns, those are diagonal captures and en passant, then the non-promoting single push and starting-rank double push. A double push requires an empty intermediate square as well as an empty target.
 
 Every ordinary candidate passes through the same king-safety filter before it enters the output list. Promotions are tested independently even when their resulting king-safety outcome is the same.
 
@@ -114,11 +115,11 @@ Removing both pawns from their original rank can uncover a rook or queen attack 
 
 ### Promotions
 
-Promotion replaces the pawn with the selected piece on the destination. The move encoding distinguishes ordinary promotions from promotion captures. Unmaking the candidate restores a pawn on its origin and restores any captured piece. Tactical generation includes quiet promotions as well as promotion captures.
+Promotion replaces the pawn with the selected piece on the destination. The move encoding distinguishes ordinary promotions from promotion captures. Unmaking the candidate restores a pawn on its origin and restores any captured piece. Both output APIs include quiet promotions as well as promotion captures.
 
 ### Castling
 
-Castling is appended separately after ordinary moves, only in `All` mode. It requires the corresponding castling right, an empty path, and no attack on the king's starting, transit, or destination square.
+Castling is emitted separately after ordinary moves in both output APIs. It requires the corresponding castling right, an empty path, and no attack on the king's starting, transit, or destination square.
 
 | Side | Squares that must be empty | King squares that must be safe |
 | --- | --- | --- |
@@ -129,22 +130,24 @@ Castling is appended separately after ordinary moves, only in `All` mode. It req
 
 Queenside b1/b8 must be empty but need not be safe for the king. Castling relies on consistent position rights and piece placement: normal position updates revoke rights after king/rook moves and corner-rook captures, and FEN loading checks the king/rook placement associated with supplied rights. The castling test itself does not revalidate every position invariant. These are standard-chess castling rules; Chess960 castling is not implemented.
 
-## All and Tactical generation
+## Unscored and scored generation
 
-| Mode | Moves included |
+| API | Output and callers |
 | --- | --- |
-| `MoveGeneration::All` | Every legal quiet move, capture, pawn push, promotion, en passant capture, and permitted castle. |
-| `MoveGeneration::Tactical` | Legal captures, en passant captures, promotion captures, and non-capturing promotions. |
+| `generate_all_moves(MovesList&, Position&)` / `all_moves(Position&)` | All legal moves in generation order; used by perft, play, notation, and other callers needing an ordinary move list. |
+| `generate_scored_moves(ScoredMoveList&, Position&)` | All legal moves with ordering scores; used by root best-move search and recursive search. |
 
-Tactical mode still traverses empty sliding-ray squares to reach possible captures, but does not emit those quiet moves. It omits ordinary quiet checks and quiet evasions, so it is not a complete check-evasion generator. It is also not quiescence search: v1 search uses `All` and evaluates leaves directly. The tactical subset is available to callers as a generation option.
+Both APIs include captures, quiet moves, promotions, en passant, and permitted castling. The former `MoveGeneration::All` / `MoveGeneration::Tactical` argument has been removed; there is no public tactical-only generation mode. Search still evaluates depth-zero leaves directly without quiescence search.
 
 ## Output, ordering, and limits
 
-`generate_all_moves(output, position, mode)` clears and refills a caller-provided list. `all_moves(position, mode)` returns a newly populated list by value. Successful generation leaves the position unchanged. Both require a valid, internally consistent position and temporary mutable access while filtering candidates.
+`generate_all_moves(output, position)` and `generate_scored_moves(output, position)` clear and refill their caller-provided lists. `all_moves(position)` returns a newly populated unscored list by value. Successful generation leaves the position unchanged. All require a valid, internally consistent position and temporary mutable access while filtering candidates.
 
-Each list holds up to **256 encoded moves** in fixed storage. A move occupies two bytes and records origin, target, and move kind. The reusable search/perft stack supplies a separate list for each of **16 plies**. These fixed capacities avoid a heap allocation for each generated move list; they are implementation limits, not dynamically expanding containers.
+Each list holds up to **256 entries** in fixed storage. An encoded move occupies two bytes and records origin, target, and move kind; a scored entry adds an integer ordering score. `MoveListStack` supplies unscored lists for perft, while `ScoredMoveListStack` supplies scored lists for search, each with **16 plies**. These fixed capacities avoid a heap allocation for each generated move list; they are implementation limits, not dynamically expanding containers.
 
-Generation order follows the board scan from a1 through h8, then each piece's table order. Pawn promotion choices are emitted knight, bishop, rook, then queen. Castling is appended kingside then queenside when available. No capture scoring or search-based sorting is performed. This order matters to the [engine baseline](engine.md), which searches moves as generated; it does not imply a chess preference.
+Unscored generation emits promotions first, scanning eligible pawns in square-index order. For each pawn, promotion captures precede quiet promotions, with choices queen, rook, bishop, then knight. It then scans a1 through h8, emitting each piece's captures before its quiet moves in table order. Castling is appended kingside then queenside when available.
+
+Scored generation uses the same candidates and legality checks, inserting accepted moves into ascending score order. `next_move()` consumes the highest score from the end until `exhausted()` is true; consumption reduces `size()`. Equal scores are consumed in generation order. Capture scores use MVV-LVA, promotions receive piece-dependent bonuses, and quiet/castling scores use phase-blended piece-square deltas. See [Engine move ordering](engine.md#move-ordering) for the formulas and table conventions.
 
 ## Validation and performance
 
@@ -158,4 +161,4 @@ perft test --preset fast
 
 The initial position has 20 legal moves and 8,902 depth-3 leaves. `debug --depth N` compares divides and resulting positions against an external Stockfish process, while `perft benchmark` measures traversal throughput. See [Diagnostics](diagnostics.md) for setup, expected-count selection, and report handling.
 
-The present design favors reusable geometry, direct emission, and a shared legality test. It does not cache attack maps, derive pins/checkers in advance, or use bitboard sliding-attack lookup schemes. Any future optimization must preserve blocker handling, restoration of temporary changes, and special-move king safety across both generation modes.
+The present design favors reusable geometry, direct emission, and a shared legality test. It does not cache attack maps, derive pins/checkers in advance, or use bitboard sliding-attack lookup schemes. Any future optimization must preserve blocker handling, restoration of temporary changes, and special-move king safety across both output APIs.

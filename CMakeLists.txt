@@ -61,6 +61,8 @@ add_executable(book_compiler
     src/movegen/legal_moves.cpp
     src/movegen/attacks.cpp
 
+    src/engine/evaluation.cpp
+
     src/core/position.cpp
 
     src/match_runner/book_compiler.cpp
@@ -75,6 +77,8 @@ add_executable(match_runner
 
     src/movegen/legal_moves.cpp
     src/movegen/attacks.cpp
+
+    src/engine/evaluation.cpp
 
     src/core/position.cpp
 

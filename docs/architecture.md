@@ -1,4 +1,4 @@
-# Architecture — MultiPLY v1.0
+# Architecture — MultiPLY v1.1
 
 [README](../README.md) · [Engine](engine.md) · [Move generation](movegen.md) · [File formats](file-formats.md)
 
@@ -23,7 +23,7 @@ MultiPLY shares one chess core between a terminal program, a UCI frontend, and d
 
 A position contains a 64-square array plus side to move, castling rights, en passant target, halfmove/fullmove counters, and cached king locations. Square indexing begins at `a1`; FEN conversion accounts for the opposite rank order used by its board text.
 
-Move generation emits legal moves into reusable fixed-capacity lists. Movement/attack tables supply board geometry; attack checks enforce king safety and castling restrictions. Special move encodings carry promotion, castling, and en passant behavior. Text input resolves to one of the legal moves before execution. Low-level position mutation assumes the caller supplies an appropriate move; it is not a second user-input validator.
+Move generation emits legal moves into reusable fixed-capacity lists. `MovesList` preserves generation order for general callers and perft; `ScoredMoveList` orders search moves using capture, promotion, and piece-square scores supplied by the evaluation module. Movement/attack tables supply board geometry; attack checks enforce king safety and castling restrictions. Special move encodings carry promotion, castling, and en passant behavior. Text input resolves to one of the legal moves before execution. Low-level position mutation assumes the caller supplies an appropriate move; it is not a second user-input validator.
 
 The [move-generation guide](movegen.md) explains the precomputed tables, target-centered attack queries, candidate filtering, and special-move handling with diagrams.
 

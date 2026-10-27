@@ -1,4 +1,4 @@
-# Files, configuration, and formats — MultiPLY v1.0
+# Files, configuration, and formats — MultiPLY v1.1
 
 [README](../README.md) · [CLI](cli.md) · [Diagnostics](diagnostics.md)
 
