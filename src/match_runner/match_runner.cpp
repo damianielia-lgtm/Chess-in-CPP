@@ -24,6 +24,8 @@ using namespace std::chrono;
 struct CurrentConfig {
     std::optional<std::string> engine1_exe;
     std::optional<std::string> engine2_exe;
+    std::optional<int> engine1_elo;
+    std::optional<int> engine2_elo;
     std::optional<TimeControl> time_control;
     std::optional<int> n_games;
     std::optional<std::string> opening_book;
@@ -36,6 +38,8 @@ struct RunCommand {};
 
 struct SetEngine1Command { std::string exe; };
 struct SetEngine2Command { std::string exe; };
+struct SetEngine1EloCommand { int elo; };
+struct SetEngine2EloCommand { int elo; };
 struct SetTimeControlCommand { TimeControl time_control; };
 struct SetNGamesCommand { int number; };
 struct SetOpeningBookCommand { std::string book; };
@@ -48,6 +52,8 @@ using Command = std::variant<
 
     SetEngine1Command,
     SetEngine2Command,
+    SetEngine1EloCommand,
+    SetEngine2EloCommand,
     SetTimeControlCommand,
     SetNGamesCommand,
     SetOpeningBookCommand,
@@ -64,6 +70,14 @@ std::uint64_t parse_number_string(std::string string) {
         if (!std::isdigit(c)) { throw std::runtime_error("Invalid integer."); }
     }
     return std::stoull(string);
+}
+
+int parse_elo_lim(std::string string) {
+    std::uint64_t elo = parse_number_string(string);
+    if (1320 > elo || elo > 3190) {
+        throw std::runtime_error("Invalid ELO.");
+    }
+    return static_cast<int>(elo);
 }
 
 Command parse_command(const std::string_view line) {
@@ -112,6 +126,10 @@ Command parse_command(const std::string_view line) {
             return SetEngine1Command{set_value};
         } else if (set_field == "engine2") {
             return SetEngine2Command{set_value};
+        } else if (set_field == "engine1-elo") {
+            return SetEngine1EloCommand{parse_elo_lim(set_value)};
+        } else if (set_field == "engine2-elo") {
+            return SetEngine2EloCommand{parse_elo_lim(set_value)};
         } else if (set_field == "time-control") {
             auto first = set_value.find('+');
             auto last = set_value.rfind('+');
@@ -243,21 +261,6 @@ BookData read_opening_book(
     return data;
 }
 
-std::string get_engine_name(Process& pipe) {
-    std::string engine_name;
-    pipe.send_line("uci");
-    for (const std::string& id_line : pipe.read_until("uciok")) {
-        if (id_line.starts_with("id name ")) {
-            engine_name = id_line.substr(8);
-            break;
-        }
-    }
-    if (engine_name.empty()) {
-        throw std::runtime_error("Engine doesn't comply to uci.");
-    }
-    return engine_name;
-}
-
 bool play_engine_move(
     Process& engine,
     Game& game,
@@ -374,9 +377,33 @@ Winner run_and_save_game(
     }
 }
 
+std::string get_engine_name(Process& pipe) {
+    std::string engine_name;
+    pipe.send_line("uci");
+    for (const std::string& id_line : pipe.read_until("uciok")) {
+        if (id_line.starts_with("id name ")) {
+            engine_name = id_line.substr(8);
+            break;
+        }
+    }
+    if (engine_name.empty()) {
+        throw std::runtime_error("Engine doesn't comply to uci.");
+    }
+    return engine_name;
+}
+
+std::string set_engine_elo(Process& pipe, std::optional<int> elo) {
+    if (!elo) { return ""; }
+    pipe.send_line("setoption name UCI_LimitStrength value true");
+    pipe.send_line("setoption name UCI_Elo value " + std::to_string(*elo));
+    return " (" + std::to_string(*elo) + " ELO)";
+}
+
 struct MatchConfig {
     std::string engine1_exe;
     std::string engine2_exe;
+    std::optional<int> engine1_elo;
+    std::optional<int> engine2_elo;
     TimeControl time_control;
     int n_games;
     std::string opening_book;
@@ -389,6 +416,9 @@ void run_match(const MatchConfig& config) {
 
     std::string engine1_name = get_engine_name(engine1);
     std::string engine2_name = get_engine_name(engine2);
+    engine1_name += set_engine_elo(engine1, config.engine1_elo);
+    engine2_name += set_engine_elo(engine2, config.engine2_elo);
+
     std::string date = std::format("{:%d.%m.%Y-%H.%M.%S}", system_clock::now());
     std::string event = engine1_name + " v.s. " + engine2_name +  " --- " + date;
     std::string match_dir = "data/matches/" + event;
@@ -506,14 +536,15 @@ void run_match(const MatchConfig& config) {
 
 void execute_impl(const HelpCommand&, CurrentConfig&) {
     std::cout << "Commands:\n"
-        << " - set engine1 <first engine executable path>\n"
-        << " - set engine2 <second engine exectuable path>\n"
+        << " - set engine{1 | 2} <engine exectuable path>\n"
+        << " - set engine{1 | 2}-elo <elo (1320 to 3190)>\n"
         << " - set time-control <initial(ms)+increment(ms)>\n"
         << " - set game-number <even number of games>\n"
         << " - set opening-eval-variation { very-low | low | medium | high | very-high }\n"
         << " - set seed <seed number>\n"
         << " - show-config\n"
-        << " - run\n";
+        << " - run\n\n"
+        << "(note MultiPLY doesn't support ELO limits)\n";
 }
 
 void execute_impl(const ShowConfigCommand&, CurrentConfig& config) {
@@ -523,6 +554,12 @@ void execute_impl(const ShowConfigCommand&, CurrentConfig& config) {
             << "\n"
         << "Engine 2 executable:     "
             << (config.engine2_exe ? *config.engine2_exe : "(not set)")
+            << "\n"
+        << "Engine 1 elo:            "
+            << (config.engine1_elo ? std::to_string(*config.engine1_elo) : "unlimited")
+            << "\n"
+        << "Engine 2 elo:            "
+            << (config.engine2_elo ? std::to_string(*config.engine2_elo) : "unlimited")
             << "\n"
         << "Time control (ms):       "
             << (config.time_control
@@ -557,6 +594,8 @@ void execute_impl(const RunCommand&, CurrentConfig& config) {
         MatchConfig{
             *config.engine1_exe,
             *config.engine2_exe,
+            config.engine1_elo,
+            config.engine2_elo,
             *config.time_control,
             *config.n_games,
             *config.opening_book,
@@ -567,6 +606,8 @@ void execute_impl(const RunCommand&, CurrentConfig& config) {
 
 void execute_impl(const SetEngine1Command& cmd, CurrentConfig& config) { config.engine1_exe = cmd.exe; }
 void execute_impl(const SetEngine2Command& cmd, CurrentConfig& config) { config.engine2_exe = cmd.exe; }
+void execute_impl(const SetEngine1EloCommand& cmd, CurrentConfig& config) { config.engine1_elo = cmd.elo; }
+void execute_impl(const SetEngine2EloCommand& cmd, CurrentConfig& config) { config.engine2_elo = cmd.elo; }
 void execute_impl(const SetTimeControlCommand& cmd, CurrentConfig& config) { config.time_control = cmd.time_control; }
 void execute_impl(const SetNGamesCommand& cmd, CurrentConfig& config) { config.n_games = cmd.number; }
 void execute_impl(const SetOpeningBookCommand& cmd, CurrentConfig& config) { config.opening_book = cmd.book; }
@@ -588,6 +629,8 @@ int main() {
     std::filesystem::create_directories("data/matches/");
 
     CurrentConfig config(
+        std::nullopt,
+        std::nullopt,
         std::nullopt,
         std::nullopt,
         TimeControl{milliseconds(2000), milliseconds(0)},
