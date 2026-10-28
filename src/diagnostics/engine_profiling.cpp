@@ -14,6 +14,25 @@
 #include "../engine/search.h"
 #include "../interface/display.h"
 
+PruningObserver::MoveLoop PruningObserver::start_move_loop(Position& position) {
+    // The staged picker has no total size. Only profiling needs an eager legal count.
+    const std::size_t legal_count = all_moves(position).size();
+    assert(legal_count <= MovesList::capacity);
+    return {histogram, legal_count};
+}
+
+void PruningObserver::MoveLoop::searched_move() {
+    assert(k < N);
+    k++;
+}
+
+void PruningObserver::MoveLoop::finish() {
+    // Terminal nodes now reach the hooks, but have no move-loop observation.
+    if (N == 0) { return; }
+    assert(k > 0 && k <= N);
+    histogram[N][k]++;
+}
+
 namespace {
 
 void interpret_histogram(
@@ -22,7 +41,7 @@ void interpret_histogram(
 ) {
     std::uint64_t total_observations = 0;
 
-    for (std::size_t N = 1; N < 256; N++) {
+    for (std::size_t N = 1; N < histogram.size(); N++) {
         for (std::size_t k = 1; k <= N; k++) {
             total_observations += histogram[N][k];
         }
@@ -38,7 +57,7 @@ void interpret_histogram(
 
     report.csv_lines = {"N,k,count"};
 
-    for (std::size_t N = 1; N < 256; N++) {
+    for (std::size_t N = 1; N < histogram.size(); N++) {
         for (std::size_t k = 1; k <= N; k++) {
             std::uint32_t value = histogram[N][k];
 

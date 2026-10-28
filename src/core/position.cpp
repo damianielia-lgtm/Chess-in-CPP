@@ -54,18 +54,24 @@ void Position::unmake_move(const Move move, const Piece capture) noexcept {
 
 UndoState Position::apply_move(const Move move) noexcept {
     Piece moving_piece = piece_at(move.origin());
-    Piece captured_piece = piece_at(move.target());
-
-    UndoState undo_state{};
-    undo_state.captured_piece = move.is_en_passant()
+    Piece capture = move.is_en_passant()
         ? piece_at(move.en_passant_capture())
         : piece_at(move.target());
-    undo_state.castling_rights = castling_rights_;
-    undo_state.en_passant_target = en_passant_target_;
-    undo_state.halfmove_clock = halfmove_clock_;
-    undo_state.fullmove_number = fullmove_number_;
-    undo_state.white_king = white_king_;
-    undo_state.black_king = black_king_;
+
+    UndoState undo_state{
+        capture,
+        castling_rights_,
+        en_passant_target_,
+        halfmove_clock_,
+        fullmove_number_,
+        white_king_,
+        black_king_,
+        phase_,
+        mg_eval_,
+        eg_eval_
+    };
+
+    update_eval(moving_piece, capture, move);
     
     make_move(move);
     
@@ -78,7 +84,7 @@ UndoState Position::apply_move(const Move move) noexcept {
     if (moving_piece.type() == PieceType::Rook) {
         castling_rights_.revoke_from_rook(move.origin());
     }
-    if (captured_piece.type() == PieceType::Rook) {
+    if (capture.type() == PieceType::Rook) {
         castling_rights_.revoke_from_rook(move.target());
     }
 
@@ -112,4 +118,7 @@ void Position::revert_move(const Move move, const UndoState& undo_state) noexcep
     fullmove_number_ = undo_state.fullmove_number;
     white_king_ = undo_state.white_king;
     black_king_ = undo_state.black_king;
+    phase_ = undo_state.phase;
+    mg_eval_ = undo_state.mg_eval;
+    eg_eval_ = undo_state.eg_eval;
 }

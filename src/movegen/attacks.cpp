@@ -56,6 +56,21 @@ bool is_attacked_square(
 }
 
 bool is_legal_move(Position& position, const Move move) {
+    if (move.is_castling()) {
+        static constexpr std::array<Targets<3>, 4> CastlingSafe = {{
+            {Square('e', '1'), Square('f', '1'), Square('g', '1')},
+            {Square('e', '1'), Square('d', '1'), Square('c', '1')},
+            {Square('e', '8'), Square('f', '8'), Square('g', '8')},
+            {Square('e', '8'), Square('d', '8'), Square('c', '8')}
+        }};
+        for (const Square square : CastlingSafe[CastlingOption(move).index()]) {
+            if (is_attacked_square(position, square, position.opposite_turn())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     const Piece capture = move.is_en_passant()
         ? position.piece_at(move.en_passant_capture())
         : position.piece_at(move.target());

@@ -27,7 +27,7 @@ struct NullObserver {
         void finish() noexcept {}
     };
 
-    MoveLoop start_move_loop(std::size_t) {
+    MoveLoop start_move_loop(Position&) {
         return {};
     }
 };
@@ -46,7 +46,7 @@ struct BasicStatsObserver {
         void finish() noexcept {}
     };
 
-    MoveLoop start_move_loop(std::size_t) {
+    MoveLoop start_move_loop(Position&) {
         return {};
     }
 };
@@ -65,20 +65,11 @@ struct PruningObserver {
         std::size_t N;
         std::size_t k = 0;
 
-        void searched_move() {
-            assert(k < N);
-            k++;
-        }
-
-        void finish() {
-            histogram[N][k]++;
-        }
+        void searched_move();
+        void finish();
     };
 
-    MoveLoop start_move_loop(std::size_t list_size) {
-        assert(list_size > 0 && list_size <= MovesList::capacity);
-        return {histogram, list_size};
-    }
+    MoveLoop start_move_loop(Position& position);
 };
 
 template <typename Observer>

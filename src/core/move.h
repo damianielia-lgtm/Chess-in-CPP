@@ -77,14 +77,10 @@ public:
     bool is_en_passant() const noexcept { return kind() == MoveKind::EnPassant; }
     bool is_castling() const noexcept { return kind() == MoveKind::Castling; }
     bool is_promotion() const noexcept { return kind() > MoveKind::EnPassant; }
-    bool is_loud() const noexcept {
-        switch (kind()) {
-            case MoveKind::None: return false;
-            case MoveKind::DoublePawn: return false;
-            case MoveKind::Castling: return false;
-            default: return true;
-        }
-    }
+
+    static Move none() noexcept { return Move(); }
+
+    bool operator==(const Move&) const = default;
 
 private:
     std::uint16_t encoding_ = 0;

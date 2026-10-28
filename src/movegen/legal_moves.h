@@ -44,41 +44,31 @@ struct ScoredMove {
     int score;
 };
 
-class ScoredMoveList {
+class MovePicker {
 public:
     static constexpr std::size_t capacity = 256;
 
-    ScoredMoveList() noexcept = default;
+    MovePicker(
+        Position& position,
+        std::array<ScoredMove, capacity>& move_list
+    ) : position_(position), moves_(move_list) {}
 
-    void push(ScoredMove move) noexcept {
-        if (full()) { return; }
-
-        std::size_t i = count_++;
-        while (i > 0 && moves_[i - 1].score >= move.score) {
-            moves_[i] = moves_[i - 1]; // shift the better-or-equal move right
-            i--;
-        }
-        moves_[i] = move;
-    }
-
-    std::size_t size() const noexcept { return count_; }
-    bool full() const noexcept { return count_ >= capacity; }
-    bool empty() const noexcept { return count_ == 0; }
-    void clear() noexcept { count_ = 0; }
-
-    Move next_move() {
-        assert(!exhausted());
-        count_--;
-        Move move = moves_[count_].move;
-        return move;
-    }
-    bool exhausted() const noexcept { return count_ == 0; }
+    Move next_move();
 
 private:
-    std::array<ScoredMove, capacity> moves_{};
+    enum class GenerationStage {
+        NotStarted,
+        Promotions,
+        Captures,
+        Quiets
+    };
+
+    Position& position_;
+    std::array<ScoredMove, capacity>& moves_;
     std::size_t count_ = 0;
+    GenerationStage stage_ = GenerationStage::NotStarted;
+    bool first_move_ = true;
+    bool sorted_ = false;
 };
 
-void generate_scored_moves(ScoredMoveList& legal_moves, Position& position);
-
-using ScoredMoveListStack = std::array<ScoredMoveList, max_ply>;
+using ScoredMoveListStack = std::array<std::array<ScoredMove, MovePicker::capacity>, max_ply>;

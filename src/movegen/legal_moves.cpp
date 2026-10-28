@@ -1,6 +1,7 @@
 #include "legal_moves.h"
 
 #include <array>
+#include <algorithm>
 #include <cstdint>
 
 #include "../core/piece.h"
@@ -68,9 +69,28 @@ void for_each_reachable(Square origin, PieceType type, const Position& position,
 
 /* --- QUIETS --- */
 
-int score_quiet(std::uint8_t phase, Piece piece, Square origin, Square target) {
-    return tampered_scores[phase][piece.encoding()][target.index()]
-        - tampered_scores[phase][piece.encoding()][origin.index()];
+int score_quiet(std::uint8_t phase, Piece piece, Move move) {
+    return (move.is_castling()
+        ? castling_scores[phase][CastlingOption(move).index()]
+        : tampered_scores[phase][piece.encoding()][move.target().index()]
+           - tampered_scores[phase][piece.encoding()][move.origin().index()]);
+}
+
+void castling(const Position& position, const CastlingOption option, auto& emit) {
+    static constexpr std::array<Targets<3>, 4> CastlingEmpty = {{
+        {Square('f', '1'), Square('g', '1')},
+        {Square('b', '1'), Square('c', '1'), Square('d', '1')},
+        {Square('f', '8'), Square('g', '8')},
+        {Square('b', '8'), Square('c', '8'), Square('d', '8')}
+    }};
+
+    if (!position.castling_rights().has(option)) { return; }
+
+    for (const Square square : CastlingEmpty[option.index()]) {
+        if (!position.piece_at(square).empty()) { return; }
+    }
+
+    emit(option.castling_king_movement());
 }
 
 void pseudo_pawn_quiets(Square origin, const Position& position, auto& emit) {
@@ -106,6 +126,26 @@ void pseudo_quiets(Square origin, Piece piece, const Position& position, auto& e
             }
         }
     );
+}
+
+void generate_quiets(Position& position, auto& emit) {
+    const Color us = position.turn();
+
+    for (const Square square : Square::all()) {
+        const Piece piece = position.piece_at(square);
+        if (piece.empty() || piece.is_enemy(us)) { continue; }
+
+        pseudo_quiets(square, piece, position, emit);
+    }
+
+    for (
+        const CastlingOption& option : {
+            CastlingOption(us, CastlingSide::Kingside),
+            CastlingOption(us, CastlingSide::Queenside)
+        }
+    ) {
+        castling(position, option, emit);
+    }
 }
 
 /* --- CAPTURES --- */
@@ -145,6 +185,17 @@ void pseudo_captures(Square origin, Piece piece, const Position& position, auto&
             }
         }
     );
+}
+
+void generate_captures(Position& position, auto& emit) {
+    const Color us = position.turn();
+
+    for (const Square square : Square::all()) {
+        const Piece piece = position.piece_at(square);
+        if (piece.empty() || piece.is_enemy(us)) { continue; }
+
+        pseudo_captures(square, piece, position, emit);
+    }
 }
 
 /* --- PROMOTIONS --- */
@@ -193,118 +244,109 @@ void pseudo_promotions(Square origin, const Position& position, auto& emit) {
     }
 }
 
-/* --- CASTLING --- */
-
-constexpr std::array<Targets<3>, 4> CastlingEmpty = {{
-    {Square('f', '1'), Square('g', '1')},
-    {Square('b', '1'), Square('c', '1'), Square('d', '1')},
-    {Square('f', '8'), Square('g', '8')},
-    {Square('b', '8'), Square('c', '8'), Square('d', '8')}
-}};
-
-constexpr std::array<Targets<3>, 4> CastlingSafe = {{
-    {Square('e', '1'), Square('f', '1'), Square('g', '1')},
-    {Square('e', '1'), Square('d', '1'), Square('c', '1')},
-    {Square('e', '8'), Square('f', '8'), Square('g', '8')},
-    {Square('e', '8'), Square('d', '8'), Square('c', '8')}
-}};
-
-bool can_castle(const Position& position, const CastlingOption option) {
-    if (!position.castling_rights().has(option)) { return false; }
-
-    for (const Square square : CastlingEmpty[option.index()]) {
-        if (!position.piece_at(square).empty()) { return false; }
-    }
-
-    for (const Square square : CastlingSafe[option.index()]) {
-        if (is_attacked_square(position, square, position.opposite_turn())) { return false; }
-    }
-
-    return true;
-}
-
-}
-
-void generate_scored_moves(ScoredMoveList& legal_moves, Position& position) {
-    legal_moves.clear();
-
-    const Color us = position.turn();
-    const std::uint8_t phase = get_phase(position);
-
-    auto emit_promotion = [&](Move move) {
-        if (!is_legal_move(position, move)) {
-            return;
+void generate_promotions(Position& position, auto& emit) {
+    for (
+        const Square square :
+        (position.turn() == Color::White ? Square::iterate(48, 55) : Square::iterate(8, 15))
+    ) {
+        if (position.piece_at(square) == Piece(position.turn(), PieceType::Pawn)) {
+            pseudo_promotions(square, position, emit);
         }
-        
+    }
+}
+
+}
+
+Move MovePicker::next_move() {
+    auto emit_promotion = [&](Move move) {
+        assert(count_ < capacity);
         int score = score_promotion(
             move.promotion_type(),
-            position.piece_at(move.origin()),
-            position.piece_at(move.target())
+            position_.piece_at(move.origin()),
+            position_.piece_at(move.target())
         );
-        legal_moves.push(ScoredMove{move, score});
+        moves_[count_++] = ScoredMove{move, score};
     };
 
-    for (const Square square : (us == Color::White ? Square::iterate(48, 55) : Square::iterate(8, 15))) {
-        if (position.piece_at(square) == Piece(us, PieceType::Pawn)) {
-            pseudo_promotions(square, position, emit_promotion);
-        }
-    }
-
     auto emit_capture = [&](Move move) {
-        if (!is_legal_move(position, move)) {
-            return;
-        }
-        
+        assert(count_ < capacity);
         int score = score_capture(
-            position.piece_at(move.origin()),
+            position_.piece_at(move.origin()),
             move.is_en_passant()
-                ? position.piece_at(move.en_passant_capture())
-                : position.piece_at(move.target())
+                ? position_.piece_at(move.en_passant_capture())
+                : position_.piece_at(move.target())
         );
-        legal_moves.push(ScoredMove{move, score});
+        moves_[count_++] = ScoredMove{move, score};
     };
 
     auto emit_quiet = [&](Move move) {
-        if (!is_legal_move(position, move)) {
-            return;
-        }
-        
+        assert(count_ < capacity);
         int score = score_quiet(
-            phase,
-            position.piece_at(move.origin()),
-            move.origin(),
-            move.target()
+            position_.phase(),
+            position_.piece_at(move.origin()),
+            move
         );
-        legal_moves.push(ScoredMove{move, score});
+        moves_[count_++] = ScoredMove{move, score};
     };
 
-    for (const Square square : Square::all()) {
-        const Piece piece = position.piece_at(square);
-        if (piece.empty() || piece.is_enemy(us)) { continue; }
-
-        pseudo_captures(square, piece, position, emit_capture);
-        pseudo_quiets(square, piece, position, emit_quiet);
-    }
-
-    for (
-        const CastlingOption& option : {
-            CastlingOption(us, CastlingSide::Kingside),
-            CastlingOption(us, CastlingSide::Queenside)
+    if (count_ == 0) {
+        sorted_ = false;
+        switch (stage_) {
+            case GenerationStage::NotStarted:
+                stage_ = GenerationStage::Promotions;
+                generate_promotions(position_, emit_promotion);
+                return next_move();
+            case GenerationStage::Promotions:
+                stage_ = GenerationStage::Captures;
+                generate_captures(position_, emit_capture);
+                return next_move();
+            case GenerationStage::Captures:
+                stage_ = GenerationStage::Quiets;
+                generate_quiets(position_, emit_quiet);
+                return next_move();
+            case GenerationStage::Quiets:
+                return Move::none();
         }
-    ) {
-        if (!can_castle(position, option)) { continue; }
-        legal_moves.push(
-            ScoredMove{option.castling_king_movement(),
-                castling_scores[phase][option.index()]}
-        );
+    } else {
+        Move best_pseudo;
+
+        if (first_move_) {
+            auto best_it = std::max_element(
+                moves_.begin(), moves_.begin() + count_,
+                [](const ScoredMove& a, const ScoredMove& b) {
+                    return a.score < b.score;
+                }
+            );
+
+            best_pseudo = best_it->move;
+
+            *best_it = moves_[--count_];
+        } else {
+            if (!sorted_) {
+                std::sort(
+                    moves_.begin(), moves_.begin() + count_,
+                    [](const ScoredMove& a, const ScoredMove& b) {
+                        return a.score < b.score; // ascending: best move ends up last
+                    }
+                );
+                sorted_ = true;
+            }
+
+            count_--;
+            best_pseudo = moves_[count_].move;
+        }
+
+        if (!is_legal_move(position_, best_pseudo)) {
+            return next_move();
+        }
+
+        first_move_ = false;
+        return best_pseudo;
     }
 }
 
 void generate_all_moves(MovesList& legal_moves, Position& position) {
     legal_moves.clear();
-
-    const Color us = position.turn();
-    const std::uint8_t phase = get_phase(position);
 
     auto emit_if_legal = [&](Move move) {
         if (is_legal_move(position, move)) {
@@ -312,29 +354,9 @@ void generate_all_moves(MovesList& legal_moves, Position& position) {
         }
     };
 
-    for (const Square square : (us == Color::White ? Square::iterate(48, 55) : Square::iterate(8, 15))) {
-        if (position.piece_at(square) == Piece(us, PieceType::Pawn)) {
-            pseudo_promotions(square, position, emit_if_legal);
-        }
-    }
-
-    for (const Square square : Square::all()) {
-        const Piece piece = position.piece_at(square);
-        if (piece.empty() || piece.is_enemy(us)) { continue; }
-
-        pseudo_captures(square, piece, position, emit_if_legal);
-        pseudo_quiets(square, piece, position, emit_if_legal);
-    }
-
-    for (
-        const CastlingOption& option : {
-            CastlingOption(us, CastlingSide::Kingside),
-            CastlingOption(us, CastlingSide::Queenside)
-        }
-    ) {
-        if (!can_castle(position, option)) { continue; }
-        legal_moves.push(option.castling_king_movement());
-    }
+    generate_promotions(position, emit_if_legal);
+    generate_captures(position, emit_if_legal);
+    generate_quiets(position, emit_if_legal);
 }
 
 MovesList all_moves(Position& position) {

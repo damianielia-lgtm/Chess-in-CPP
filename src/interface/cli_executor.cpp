@@ -266,7 +266,7 @@ void execute_impl(const ConfigSetBenchmarkStatsTracking& cmd, CliSession&, Confi
 
 
 void execute_impl(const EngineStaticEval&, CliSession& session, ConfigData&) {
-    std::int16_t eval = static_eval(session.current_position());
+    std::int16_t eval = session.current_position().static_eval();
     print_lines({"Static eval : " + std::to_string(normalize_centipawn(eval))});
 }
 

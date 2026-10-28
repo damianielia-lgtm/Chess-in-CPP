@@ -75,27 +75,24 @@ std::int16_t minimax_impl(
 
     if (depth == 0) {
         observer.on_leaf();
-        return static_eval(position);
+        return position.static_eval();
     }
 
     if (control.stop_hard()) { return 0; }
 
-    ScoredMoveList& legal_moves = move_lists[ply];
-    generate_scored_moves(legal_moves, position);
+    MovePicker picker(position, move_lists[ply]);
+    Move move;
+
+    bool is_terminal = true;
 
     bool maximizing = position.turn() == Color::White;
 
-    if (legal_moves.empty()) {
-        observer.on_leaf();
-        return terminal_eval(position, ply);
-    }
-
     std::int16_t best_eval = maximizing ? -INF : INF;
 
-    auto probe = observer.start_move_loop(legal_moves.size());
+    auto probe = observer.start_move_loop(position);
 
-    while (!legal_moves.exhausted()) {
-        Move move = legal_moves.next_move();
+    while ((move = picker.next_move()) != Move::none()) {
+        is_terminal = false;
 
         UndoState move_state = position.apply_move(move);
 
@@ -127,6 +124,11 @@ std::int16_t minimax_impl(
 
     probe.finish();
 
+    if (is_terminal) {
+        observer.on_leaf();
+        return terminal_eval(position, ply);
+    }
+
     return best_eval;
 }
 
@@ -145,23 +147,19 @@ SearchedMove pbm_impl(
     SearchedMove search_result{std::nullopt, maximizing ? -INF : INF};
 
     ScoredMoveListStack move_lists;
-    ScoredMoveList& legal_moves = move_lists[0];
-    generate_scored_moves(legal_moves, position);
-    
-    if (legal_moves.empty()) {
-        observer.on_leaf();
-        search_result.eval = terminal_eval(position, 0);
-        return search_result;
-    }
+    MovePicker picker(position, move_lists[0]);
+    Move move;
+
+    bool is_terminal = true;
 
     std::int16_t alpha = -INF;
     std::int16_t beta = INF;
 
-    auto probe = observer.start_move_loop(legal_moves.size());
+    auto probe = observer.start_move_loop(position);
 
-    while (!legal_moves.exhausted()) {
-        Move move = legal_moves.next_move();
-        
+    while ((move = picker.next_move()) != Move::none()) {
+        is_terminal = false;
+
         UndoState move_state = position.apply_move(move);
 
         std::int16_t score = minimax_impl(
@@ -194,6 +192,12 @@ SearchedMove pbm_impl(
 
     probe.finish();
 
+    if (is_terminal) {
+        observer.on_leaf();
+        search_result.eval = terminal_eval(position, 0);
+        return search_result;
+    }
+
     return search_result;
 }
 
@@ -210,7 +214,7 @@ SearchedMove iterative_deepening(Position& position, TimeLimits limits) {
         return {std::nullopt, terminal_eval(position, 0)};
     }
 
-    SearchedMove best{*legal_moves.begin(), static_eval(position)};
+    SearchedMove best{*legal_moves.begin(), position.static_eval()};
     NullObserver observer;
 
     for (std::uint8_t depth = 1; depth <= max_ply; depth++) {
@@ -313,7 +317,7 @@ SearchedMove pbm_timed_game(
     const milliseconds reserve = std::min(milliseconds{500}, remaining / 5);
     const milliseconds available = remaining - reserve;
 
-    const int estimated_moves = 20 + 20 * get_phase(position) / MAX_PHASE;
+    const int estimated_moves = 20 + 20 * position.phase() / MAX_PHASE;
     const int horizon = moves_to_go
         ? std::max(1, *moves_to_go)
         : estimated_moves;

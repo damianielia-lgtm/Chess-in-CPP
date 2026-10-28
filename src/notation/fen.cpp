@@ -9,6 +9,7 @@
 #include "../core/position.h"
 #include "../core/piece.h"
 #include "../movegen/attacks.h"
+#include "../engine/evaluation.h"
 #include "../errors.h"
 
 struct FenFields {
@@ -233,6 +234,11 @@ Position::Position(const std::string_view fen_string) {
     if (is_attacked_square(*this, king_square(opposite_turn()), turn_)) {
         throw FenError("Side not to move is in check");
     }
+
+    StaticEval eval = get_static_eval(*this);
+    phase_ = eval.phase;
+    mg_eval_ = eval.mg_eval;
+    eg_eval_ = eval.eg_eval;
 }
 
 std::string Position::to_fen(bool ignore_clocks) const {

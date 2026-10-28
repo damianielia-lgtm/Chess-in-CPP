@@ -4,6 +4,7 @@
 #include <cassert>
 #include <string>
 #include <string_view>
+#include <algorithm>
 
 #include "square.h"
 #include "move.h"
@@ -18,6 +19,9 @@ struct UndoState {
     int fullmove_number;
     Square white_king;
     Square black_king;
+    std::uint8_t phase;
+    std::int16_t mg_eval;
+    std::int16_t eg_eval;
 };
 
 constexpr std::array<Piece, 64> STARTING_BOARD = {
@@ -51,6 +55,9 @@ public:
     int fullmove_number() const noexcept { return fullmove_number_; }
     Square king_square(Color color) const noexcept { return (color == Color::White) ? white_king_ : black_king_; }
 
+    std::uint8_t phase() const noexcept;
+    std::int16_t static_eval() const noexcept;
+
     void make_move(const Move move) noexcept;
     void unmake_move(const Move move, const Piece capture) noexcept;
     UndoState apply_move(const Move move) noexcept;
@@ -67,6 +74,9 @@ private:
     int fullmove_number_;
     Square white_king_;
     Square black_king_;
+    std::uint8_t phase_;
+    std::int16_t mg_eval_;
+    std::int16_t eg_eval_;
 
     void set_piece(Square index, Piece piece) noexcept {
         assert(index.is_valid());
@@ -84,5 +94,10 @@ private:
         fullmove_number_ = 1;
         white_king_ = Square('e', '1');
         black_king_ = Square('e', '8');
+        phase_ = 24;
+        mg_eval_ = 0;
+        eg_eval_ = 0;
     }
+
+    void update_eval(Piece piece_moved, Piece target_piece, Move move);
 };

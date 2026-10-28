@@ -221,15 +221,7 @@ std::uint8_t piece_phase_score(PieceType piece) {
     }
 }
 
-std::uint8_t get_phase(const Position& position) {
-    std::uint8_t phase = 0;
-    for (const Square square : Square::all()) {
-        phase += piece_phase_score(position.piece_at(square).type());
-    }
-    return std::min(phase, MAX_PHASE);
-}
-
-std::int16_t static_eval(const Position& position) {
+StaticEval get_static_eval(const Position& position) {
     std::int16_t mg_eval = 0;
     std::int16_t eg_eval = 0;
     std::uint8_t phase = 0;
@@ -244,9 +236,45 @@ std::int16_t static_eval(const Position& position) {
         phase += piece_phase_score(piece.type());
     }
 
-    phase = std::min(phase, MAX_PHASE);
+    return {phase, mg_eval, eg_eval};
+}
 
-    return (mg_eval * phase + eg_eval * (MAX_PHASE - phase)) / MAX_PHASE;
+void Position::update_eval(Piece piece_moved, Piece target_piece, Move move) {
+    phase_ -= piece_phase_score(target_piece.type());
+    phase_ += piece_phase_score(move.promotion_type());
+
+    mg_eval_ -= MG_TOTAL[piece_moved.encoding()][move.origin().index()];
+    eg_eval_ -= EG_TOTAL[piece_moved.encoding()][move.origin().index()];
+
+    Piece new_piece = move.is_promotion()
+        ? Piece(turn_, move.promotion_type())
+        : piece_moved;
+    mg_eval_ += MG_TOTAL[new_piece.encoding()][move.target().index()];
+    eg_eval_ += EG_TOTAL[new_piece.encoding()][move.target().index()];
+
+    if (move.is_capture()) {
+        std::uint8_t target_index = move.is_en_passant()
+            ? move.en_passant_capture().index()
+            : move.target().index();
+        mg_eval_ -= MG_TOTAL[target_piece.encoding()][target_index];
+        eg_eval_ -= EG_TOTAL[target_piece.encoding()][target_index];
+    }
+
+    if (move.is_castling()) {
+        Move rook_movement = CastlingOption(move).castling_rook_movement();
+        Piece rook(turn_, PieceType::Rook);
+        mg_eval_ -= MG_TOTAL[rook.encoding()][rook_movement.origin().index()];
+        mg_eval_ += MG_TOTAL[rook.encoding()][rook_movement.target().index()];
+        eg_eval_ -= EG_TOTAL[rook.encoding()][rook_movement.origin().index()];
+        eg_eval_ += EG_TOTAL[rook.encoding()][rook_movement.target().index()];
+    }
+}
+
+std::uint8_t Position::phase() const noexcept { return std::min(phase_, MAX_PHASE); }
+
+std::int16_t Position::static_eval() const noexcept {
+    std::uint8_t phase = std::min(phase_, MAX_PHASE);
+    return (mg_eval_ * phase + eg_eval_ * (MAX_PHASE - phase)) / MAX_PHASE;
 }
 
 constexpr std::int16_t PAWN_VALUE = (MG_PPV[1] + EG_PPV[1]) / 2;
