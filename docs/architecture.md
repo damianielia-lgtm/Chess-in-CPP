@@ -1,4 +1,4 @@
-# Architecture — MultiPLY v1.1
+# Architecture — MultiPLY v1.2
 
 [README](../README.md) · [Engine](engine.md) · [Move generation](movegen.md) · [File formats](file-formats.md)
 
@@ -21,13 +21,13 @@ MultiPLY shares one chess core between a terminal program, a UCI frontend, and d
 
 ## Position and move flow
 
-A position contains a 64-square array plus side to move, castling rights, en passant target, halfmove/fullmove counters, and cached king locations. Square indexing begins at `a1`; FEN conversion accounts for the opposite rank order used by its board text.
+A position contains a 64-square array plus side to move, castling rights, en passant target, halfmove/fullmove counters, cached king locations, and cached material phase and middlegame/endgame evaluation totals. The starting position initializes these evaluation fields directly; FEN construction computes them with a board scan. Square indexing begins at `a1`; FEN conversion accounts for the opposite rank order used by its board text.
 
-Move generation emits legal moves into reusable fixed-capacity lists. `MovesList` preserves generation order for general callers and perft; `ScoredMoveList` orders search moves using capture, promotion, and piece-square scores supplied by the evaluation module. Movement/attack tables supply board geometry; attack checks enforce king safety and castling restrictions. Special move encodings carry promotion, castling, and en passant behavior. Text input resolves to one of the legal moves before execution. Low-level position mutation assumes the caller supplies an appropriate move; it is not a second user-input validator.
+Move generation uses reusable fixed-capacity storage. `MovesList` eagerly collects legal moves in generation order for general callers and perft. Search uses `MovePicker`, which buffers pseudo-legal candidates in promotion, capture, then quiet stages, scores them using the evaluation module, and checks legality as each candidate is selected. `Move::none()` signals exhaustion. Movement/attack tables supply board geometry; attack checks enforce king safety and castling restrictions. Special move encodings carry promotion, castling, and en passant behavior. Text input resolves to one of the legal moves before execution. Low-level position mutation assumes the caller supplies an appropriate move; it is not a second user-input validator.
 
 The [move-generation guide](movegen.md) explains the precomputed tables, target-centered attack queries, candidate filtering, and special-move handling with diagrams.
 
-Search and perft use apply/revert rather than copying every child position. Applying returns an undo record for metadata and capture restoration; reverting restores the parent state. Each recursion level owns a separate reusable move list, so child generation cannot overwrite its parent's pending moves.
+Search and perft use apply/revert rather than copying every child position. Applying updates the cached evaluation with move deltas and returns an undo record containing the previous metadata, capture, phase, and evaluation totals; reverting restores the parent state. Each recursion level owns separate reusable move storage, so child generation cannot overwrite its parent's pending moves. A search picker references its parent position, which must be restored before requesting another move.
 
 ## Game state and history
 
@@ -62,7 +62,7 @@ The frontend uses its own position and always resolves coordinate moves. Searche
 
 ## Search instrumentation and diagnostics
 
-Search templates accept an observer with node, leaf, and move-loop hooks. Ordinary search uses a no-op observer. Benchmarks optionally count nodes/leaves; pruning profiles record how many legal moves a node had and how many children were actually searched before cutoff. This keeps diagnostic logic outside normal evaluation and search policy.
+Search templates accept an observer with node, leaf, and move-loop hooks. Ordinary search uses a no-op observer. Benchmarks optionally count nodes/leaves; pruning profiles record how many legal moves a node had and how many children were actually searched before cutoff. Move-loop hooks receive the position; only the pruning observer eagerly counts its legal moves, since the staged picker has no total-size query. Terminal nodes reach these hooks but add no histogram observation. This keeps diagnostic logic outside normal evaluation and search policy.
 
 Diagnostics return report contents: text lines and, when available, CSV lines. The interface prints them and retains the latest report. Storage writes it only on request. Perft exercises move generation and reversible mutations without evaluation or game-result adjudication. The debugger adds an external Stockfish process as a reference.
 

@@ -1,4 +1,4 @@
-# Diagnostics and Picker Lab — MultiPLY v1.1
+# Diagnostics and Picker Lab — MultiPLY v1.2
 
 [README](../README.md) · [CLI syntax](cli.md) · [File formats](file-formats.md)
 
@@ -76,6 +76,8 @@ report save pruning-fast
 
 The profiler records `(N, k)` for completed non-leaf move loops: `N` is legal moves available and `k` is children searched before returning/cutting off. Root loops are included and consume all their moves; depth-zero leaves and no-legal-move nodes have no move-loop observation. Fixed-depth profiling has no timeout.
 
+MovePicker generates moves in stages, so the profiling observer separately counts all legal moves at the start of each loop. This extra generation runs only during pruning profiling; ordinary searches and benchmarks keep lazy move generation.
+
 Text reports the number of observed loops, average legal moves, and average moves searched. Saving writes a companion CSV with header `N,k,count` when observations exist. Preset mode accumulates the histogram across selected searches. `track-benchmark-stats` does not disable pruning profiling.
 
 The histogram describes the present engine's scored move order. Changes to ordering can change `k` and therefore the workload used to evaluate picker strategies; regenerate profiles when comparing ordering policies.
@@ -131,7 +133,7 @@ The plotter combines cost and frequency by `(N,k)` and writes:
 | `06_expected_cost_by_n.png` | Frequency-weighted expected cost by list size. |
 | `07_workload_impact.png` | Contributions to aggregate workload cost. |
 
-The plotter supports N=1–100, while engine profile CSV can contain larger legal lists. Such rows must be handled explicitly before plotting; the script rejects values outside its supported domain. It requires positive workload observations and sufficient cost coverage. Frontier/expected-cost views use a 250-observation-per-N cutoff. Projected picker savings concern picker overhead only; they do not establish end-to-end engine speedups. The v1.1 engine uses insertion-ordered scored lists; no measured Picker Lab policy is installed into search.
+The plotter supports N=1–100, while engine profile CSV can contain larger legal lists, up to the 256-entry capacity. Such rows must be handled explicitly before plotting; the script rejects values outside its supported domain. It requires positive workload observations and sufficient cost coverage. Frontier/expected-cost views use a 250-observation-per-N cutoff. Projected picker savings concern picker overhead only; they do not establish end-to-end engine speedups. The v1.2 engine uses staged picking, maximum selection until the first legal move, and sorting for later picks. Its profile records whole-node legal counts and consumption, rather than per-stage pseudo-legal buffer sizes, so the synthetic strategies do not directly model its full picker cost.
 
 ## Reports and a small validation routine
 

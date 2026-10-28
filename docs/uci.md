@@ -1,4 +1,4 @@
-# UCI interface — MultiPLY v1.1
+# UCI interface — MultiPLY v1.2
 
 [README](../README.md) · [Engine](engine.md)
 
@@ -8,7 +8,7 @@ MultiPLY exposes a limited UCI command set through standard input/output. It sta
 
 | Input | Output / behavior |
 | --- | --- |
-| `uci` | `id name MultiPLY v1.1`, `id author Elia Damiani`, then `uciok`. Repeating it repeats identification. |
+| `uci` | `id name MultiPLY v1.2`, `id author Elia Damiani`, then `uciok`. Repeating it repeats identification. |
 | `isready` | `readyok`, once the command can be processed. |
 | `ucinewgame` | Accepted with no response; currently a no-op. Send `position` to establish the next game position. |
 | `quit` | Exit when read. EOF also closes the process. |
@@ -71,7 +71,7 @@ MultiPLY does not emit `info depth`, `info score`, `info nodes`, `info time`, a 
 
 ```text
 > uci
-< id name MultiPLY v1.1
+< id name MultiPLY v1.2
 < id author Elia Damiani
 < uciok
 > isready

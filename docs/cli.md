@@ -1,4 +1,4 @@
-# CLI reference — MultiPLY v1.1
+# CLI reference — MultiPLY v1.2
 
 [README](../README.md) · [UCI](uci.md) · [File formats](file-formats.md)
 

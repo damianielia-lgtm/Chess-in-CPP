@@ -2,7 +2,7 @@
 
 MultiPLY is a C++ chess program with terminal play, position analysis, a UCI engine interface, and tools for investigating move generation and search performance.
 
-**Current version: v1.1** The executable is named `MultiPLY.exe`; its UCI identification string is currently `MultiPLY v1.1`.
+**Current version: v1.2** The executable is named `MultiPLY.exe`; its UCI identification string is currently `MultiPLY v1.2`.
 
 ![Lucas Chess](docs/images/LucasChess-screenshot.png)
 *Lucas Chess screenshot*
@@ -13,7 +13,7 @@ MultiPLY is a C++ chess program with terminal play, position analysis, a UCI eng
 - Local and engine games, with optional clocks and increments.
 - Replay and branching analysis, with board orientation controls.
 - FEN positions, SAN and UCI move notation, and PGN import/export with clock annotations.
-- Alpha-beta search with scored move ordering, timed iterative deepening, mate-distance scoring, and basic clock management.
+- Alpha-beta search with staged move picking, incremental tapered evaluation, timed iterative deepening, mate-distance scoring, and basic clock management.
 - A UCI subset for connecting to chess GUIs such as Lucas Chess.
 - Perft suites, a Stockfish comparison debugger, search benchmarks, pruning profiles, and Picker Lab experiments.
 
@@ -99,13 +99,13 @@ Start-position depth 3 produces **8,902 nodes**. The preset test compares agains
 
 ## Current engine strength and limitations
 
-MultiPLY v1.1 provides a simple search baseline with scored move ordering. No measured Elo rating is supplied.
+MultiPLY v1.2 provides a simple search baseline with staged move picking and cached evaluation updated as moves are applied. No measured Elo rating is supplied.
 
-| Implemented | Not implemented in v1.1 |
+| Implemented | Not implemented in v1.2 |
 | --- | --- |
-| Alpha-beta minimax with scored move ordering | Killer/history and principal-variation ordering |
+| Alpha-beta minimax with staged, scored move picking | Killer/history and principal-variation ordering |
 | Iterative deepening for timed searches | Quiescence search |
-| Tapered material and piece-square evaluation | Transposition tables |
+| Incremental tapered material and piece-square evaluation | Transposition tables |
 | Mate-distance scoring | Advanced pruning and search extensions |
 | Basic soft/hard time budgets | NNUE, opening books, and tablebases |
 
@@ -136,7 +136,7 @@ Search depth is limited to 16 plies. The search does not track repetition, the f
 
 MultiPLY began as a Python chess program, was rebuilt from scratch in C++, and evolved into a standalone engine with a UCI interface. Version 1 records the working chess program and its deliberately simple search as a baseline for future experiments.
 
-Version 1.1 adds move ordering using capture, promotion, and piece-square scores. Future directions include fixing UCI FEN loading, interruptible search and richer UCI output, further move-selection experiments informed by Picker Lab, quiescence search, transposition tables, stronger evaluation, and broader platform support. These are directions, not scheduled release commitments.
+Version 1.1 added move ordering using capture, promotion, and piece-square scores. Version 1.2 replaces eager scored lists with a staged move picker and tracks evaluation incrementally in each position. Future directions include fixing UCI FEN loading, interruptible search and richer UCI output, further move-selection experiments informed by Picker Lab, quiescence search, transposition tables, stronger evaluation, and broader platform support. These are directions, not scheduled release commitments.
 
 ## License and attribution
 
